@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Family data must never be committed: databases, exports and samples are personal
+*.lineage
+*.lineage.saving
+*.aq
+*.ac
+*.paf
+*.ged
+samples/

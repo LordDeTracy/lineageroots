@@ -1,0 +1,105 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.ResearchPage"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Resources>
+    <!-- One task: tick box, what to do, who it's about; click to edit -->
+    <DataTemplate x:Key="TaskTemplate" x:DataType="vm:ResearchRow">
+      <Border Classes="card" Padding="6" Margin="0,0,0,10">
+        <Grid ColumnDefinitions="Auto,*">
+          <CheckBox IsChecked="{Binding Done, Mode=OneWay}" VerticalAlignment="Top" Margin="14,12,0,0"
+                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleResearchDoneCommand}"
+                    CommandParameter="{Binding}" ToolTip.Tip="Mark as done"
+                    AutomationProperties.Name="{Binding Description, StringFormat='Done: {0}'}" />
+          <Button Grid.Column="1" Classes="eventRow" Margin="0" Padding="10,10,14,10"
+                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditResearchCommand}"
+                  CommandParameter="{Binding}" ToolTip.Tip="Click to edit" AutomationProperties.Name="{Binding Description}">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Description}" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Classes.done="{Binding Done}" />
+                <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding People}" ItemsPanel="{StaticResource WrapPanel}" IsVisible="{Binding HasPeople}"
+                              Margin="0,4,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PersonChoice">
+                      <Border Classes="chip" Margin="0,0,6,4">
+                        <TextBlock Text="{Binding Text}" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="faint small" Text="{Binding Note}" IsVisible="{Binding HasNote}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Border Grid.Column="1" Classes="chip" Classes.high="{Binding IsHigh}" IsVisible="{Binding HasPriority}"
+                      VerticalAlignment="Top" Margin="10,0,0,0">
+                <TextBlock Text="{Binding Priority}" />
+              </Border>
+            </Grid>
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.done">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Border.chip.high">
+      <Setter Property="Background" Value="{DynamicResource FemaleBg}" />
+    </Style>
+    <Style Selector="Border.chip.high TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel MaxWidth="900" Margin="32,28,32,40" Spacing="18">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="display" Text="Research" />
+          <TextBlock Classes="muted" Text="{Binding ResearchSummary}" />
+        </StackPanel>
+        <Grid Grid.Column="1" Width="260" Margin="0,0,10,0" VerticalAlignment="Center">
+          <TextBox Classes="search" Text="{Binding ResearchSearch}" Watermark="Search tasks…" AutomationProperties.Name="Search tasks" />
+          <c:LineIcon Data="{StaticResource IconSearch}" Width="16" Height="16" Margin="12,0,0,0"
+                      HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
+                      Foreground="{DynamicResource Faint}" />
+        </Grid>
+        <Button Grid.Column="2" Classes="primary" Command="{Binding NewResearchCommand}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconPlus}" />
+            <TextBlock Text="New task" />
+          </StackPanel>
+        </Button>
+      </Grid>
+
+      <ListBox Classes="segmented" SelectedIndex="{Binding ResearchFilterIndex}" HorizontalAlignment="Left"
+               AutomationProperties.Name="Show tasks">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBoxItem Content="To do" />
+        <ListBoxItem Content="Done" />
+        <ListBoxItem Content="All" />
+      </ListBox>
+
+      <StackPanel IsVisible="{Binding HasNoResearch}" HorizontalAlignment="Center" Margin="0,60,0,0" Spacing="8" MaxWidth="420">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+          <c:LineIcon Data="{StaticResource IconChecklist}" Width="28" Height="28" />
+        </Border>
+        <TextBlock Classes="title" Text="No research tasks yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="Keep a list of records to look for and questions to answer — like 'Find Thomas in the 1881 census'. Link each task to the people it's about." />
+      </StackPanel>
+
+      <ItemsControl ItemsSource="{Binding ResearchList}" ItemTemplate="{StaticResource TaskTemplate}" />
+      <TextBlock Classes="muted" Text="Nothing here — try another filter." HorizontalAlignment="Center"
+                 IsVisible="{Binding ShowNoResearchMatches}" Margin="0,20,0,0" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

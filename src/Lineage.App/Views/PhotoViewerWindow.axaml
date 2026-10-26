@@ -1,0 +1,229 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.PhotoViewerWindow"
+        x:DataType="vm:PhotoViewerViewModel"
+        x:Name="Root"
+        Title="{Binding Heading}" Width="1220" Height="800" MinWidth="880" MinHeight="560" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <Window.Resources>
+    <!-- Photos are judged against a dark neutral background, whatever the app theme -->
+    <SolidColorBrush x:Key="Backdrop" Color="#17181A" />
+  </Window.Resources>
+
+  <Window.Styles>
+    <Style Selector="Button.nav">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="22" />
+      <Setter Property="Background" Value="#2EFFFFFF" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#4DFFFFFF" />
+    </Style>
+    <Style Selector="Button.nav:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="#66FFFFFF" />
+    </Style>
+    <Style Selector="Border.banner">
+      <Setter Property="Background" Value="#E6101113" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14,7" />
+    </Style>
+    <Style Selector="Border.tagRow">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="6,5" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.tagRow.lit">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    </Style>
+    <!-- A tagged person's name: a quiet link to their page -->
+    <Style Selector="Button.name">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.name:pointerover /template/ ContentPresenter, Button.name:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.name:pointerover TextBlock.personName">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Position}" FontWeight="Medium" IsVisible="{Binding HasMany}" VerticalAlignment="Center" />
+          <TextBlock Classes="faint small" Text="{Binding FileName}" VerticalAlignment="Center" MaxWidth="560"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FullPath}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" MinWidth="96" Click="OnDone" HorizontalContentAlignment="Center">
+            <TextBlock Text="Done" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Details and the people tagged -->
+    <Border DockPanel.Dock="Right" Width="350" BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0">
+      <ScrollViewer>
+        <StackPanel Margin="24,22,24,24" Spacing="18">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Title" />
+            <TextBox Text="{Binding Title}" Watermark="{Binding FileName}" AutomationProperties.Name="Title" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Date taken" />
+            <TextBox Text="{Binding Taken}" Watermark="e.g. Jun 1925, abt 1930" AutomationProperties.Name="Date taken" />
+            <TextBlock Classes="hint" Text="{Binding TakenHint}" IsVisible="{Binding HasTakenHint}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Where it was taken" />
+            <TextBox Text="{Binding Location}" Watermark="GPS coordinates, e.g. 42.2626, -71.8023"
+                     AutomationProperties.Name="Where it was taken" />
+            <TextBlock Classes="small" Foreground="{DynamicResource Danger}" Margin="2,6,0,0" TextWrapping="Wrap"
+                       Text="{Binding LocationError}" IsVisible="{Binding HasLocationError}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Notes" />
+            <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="84"
+                     VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" Margin="2,6,0,0">
+              <TextBlock Classes="section" Text="PEOPLE IN THIS PHOTO" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding StartTaggingCommand}"
+                      IsVisible="{Binding !IsTagging}" Margin="0,-8,-10,-8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:LineIcon Data="{StaticResource IconUserPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                  <TextBlock Text="Tag a person" Foreground="{DynamicResource Accent}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <!-- Tagging: draw a box, then say who it is -->
+            <Border Classes="card" Padding="14,12" IsVisible="{Binding IsTagging}">
+              <StackPanel Spacing="10">
+                <StackPanel Spacing="4" IsVisible="{Binding IsDrawing}">
+                  <TextBlock Text="Drag a box around the person’s face on the photo." TextWrapping="Wrap" />
+                  <TextBlock Classes="muted small" Text="Or just click their face. Press Esc to stop tagging." TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding HasPendingRegion}">
+                  <TextBlock Classes="label" Text="Who is this?" />
+                  <AutoCompleteBox x:Name="PersonBox" ItemsSource="{Binding People}" SelectedItem="{Binding PendingPerson}"
+                                   Text="{Binding PendingText}" FilterMode="Contains" MinimumPrefixLength="1"
+                                   MaxDropDownHeight="300" Watermark="Start typing a name"
+                                   AutomationProperties.Name="Who is this?">
+                    <AutoCompleteBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:PersonOption">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding Name}" />
+                          <TextBlock Classes="muted small" Text="{Binding Lifespan}" VerticalAlignment="Center"
+                                     IsVisible="{Binding HasLifespan}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                  </AutoCompleteBox>
+                  <TextBlock Classes="small" Foreground="{DynamicResource Danger}" Margin="2,6,0,0" TextWrapping="Wrap"
+                             Text="{Binding TagError}" IsVisible="{Binding HasTagError}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                  <Button Classes="outline" Content="Stop tagging" Command="{Binding CancelTaggingCommand}" />
+                  <Button Classes="primary" Command="{Binding ConfirmTagCommand}" IsVisible="{Binding HasPendingRegion}"
+                          MinWidth="72" HorizontalContentAlignment="Center">
+                    <TextBlock Text="Tag" Foreground="{DynamicResource OnAccent}" />
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <ItemsControl x:Name="TagList" ItemsSource="{Binding Tags}" Margin="-6,0">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TagRow">
+                  <Border Classes="tagRow" Classes.lit="{Binding IsHighlighted}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Border Classes="avatar" Classes.male="{Binding IsMale}" Classes.female="{Binding IsFemale}"
+                              Width="32" Height="32" CornerRadius="16" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Initials}" FontSize="11.5" />
+                      </Border>
+                      <Button Grid.Column="1" Classes="name" IsEnabled="{Binding Exists}"
+                              Command="{Binding #Root.((vm:PhotoViewerViewModel)DataContext).OpenPersonCommand}"
+                              CommandParameter="{Binding}" ToolTip.Tip="Go to this person"
+                              AutomationProperties.Name="{Binding Name}">
+                        <StackPanel Spacing="1">
+                          <TextBlock Classes="personName" Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted small" Text="{Binding Lifespan}" IsVisible="{Binding HasLifespan}" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Classes="ghost icon" Width="30" Height="30" Padding="7" VerticalAlignment="Center"
+                              Command="{Binding #Root.((vm:PhotoViewerViewModel)DataContext).RemoveTagCommand}"
+                              CommandParameter="{Binding}" ToolTip.Tip="Remove this tag"
+                              AutomationProperties.Name="Remove tag">
+                        <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="faint small" TextWrapping="Wrap" IsVisible="{Binding ShowEmpty}" Margin="2,0"
+                       Text="No one is tagged in this photo yet. Use Tag a person, then drag a box around their face." />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- The photo -->
+    <Border Background="{StaticResource Backdrop}">
+      <Panel>
+        <c:PhotoTagSurface x:Name="Surface" Margin="76,28" Source="{Binding Image}" Regions="{Binding Tags}"
+                           Highlighted="{Binding HighlightedTag}" IsTagging="{Binding IsTagging}"
+                           Pending="{Binding PendingRegion}" />
+        <StackPanel IsVisible="{Binding HasMessage}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Spacing="10" MaxWidth="440" Margin="24">
+          <c:LineIcon Data="{StaticResource IconImage}" Width="40" Height="40" Foreground="#8A8D91" HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding MessageTitle}" Foreground="White" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding MessageDetail}" Foreground="#A3A7AC" TextWrapping="Wrap" TextAlignment="Center" />
+        </StackPanel>
+        <TextBlock Text="Loading…" IsVisible="{Binding IsLoading}" Foreground="#A3A7AC"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Border Classes="banner" IsVisible="{Binding IsTagging}" IsHitTestVisible="False"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0">
+          <TextBlock Text="{Binding TaggingHint}" Foreground="White" FontSize="12.5" />
+        </Border>
+        <Button Classes="nav" HorizontalAlignment="Left" Margin="16,0" Command="{Binding PreviousCommand}"
+                IsVisible="{Binding HasPrevious}" ToolTip.Tip="Previous photo (Left arrow)" AutomationProperties.Name="Previous photo">
+          <c:LineIcon Data="{StaticResource IconBack}" Width="22" Height="22" Foreground="White" />
+        </Button>
+        <Button Classes="nav" HorizontalAlignment="Right" Margin="16,0" Command="{Binding NextCommand}"
+                IsVisible="{Binding HasNext}" ToolTip.Tip="Next photo (Right arrow)" AutomationProperties.Name="Next photo">
+          <c:LineIcon Data="{StaticResource IconForward}" Width="22" Height="22" Foreground="White" />
+        </Button>
+      </Panel>
+    </Border>
+  </DockPanel>
+</Window>

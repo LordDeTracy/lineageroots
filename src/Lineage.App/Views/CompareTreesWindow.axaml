@@ -1,0 +1,120 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:core="using:Lineage.Core.Analysis"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.CompareTreesWindow"
+        x:DataType="vm:CompareTreesViewModel"
+        x:Name="Root"
+        Title="Compare trees" Width="1000" Height="720" MinWidth="720" MinHeight="460"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Text="Copying brings the chosen people in with their links to relatives you already have. Ctrl+Z undoes it." />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Close" IsCancel="True" Click="OnClose" />
+          <Button Classes="primary" Click="OnCopy" IsVisible="{Binding IsTheirsTab}">
+            <TextBlock Text="Copy ticked people into my tree" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <StackPanel DockPanel.Dock="Top" Margin="26,22,26,12" Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconMerge}" /></Border>
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" FontSize="20" Text="{Binding OtherName, StringFormat='Compare with {0}'}" />
+          <TextBlock Classes="muted small" Text="{Binding Summary}" TextWrapping="Wrap" />
+        </StackPanel>
+      </StackPanel>
+      <ListBox Classes="segmented" ItemsSource="{Binding Tabs}" SelectedIndex="{Binding TabIndex}" HorizontalAlignment="Left"
+               AutomationProperties.Name="Show">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      </ListBox>
+    </StackPanel>
+
+    <Panel Margin="14,0,14,10">
+      <!-- In both -->
+      <Grid ColumnDefinitions="360,*" IsVisible="{Binding IsMatchesTab}">
+        <ListBox Classes="people" ItemsSource="{Binding Matches}" SelectedItem="{Binding SelectedMatch}" AutomationProperties.Name="People in both">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:MatchRow">
+              <StackPanel Spacing="1">
+                <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted small" Text="{Binding Detail}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <ScrollViewer Grid.Column="1" Margin="14,0,0,0">
+          <Border Classes="card" Padding="0" IsVisible="{Binding SelectedMatch, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel>
+              <Grid ColumnDefinitions="140,*,*" Margin="20,14,20,10">
+                <TextBlock Grid.Column="1" Classes="section" Text="YOURS" />
+                <TextBlock Grid.Column="2" Classes="section" Text="THEIRS" />
+              </Grid>
+              <Border Height="1" Background="{DynamicResource Line}" />
+              <TextBlock Classes="muted" Margin="20,14" Text="The two records agree on everything compared."
+                         IsVisible="{Binding !SelectedMatch.HasDifferences}" />
+              <ItemsControl ItemsSource="{Binding SelectedMatch.Differences}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="core:FieldDifference">
+                    <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10">
+                      <Grid ColumnDefinitions="140,*,*">
+                        <TextBlock Classes="muted small" Text="{Binding Label}" Margin="0,2,0,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Mine}" TextWrapping="Wrap" Margin="0,0,14,0" />
+                        <TextBlock Grid.Column="2" Text="{Binding Theirs}" TextWrapping="Wrap" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="20,14">
+                <Button Classes="outline" Content="Open my copy" Command="{Binding #Root.((vm:CompareTreesViewModel)DataContext).OpenMineCommand}"
+                        CommandParameter="{Binding SelectedMatch}" />
+                <Button Classes="ghost" Content="Not the same person" Command="{Binding #Root.((vm:CompareTreesViewModel)DataContext).NotSamePersonCommand}"
+                        CommandParameter="{Binding SelectedMatch}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </Grid>
+
+      <!-- Only in theirs -->
+      <DockPanel IsVisible="{Binding IsTheirsTab}">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="10,0,0,8">
+          <Button Classes="ghost" Content="Tick all" Command="{Binding ChooseAllCommand}">
+            <Button.CommandParameter><x:Boolean>True</x:Boolean></Button.CommandParameter>
+          </Button>
+          <Button Classes="ghost" Content="Untick all" Command="{Binding ChooseAllCommand}">
+            <Button.CommandParameter><x:Boolean>False</x:Boolean></Button.CommandParameter>
+          </Button>
+        </StackPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding OnlyTheirs}" Margin="10,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:OtherPersonRow">
+                <CheckBox IsChecked="{Binding Chosen}" Margin="0,3">
+                  <StackPanel Spacing="1">
+                    <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                    <TextBlock Classes="muted small" Text="{Binding Detail}" />
+                  </StackPanel>
+                </CheckBox>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+
+      <!-- Only in yours -->
+      <ScrollViewer IsVisible="{Binding IsMineTab}">
+        <ItemsControl ItemsSource="{Binding OnlyMine}" ItemTemplate="{StaticResource PersonCardTemplate}"
+                      ItemsPanel="{StaticResource WrapPanel}" Margin="10,0" />
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</Window>

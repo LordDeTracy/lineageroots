@@ -1,0 +1,126 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.PlacesPage"
+             x:DataType="vm:MainViewModel">
+  <ScrollViewer>
+    <StackPanel MaxWidth="980" Margin="32,28,32,40" Spacing="20">
+
+      <StackPanel IsVisible="{Binding HasNoPlaces}" HorizontalAlignment="Center" Margin="0,100,0,0" Spacing="8" MaxWidth="400">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+          <c:LineIcon Data="{StaticResource IconGlobe}" Width="28" Height="28" />
+        </Border>
+        <TextBlock Classes="title" Text="No places yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="Places appear here as you add them to births, marriages and other events." />
+      </StackPanel>
+
+      <!-- Map of every place with GPS -->
+      <Border Height="380" CornerRadius="14" ClipToBounds="True" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+              IsVisible="{Binding HasPlacePins}">
+        <c:MapView Name="PlacesMap" Pins="{Binding PlacePins}" />
+      </Border>
+      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasPlacePins}"
+                 Text="Give places a GPS location (paste coordinates below) and they appear on a map here." />
+
+      <!-- Clean-up suggestions -->
+      <Border Classes="card" Padding="26,22" IsVisible="{Binding HasPlaceSuggestions}">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="section" Text="TIDY UP PLACE NAMES" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="These look like the same place written different ways. Standardising renames every event to the suggested name." />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="outline" Command="{Binding ApplyAllPlaceSuggestionsCommand}" VerticalAlignment="Top" Margin="12,0,0,0">
+              <TextBlock Text="Standardise all" />
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding PlaceSuggestions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PlaceSuggestionRow">
+                <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="0,12,0,4">
+                  <Grid ColumnDefinitions="*,Auto,Auto">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Standard}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Variants, StringFormat='Also written: {0}'}" />
+                      <TextBlock Classes="faint small" Text="{Binding Reason}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="ghost" Content="Skip" VerticalAlignment="Top" Margin="8,0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DismissPlaceSuggestionCommand}"
+                            CommandParameter="{Binding}" />
+                    <Button Grid.Column="2" Classes="outline" Content="Standardise" VerticalAlignment="Top"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ApplyPlaceSuggestionCommand}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- The selected place -->
+      <Border Classes="card" Padding="26,24" IsVisible="{Binding HasSelectedPlace}">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" VerticalAlignment="Top">
+              <c:LineIcon Data="{StaticResource IconPin}" Width="26" Height="26" />
+            </Border>
+            <StackPanel Grid.Column="1" Margin="18,2,16,0" Spacing="4">
+              <SelectableTextBlock Text="{Binding PlaceTitle}" TextWrapping="Wrap" FontSize="22" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="{Binding PlaceSummary}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="outline" Command="{Binding RenamePlaceCommand}" VerticalAlignment="Top"
+                    ToolTip.Tip="Rename, or merge into another place">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <c:LineIcon Data="{StaticResource IconEdit}" Width="16" Height="16" />
+                <TextBlock Text="Rename or merge" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <Grid ColumnDefinitions="*,8,Auto">
+            <StackPanel>
+              <TextBlock Classes="label" Text="GPS location — used for every event at this place" />
+              <TextBox Text="{Binding PlaceCoordinates, UpdateSourceTrigger=LostFocus}" Watermark="Paste coordinates, e.g. 53.8008, -1.5491"
+                       AutomationProperties.Name="GPS location" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="ghost" VerticalAlignment="Bottom" Command="{Binding ShowOnMapCommand}"
+                    CommandParameter="{Binding PlaceMapUrl}" ToolTip.Tip="Open OpenStreetMap in your browser">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
+                <TextBlock Text="Map" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Classes="small" Foreground="{DynamicResource Danger}" Text="{Binding PlaceCoordinatesError}"
+                     IsVisible="{Binding HasPlaceCoordinatesError}" Margin="2,-8,0,0" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" Padding="26,22" IsVisible="{Binding HasSelectedPlace}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="section" Text="WHAT HAPPENED HERE" />
+          <ItemsControl ItemsSource="{Binding PlaceEvents}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PlaceEventRow">
+                <Button Classes="eventRow" Margin="-8,0" Padding="8,6"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPersonCommand}"
+                        CommandParameter="{Binding PersonId}">
+                  <Grid ColumnDefinitions="110,*">
+                    <TextBlock Classes="muted" Text="{Binding Date}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                      <TextBlock Classes="muted" Text="{Binding What}" />
+                    </StackPanel>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

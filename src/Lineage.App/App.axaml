@@ -1,0 +1,546 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Lineage.App.Controls"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             x:Class="Lineage.App.App"
+             RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <!-- Light: warm paper, ink text, deep evergreen accent -->
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="Bg" Color="#F6F3EE" />
+          <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#FBF9F6" />
+          <SolidColorBrush x:Key="Sidebar" Color="#EFEBE4" />
+          <SolidColorBrush x:Key="Line" Color="#E4DED5" />
+          <SolidColorBrush x:Key="LineStrong" Color="#D3CBBE" />
+          <SolidColorBrush x:Key="Ink" Color="#22252A" />
+          <SolidColorBrush x:Key="Muted" Color="#6F7378" />
+          <SolidColorBrush x:Key="Faint" Color="#9A9DA2" />
+          <SolidColorBrush x:Key="Accent" Color="#2E6B58" />
+          <SolidColorBrush x:Key="AccentHover" Color="#255A4A" />
+          <SolidColorBrush x:Key="AccentSoft" Color="#E2EEE9" />
+          <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="Hover" Color="#0C000000" />
+          <SolidColorBrush x:Key="Selected" Color="#DCE9E3" />
+          <SolidColorBrush x:Key="MaleBg" Color="#DCE7F3" />
+          <SolidColorBrush x:Key="MaleInk" Color="#2D5784" />
+          <SolidColorBrush x:Key="FemaleBg" Color="#F5E0E5" />
+          <SolidColorBrush x:Key="FemaleInk" Color="#93405A" />
+          <SolidColorBrush x:Key="OtherBg" Color="#EAE6DF" />
+          <SolidColorBrush x:Key="OtherInk" Color="#6A645B" />
+          <SolidColorBrush x:Key="Danger" Color="#B4413A" />
+        </ResourceDictionary>
+        <!-- Dark: charcoal, soft ivory text, sage accent -->
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="Bg" Color="#16181A" />
+          <SolidColorBrush x:Key="Surface" Color="#1F2225" />
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#24272B" />
+          <SolidColorBrush x:Key="Sidebar" Color="#1B1D20" />
+          <SolidColorBrush x:Key="Line" Color="#2E3236" />
+          <SolidColorBrush x:Key="LineStrong" Color="#3B4045" />
+          <SolidColorBrush x:Key="Ink" Color="#ECE9E4" />
+          <SolidColorBrush x:Key="Muted" Color="#A3A7AC" />
+          <SolidColorBrush x:Key="Faint" Color="#7C8085" />
+          <SolidColorBrush x:Key="Accent" Color="#7FC4AC" />
+          <SolidColorBrush x:Key="AccentHover" Color="#93D1BB" />
+          <SolidColorBrush x:Key="AccentSoft" Color="#22352F" />
+          <SolidColorBrush x:Key="OnAccent" Color="#10241D" />
+          <SolidColorBrush x:Key="Hover" Color="#12FFFFFF" />
+          <SolidColorBrush x:Key="Selected" Color="#253A33" />
+          <SolidColorBrush x:Key="MaleBg" Color="#22334A" />
+          <SolidColorBrush x:Key="MaleInk" Color="#9EC3EC" />
+          <SolidColorBrush x:Key="FemaleBg" Color="#43262F" />
+          <SolidColorBrush x:Key="FemaleInk" Color="#EBA9BC" />
+          <SolidColorBrush x:Key="OtherBg" Color="#2E2C29" />
+          <SolidColorBrush x:Key="OtherInk" Color="#C2BBB0" />
+          <SolidColorBrush x:Key="Danger" Color="#E37C74" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- 24×24 stroke icons -->
+      <StreamGeometry x:Key="IconSearch">M11 4a7 7 0 1 1 0 14a7 7 0 1 1 0-14M20 20l-4.2-4.2</StreamGeometry>
+      <StreamGeometry x:Key="IconBack">M15 18l-6-6 6-6</StreamGeometry>
+      <StreamGeometry x:Key="IconForward">M9 6l6 6-6 6</StreamGeometry>
+      <StreamGeometry x:Key="IconEdit">M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4zM13.5 6.5l4 4</StreamGeometry>
+      <StreamGeometry x:Key="IconUserPlus">M15 20c0-3-2.7-5.5-6-5.5S3 17 3 20M9 11.5a3.75 3.75 0 1 0 0-7.5a3.75 3.75 0 1 0 0 7.5M19 8v6M16 11h6</StreamGeometry>
+      <StreamGeometry x:Key="IconUsers">M9 11.5a3.75 3.75 0 1 0 0-7.5a3.75 3.75 0 1 0 0 7.5M3 20c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5M16 4.3a3.6 3.6 0 0 1 0 6.9M18 14.9c1.8.9 3 2.7 3 5.1</StreamGeometry>
+      <StreamGeometry x:Key="IconHeart">M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z</StreamGeometry>
+      <StreamGeometry x:Key="IconTrash">M4 7h16M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4L17.5 7M10 11v5M14 11v5</StreamGeometry>
+      <StreamGeometry x:Key="IconSave">M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6</StreamGeometry>
+      <StreamGeometry x:Key="IconImport">M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19.5h16</StreamGeometry>
+      <StreamGeometry x:Key="IconExport">M12 15V4M7.5 8.5L12 4l4.5 4.5M4 19.5h16</StreamGeometry>
+      <StreamGeometry x:Key="IconFolder">M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z</StreamGeometry>
+      <StreamGeometry x:Key="IconFile">M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5zM14 3.5v5h5M9 13h6M9 16.5h4</StreamGeometry>
+      <StreamGeometry x:Key="IconSprout">M12 21v-8M12 13c0-4 3-6.5 7.5-6.5C19.5 10.5 16.5 13 12 13zM12 15.5c0-3-2.3-5-6.5-5c0 3 2.3 5 6.5 5z</StreamGeometry>
+      <StreamGeometry x:Key="IconPlus">M12 5v14M5 12h14</StreamGeometry>
+      <StreamGeometry x:Key="IconMore">M6 12h.01M12 12h.01M18 12h.01</StreamGeometry>
+      <StreamGeometry x:Key="IconBook">M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5zM5 20.5A2.5 2.5 0 0 1 7.5 18H19v3H7.5</StreamGeometry>
+      <StreamGeometry x:Key="IconSun">M12 8a4 4 0 1 1 0 8a4 4 0 1 1 0-8M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4</StreamGeometry>
+      <StreamGeometry x:Key="IconMoon">M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z</StreamGeometry>
+      <StreamGeometry x:Key="IconPin">M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 7.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5</StreamGeometry>
+      <StreamGeometry x:Key="IconNote">M5 4h14v12l-4 4H5zM15 20v-4h4M8.5 9h7M8.5 12.5h5</StreamGeometry>
+      <StreamGeometry x:Key="IconImage">M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8.5 10.5a1.75 1.75 0 1 0 0-3.5a1.75 1.75 0 1 0 0 3.5M20 15l-5-5L5 20</StreamGeometry>
+      <StreamGeometry x:Key="IconMap">M9 4.5L3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2zM9 4.5v13M15 6.5v13</StreamGeometry>
+      <StreamGeometry x:Key="IconUndo">M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11</StreamGeometry>
+      <StreamGeometry x:Key="IconRedo">M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13</StreamGeometry>
+      <StreamGeometry x:Key="IconTree">M4 9.5h5v5H4zM15 4h5v5h-5zM15 15h5v5h-5zM9 12h3M12 6.5v11M12 6.5h3M12 17.5h3</StreamGeometry>
+      <StreamGeometry x:Key="IconFan">M3 17a9 9 0 0 1 18 0zM7.5 17a4.5 4.5 0 0 1 9 0M12 8v4.5M5.6 10.6l3.2 3.2M18.4 10.6l-3.2 3.2</StreamGeometry>
+      <StreamGeometry x:Key="IconList">M4 5.5h16M4 10.5h16M4 15.5h10M4 20h7</StreamGeometry>
+      <StreamGeometry x:Key="IconExternal">M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5</StreamGeometry>
+      <StreamGeometry x:Key="IconMerge">M6 4v4a6 6 0 0 0 6 6 6 6 0 0 1 6 6M18 4v4a6 6 0 0 1-3 5.2M12 14v6</StreamGeometry>
+      <StreamGeometry x:Key="IconPrint">M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z</StreamGeometry>
+      <StreamGeometry x:Key="IconCloud">M7 18.5a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.5 1.6A3.75 3.75 0 0 1 17.25 18.5z</StreamGeometry>
+      <StreamGeometry x:Key="IconHome">M4 11l8-7 8 7M6 9.5V20h4.5v-6h3v6H18V9.5</StreamGeometry>
+      <StreamGeometry x:Key="IconChecklist">M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M4 18h2.5</StreamGeometry>
+      <StreamGeometry x:Key="IconGlobe">M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z</StreamGeometry>
+      <StreamGeometry x:Key="IconStar">M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z</StreamGeometry>
+      <StreamGeometry x:Key="IconAlert">M12 4l9 16H3zM12 10v4.5M12 17.5h.01</StreamGeometry>
+      <StreamGeometry x:Key="IconLink">M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1</StreamGeometry>
+      <StreamGeometry x:Key="IconDescend">M9.5 3.5h5v4h-5zM3.5 16.5h5v4h-5zM15.5 16.5h5v4h-5zM12 7.5v4.5M6 16.5V12h12v4.5</StreamGeometry>
+      <StreamGeometry x:Key="IconHourglass">M9.5 2.5h5v3.5h-5zM9.5 18h5v3.5h-5zM3 10h5v4H3zM16 10h5v4h-5zM12 6v12M8 12h8</StreamGeometry>
+      <StreamGeometry x:Key="IconCalendar">M4.5 6h15v14h-15zM4.5 10h15M8.5 3.5V7M15.5 3.5V7</StreamGeometry>
+      <StreamGeometry x:Key="IconWindow">M3.5 5h17v14h-17zM3.5 9h17</StreamGeometry>
+      <StreamGeometry x:Key="IconX">M6 6l12 12M18 6L6 18</StreamGeometry>
+      <!-- A person card; clicking it moves the page to them -->
+      <DataTemplate x:Key="PersonCardTemplate" x:DataType="vm:PersonCard">
+        <Button Classes="personCard"
+                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).NavigateCommand}"
+                CommandParameter="{Binding Id}"
+                AutomationProperties.Name="{Binding Spoken}"
+                ToolTip.Tip="{Binding Name}">
+          <Grid ColumnDefinitions="Auto,*">
+            <Border Classes="avatar" Classes.male="{Binding IsMale}" Classes.female="{Binding IsFemale}">
+              <TextBlock Text="{Binding Initials}" />
+            </Border>
+            <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center" Spacing="1">
+              <TextBlock Classes="section" FontSize="10.5" Text="{Binding Role}" IsVisible="{Binding HasRole}" />
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Grid>
+        </Button>
+      </DataTemplate>
+
+      <ItemsPanelTemplate x:Key="WrapPanel">
+        <WrapPanel />
+      </ItemsPanelTemplate>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#2E6B58" RegionColor="#F6F3EE" />
+        <ColorPaletteResources x:Key="Dark" Accent="#7FC4AC" RegionColor="#16181A" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+
+    <!-- Type -->
+    <Style Selector="TextBlock.display">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="LetterSpacing" Value="-0.4" />
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="LetterSpacing" Value="1.1" />
+      <Setter Property="Foreground" Value="{DynamicResource Faint}" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.faint">
+      <Setter Property="Foreground" Value="{DynamicResource Faint}" />
+    </Style>
+    <Style Selector="TextBlock.small">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Cards -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <!-- Avatars: initials in a tinted circle -->
+    <Style Selector="Border.avatar">
+      <Setter Property="Background" Value="{DynamicResource OtherBg}" />
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="CornerRadius" Value="18" />
+    </Style>
+    <Style Selector="Border.avatar TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource OtherInk}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.avatar.male"><Setter Property="Background" Value="{DynamicResource MaleBg}" /></Style>
+    <Style Selector="Border.avatar.male TextBlock"><Setter Property="Foreground" Value="{DynamicResource MaleInk}" /></Style>
+    <Style Selector="Border.avatar.female"><Setter Property="Background" Value="{DynamicResource FemaleBg}" /></Style>
+    <Style Selector="Border.avatar.female TextBlock"><Setter Property="Foreground" Value="{DynamicResource FemaleInk}" /></Style>
+    <Style Selector="Border.avatar.large">
+      <Setter Property="Width" Value="68" />
+      <Setter Property="Height" Value="68" />
+      <Setter Property="CornerRadius" Value="34" />
+    </Style>
+    <Style Selector="Border.avatar.large TextBlock"><Setter Property="FontSize" Value="24" /></Style>
+
+    <!-- Buttons -->
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,7" />
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="Button.ghost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="Button.ghost:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.icon">
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.primary /template/ ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentHover}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+    </Style>
+    <Style Selector="Button.outline">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LineStrong}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button:disabled c|LineIcon">
+      <Setter Property="Opacity" Value="0.35" />
+    </Style>
+
+    <!-- A clickable person card -->
+    <Style Selector="Button.personCard">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Width" Value="250" />
+      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.personCard:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Button.addCard">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LineStrong}" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="Width" Value="250" />
+      <Setter Property="MinHeight" Value="58" />
+      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="Button.addCard:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <!-- Chips -->
+    <Style Selector="Border.chip">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="9,3" />
+    </Style>
+    <Style Selector="Border.chip TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+
+    <!-- Inputs -->
+    <Style Selector="TextBox">
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="TextBox.search">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="Padding" Value="34,8,10,8" />
+      <Setter Property="CornerRadius" Value="10" />
+    </Style>
+
+    <!-- People list -->
+    <Style Selector="ListBox.people">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.people ListBoxItem">
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="Margin" Value="0,1" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="ListBox.people ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="ListBox.people ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Selected}" />
+    </Style>
+    <!-- Welcome screen choices -->
+    <Style Selector="Button.option">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="18,16" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.option:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Border.iconTile">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    </Style>
+    <Style Selector="Border.iconTile c|LineIcon">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+    </Style>
+    <!-- Photo tiles -->
+    <Style Selector="Button.photo">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Width" Value="176" />
+      <Setter Property="Margin" Value="0,0,14,14" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.photo:pointerover /template/ ContentPresenter, Button.photo:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.frame">
+      <Setter Property="Height" Value="132" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Background" Value="{DynamicResource Sidebar}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.photo:pointerover Border.frame">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <!-- Timeline rows: the whole row is a quiet button -->
+    <Style Selector="Button.eventRow">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0,6,8,0" />
+      <Setter Property="Margin" Value="-8,0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.eventRow:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="Button.eventRow:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Selected}" />
+    </Style>
+
+    <Style Selector="Button.accentText">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <!-- Small toggle chip (e.g. "Sounds like" search) -->
+    <Style Selector="ToggleButton.soundsLike">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LineStrong}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="ToggleButton.soundsLike:checked /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <Style Selector="AutoCompleteBox /template/ TextBox">
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <!-- Bookmark star -->
+    <Style Selector="ToggleButton.star">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="38" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="ToggleButton.star:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="ToggleButton.star:checked /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ToggleButton.star:checked c|LineIcon">
+      <Setter Property="Foreground" Value="#D9A520" />
+      <Setter Property="StrokeThickness" Value="2.4" />
+    </Style>
+
+    <!-- A list of radio-like choices -->
+    <Style Selector="ListBox.choices">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem">
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <!-- Colour swatch picker -->
+    <Style Selector="ListBox.swatches">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.swatches ListBoxItem">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+    <Style Selector="ListBox.swatches ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="ListBox.swatches ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <!-- Navigation rail -->
+    <Style Selector="ListBox.rail">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="8,10" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem">
+      <Setter Property="Padding" Value="0,9" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Editor forms -->
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="12.5" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="Margin" Value="2,0,0,6" />
+    </Style>
+    <Style Selector="TextBlock.hint">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Margin" Value="2,6,0,0" />
+    </Style>
+    <Style Selector="Window.editor TextBox">
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+    <!-- Segmented control for sex -->
+    <Style Selector="ListBox.segmented">
+      <Setter Property="Background" Value="{DynamicResource Sidebar}" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem">
+      <Setter Property="Padding" Value="16,6" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="MinWidth" Value="92" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:selected">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+    </Style>
+    <Style Selector="ListBox.segmented ListBoxItem:selected:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+  </Application.Styles>
+</Application>
