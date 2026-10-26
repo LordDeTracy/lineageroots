@@ -1,0 +1,104 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.DuplicatesWindow"
+        x:DataType="vm:DuplicatesViewModel"
+        Title="Find duplicates" Width="1040" Height="700" MinWidth="760" MinHeight="460"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <Grid ColumnDefinitions="320,*">
+    <!-- Pairs -->
+    <Border Background="{DynamicResource Sidebar}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="12,18,12,12">
+        <StackPanel DockPanel.Dock="Top" Margin="6,0,0,12" Spacing="4">
+          <TextBlock Classes="title" Text="Possible duplicates" />
+          <TextBlock Classes="muted small" Text="{Binding Summary}" />
+        </StackPanel>
+        <ListBox Classes="people" ItemsSource="{Binding Pairs}" SelectedItem="{Binding Selected}"
+                 AutomationProperties.Name="Possible duplicates">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DuplicatePair">
+              <StackPanel Spacing="1">
+                <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted small" Text="{Binding Subtitle}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Comparison -->
+    <DockPanel Grid.Column="1">
+      <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+              BorderThickness="0,1,0,0" Padding="24,14" IsVisible="{Binding HasSelection}">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="outline" Command="{Binding NotDuplicateCommand}" Content="Not the same person" />
+            <Button Classes="ghost" Command="{Binding SkipCommand}" Content="Skip" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+            <Button Classes="outline" Content="Close" IsCancel="True" Click="OnClose" />
+            <Button Classes="primary" Command="{Binding MergeCommand}">
+              <TextBlock Text="Merge into one person" Foreground="{DynamicResource OnAccent}" />
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Grid>
+        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="360">
+          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+            <c:LineIcon Data="{StaticResource IconUsers}" Width="28" Height="28" />
+          </Border>
+          <TextBlock Classes="title" Text="No duplicates to review" HorizontalAlignment="Center" />
+          <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                     Text="Every pair has been merged or marked as different people." />
+          <Button Classes="outline" Content="Close" HorizontalAlignment="Center" Click="OnClose" Margin="0,8,0,0" />
+        </StackPanel>
+
+        <ScrollViewer IsVisible="{Binding HasSelection}">
+          <StackPanel Margin="28,24" Spacing="18">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="section" Text="WHY THESE MAY BE THE SAME PERSON" />
+              <TextBlock Text="{Binding Reasons}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="card" Padding="0">
+              <StackPanel>
+                <Grid ColumnDefinitions="130,*,*" Margin="20,14,20,10">
+                  <TextBlock Classes="section" Text="" />
+                  <RadioButton Grid.Column="1" GroupName="keep" IsChecked="{Binding KeepIndex, Converter={x:Static c:Converters.IndexIs0}}"
+                               Content="{Binding LeftTitle, StringFormat='Keep {0}'}" />
+                  <RadioButton Grid.Column="2" GroupName="keep" IsChecked="{Binding KeepIndex, Converter={x:Static c:Converters.IndexIs1}}"
+                               Content="{Binding RightTitle, StringFormat='Keep {0}'}" />
+                </Grid>
+                <Border Height="1" Background="{DynamicResource Line}" />
+                <ItemsControl ItemsSource="{Binding Lines}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CompareLine">
+                      <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="20,10">
+                        <Grid ColumnDefinitions="130,*,*">
+                          <TextBlock Classes="muted small" Text="{Binding Label}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                          <TextBlock Grid.Column="1" Text="{Binding Left}" TextWrapping="Wrap" Margin="0,0,16,0"
+                                     FontWeight="{Binding Differs, Converter={x:Static c:Converters.BoldIf}}" />
+                          <TextBlock Grid.Column="2" Text="{Binding Right}" TextWrapping="Wrap"
+                                     FontWeight="{Binding Differs, Converter={x:Static c:Converters.BoldIf}}" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="faint small" TextWrapping="Wrap"
+                       Text="Merging keeps everything from both records: different names become alternate names, missing facts are filled in, and all family links, sources and photos move to the kept person. Differences are shown in bold. You can undo a merge with Ctrl+Z." />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </DockPanel>
+  </Grid>
+</Window>

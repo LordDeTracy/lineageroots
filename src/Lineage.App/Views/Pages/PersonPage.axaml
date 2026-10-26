@@ -1,0 +1,501 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.PersonPage"
+             x:DataType="vm:MainViewModel">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="32,14,32,0" Spacing="10">
+      <ListBox Classes="segmented" SelectedIndex="{Binding ViewIndex}" AutomationProperties.Name="View" HorizontalAlignment="Left">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem"><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="12,6" /></Style>
+        </ListBox.Styles>
+        <ListBoxItem ToolTip.Tip="The person's page (Ctrl+1)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconList}" Width="16" Height="16" />
+            <TextBlock Text="Details" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Ancestors as a tree (Ctrl+2)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTree}" Width="16" Height="16" />
+            <TextBlock Text="Pedigree" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Ancestors as a fan (Ctrl+3)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconFan}" Width="16" Height="16" />
+            <TextBlock Text="Fan" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Children, grandchildren and their families (Ctrl+4)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconDescend}" Width="16" Height="16" />
+            <TextBlock Text="Descendants" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Ancestors above, descendants below (Ctrl+5)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconHourglass}" Width="16" Height="16" />
+            <TextBlock Text="Hourglass" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Where the family lived (Ctrl+6)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
+            <TextBlock Text="Map" />
+          </StackPanel>
+        </ListBoxItem>
+      </ListBox>
+
+      <!-- Chart toolbar -->
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsChartView}">
+        <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap" Margin="2,0,16,0"
+                   Text="Scroll the wheel to zoom, drag to move around. Click someone to centre them; double-click to open their page." />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="muted small" Text="Generations" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{x:Static vm:MainViewModel.GenerationChoices}" SelectedItem="{Binding ChartGenerationsShown}"
+                    AutomationProperties.Name="Generations shown" MinWidth="64" />
+          <Border Width="1" Height="20" Background="{DynamicResource Line}" Margin="6,0" />
+          <Button Classes="ghost icon" Click="OnZoomOut" ToolTip.Tip="Zoom out" AutomationProperties.Name="Zoom out">
+            <TextBlock Text="−" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Button>
+          <Button Classes="ghost" Click="OnZoomReset" Name="ZoomLabel" MinWidth="58" ToolTip.Tip="Back to 100%"
+                  HorizontalContentAlignment="Center" AutomationProperties.Name="Reset zoom">100%</Button>
+          <Button Classes="ghost icon" Click="OnZoomIn" ToolTip.Tip="Zoom in" AutomationProperties.Name="Zoom in">
+            <TextBlock Text="+" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Button>
+          <Button Classes="ghost" Click="OnZoomFit" ToolTip.Tip="Fit the whole chart in view" Content="Fit" />
+          <Border Width="1" Height="20" Background="{DynamicResource Line}" Margin="6,0" />
+          <Button Classes="outline" ToolTip.Tip="Save or print this chart">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconPrint}" Width="16" Height="16" />
+              <TextBlock Text="Save" />
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="Picture (PNG)…" Click="OnSaveChartImage" />
+                <MenuItem Header="Wall chart — one large poster (PDF)…" Click="OnWallChartPoster" />
+                <MenuItem Header="Wall chart — pages to tape together (PDF)…" Click="OnWallChartTiled" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
+      <TextBlock Classes="faint small" Text="{Binding PersonMapText}" TextWrapping="Wrap" Margin="2,0"
+                 IsVisible="{Binding IsMapView}" />
+    </StackPanel>
+
+    <Panel>
+      <c:ZoomHost Name="PedigreeHost" IsVisible="{Binding IsPedigreeView}">
+        <c:PedigreeChart Name="Pedigree" Data="{Binding Chart}" Generations="{Binding PedigreeGenerations}"
+                         NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                         HorizontalAlignment="Left" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <c:ZoomHost Name="FanHost" IsVisible="{Binding IsFanView}">
+        <c:FanChart Name="Fan" Data="{Binding Chart}" Generations="{Binding FanGenerations}"
+                    NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                    HorizontalAlignment="Center" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <c:ZoomHost Name="DescendantHost" IsVisible="{Binding IsDescendantsView}">
+        <c:DescendantChart Name="Descendant" Data="{Binding Chart}" Generations="{Binding DescendantGenerations}"
+                           NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                           HorizontalAlignment="Center" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <c:ZoomHost Name="HourglassHost" IsVisible="{Binding IsHourglassView}">
+        <c:HourglassChart Name="Hourglass" Data="{Binding Chart}"
+                          AncestorGenerations="{Binding HourglassGenerations}" DescendantGenerations="{Binding HourglassGenerations}"
+                          NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                          HorizontalAlignment="Center" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <Border IsVisible="{Binding IsMapView}" Margin="32,12,32,24" CornerRadius="14" ClipToBounds="True"
+              BorderBrush="{DynamicResource Line}" BorderThickness="1">
+        <c:MapView Name="PersonMap" Pins="{Binding PersonPins}" Lines="{Binding PersonLines}"
+                   PinClickCommand="{Binding OpenPersonCommand}" AutoFit="True" />
+      </Border>
+
+  <!-- Person page -->
+  <ScrollViewer IsVisible="{Binding IsDetailsView}" Name="PageScroller">
+    <StackPanel MaxWidth="980" Margin="32,28,32,40" Spacing="20">
+
+      <!-- Header -->
+      <Border Classes="card" Padding="26,24">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Panel VerticalAlignment="Top">
+            <Border Classes="avatar large" IsVisible="{Binding !HasProfilePhoto}"
+                    Classes.male="{Binding CurrentIsMale}" Classes.female="{Binding CurrentIsFemale}">
+              <TextBlock Text="{Binding CurrentInitials}" />
+            </Border>
+            <Border Width="84" Height="84" CornerRadius="42" ClipToBounds="True" IsVisible="{Binding HasProfilePhoto}"
+                    BorderBrush="{DynamicResource Line}" BorderThickness="1">
+              <Image Source="{Binding ProfilePhoto}" Stretch="UniformToFill" />
+            </Border>
+          </Panel>
+          <StackPanel Grid.Column="1" Margin="20,2,16,0" Spacing="6">
+            <SelectableTextBlock Classes="display" Text="{Binding CurrentName}" TextWrapping="Wrap"
+                                 FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Classes="muted" FontSize="14.5" Text="{Binding CurrentDetail}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding Chips}" ItemsPanel="{StaticResource WrapPanel}" Margin="0,6,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Classes="chip" Margin="0,0,6,6"><TextBlock Text="{Binding}" /></Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="ghost" IsVisible="{Binding HasFamilySearchId}" ToolTip.Tip="FamilySearch Family Tree">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <c:LineIcon Data="{StaticResource IconCloud}" Width="16" Height="16" />
+                <TextBlock Text="{Binding CurrentFamilySearchId}" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                  <MenuItem Header="Open on FamilySearch.org" Command="{Binding OpenOnFamilySearchCommand}" />
+                  <MenuItem Header="Compare with FamilySearch…" Command="{Binding FamilySearchCompareCommand}" />
+                  <MenuItem Header="Download ancestors from FamilySearch…" Command="{Binding FamilySearchDownloadAncestorsCommand}" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+            <ToggleButton Classes="star" IsChecked="{Binding IsBookmarked, Mode=OneWay}" Command="{Binding ToggleBookmarkCommand}"
+                          ToolTip.Tip="Bookmark (Ctrl+D)" AutomationProperties.Name="Bookmark this person">
+              <c:LineIcon Data="{StaticResource IconStar}" Width="18" Height="18" />
+            </ToggleButton>
+            <Button Classes="outline" Command="{Binding EditPersonCommand}" ToolTip.Tip="Edit (Ctrl+E)">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <c:LineIcon Data="{StaticResource IconEdit}" Width="16" Height="16" />
+                <TextBlock Text="Edit" />
+              </StackPanel>
+            </Button>
+            <Button Classes="outline icon" ToolTip.Tip="More actions" AutomationProperties.Name="More actions for this person">
+              <c:LineIcon Data="{StaticResource IconMore}" StrokeThickness="2.6" />
+              <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                  <MenuItem Header="Add parents…" Command="{Binding AddParentsCommand}" />
+                  <MenuItem Header="Add spouse…" Command="{Binding AddSpouseCommand}" />
+                  <MenuItem Header="Add child…" Command="{Binding AddChildCommand}" />
+                  <MenuItem Header="Add event…" Command="{Binding AddEventCommand}" />
+                  <MenuItem Header="Add research task…" Command="{Binding AddResearchForPersonCommand}" />
+                  <MenuItem Header="Make this the home person" Command="{Binding SetHomePersonCommand}" />
+                  <MenuItem Header="How is this person related to…" Command="{Binding FindRelationshipCommand}" />
+                  <Separator />
+                  <MenuItem Header="Family group sheet (PDF)…" Command="{Binding FamilyGroupReportCommand}" />
+                  <MenuItem Header="Ancestors report (PDF)…" Command="{Binding AncestorReportCommand}" />
+                  <MenuItem Header="Descendants report (PDF)…" Command="{Binding DescendantReportCommand}" />
+                  <MenuItem Header="Descendants story (narrative)…" Command="{Binding RegisterReportCommand}" />
+                  <MenuItem Header="Individual summary…" Command="{Binding IndividualSummaryCommand}" />
+                  <MenuItem Header="Family history book…" Command="{Binding FamilyBookCommand}" />
+                  <MenuItem Header="Find on FamilySearch…" Command="{Binding FamilySearchFindCommand}" />
+                  <Separator />
+                  <MenuItem Header="Delete person…" Command="{Binding DeletePersonCommand}"
+                            Foreground="{DynamicResource Danger}" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Family -->
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="section" Text="PARENTS" />
+          <WrapPanel>
+            <ItemsControl ItemsSource="{Binding Parents}" ItemTemplate="{StaticResource PersonCardTemplate}"
+                          ItemsPanel="{StaticResource WrapPanel}" />
+            <ItemsControl ItemsSource="{Binding MissingParents}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AddSlot">
+                  <Button Classes="addCard" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).AddParentsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Muted}" />
+                      <TextBlock Text="{Binding Label}" Classes="muted" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </WrapPanel>
+
+          <Border Height="1" Background="{DynamicResource Line}" Margin="0,8" />
+
+          <TextBlock Classes="section" Text="SPOUSES AND CHILDREN" />
+          <TextBlock Classes="muted" Text="No spouse or children recorded yet." IsVisible="{Binding !HasFamilies}" />
+          <ItemsControl ItemsSource="{Binding Families}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="22" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:FamilyCard">
+                <StackPanel Spacing="0">
+                  <WrapPanel>
+                    <ContentControl Content="{Binding Spouse}" ContentTemplate="{StaticResource PersonCardTemplate}"
+                                    IsVisible="{Binding HasSpouse}" />
+                    <Border Classes="addCard" Padding="12,10" IsVisible="{Binding !HasSpouse}"
+                            BorderBrush="{DynamicResource Line}" BorderThickness="1.5" CornerRadius="12"
+                            Width="250" MinHeight="58" Margin="0,0,12,12">
+                      <TextBlock Classes="muted" Text="Spouse not recorded" HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    </Border>
+                    <Button Classes="ghost" VerticalAlignment="Center" Margin="0,0,0,12" IsVisible="{Binding HasSummary}"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditMarriageCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Edit the marriage">
+                      <StackPanel Orientation="Horizontal" Spacing="7">
+                        <c:LineIcon Data="{StaticResource IconHeart}" Width="15" Height="15"
+                                    Foreground="{DynamicResource FemaleInk}" />
+                        <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="420" />
+                      </StackPanel>
+                    </Button>
+                  </WrapPanel>
+                  <Border BorderBrush="{DynamicResource LineStrong}" BorderThickness="2,0,0,0"
+                          Margin="24,0,0,0" Padding="22,2,0,2" IsVisible="{Binding HasChildren}">
+                    <StackPanel Spacing="10">
+                      <TextBlock Classes="faint small" Text="{Binding ChildrenHeading}" />
+                      <ItemsControl ItemsSource="{Binding Children}" ItemTemplate="{StaticResource PersonCardTemplate}"
+                                    ItemsPanel="{StaticResource WrapPanel}" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <StackPanel Orientation="Horizontal" Spacing="4" Margin="-10,4,0,0">
+            <Button Classes="ghost accentText" Command="{Binding AddSpouseCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add spouse" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="ghost accentText" Command="{Binding AddChildCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add child" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Photos -->
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="PHOTOS" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddPhotosCommand}" Margin="0,-8,-10,-8">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add photos" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <WrapPanel>
+            <ItemsControl ItemsSource="{Binding Photos}" ItemsPanel="{StaticResource WrapPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PhotoTile">
+                  <Button Classes="photo" AutomationProperties.Name="{Binding Spoken}" ToolTip.Tip="{Binding Media.File}">
+                    <Button.Flyout>
+                      <MenuFlyout Placement="Bottom">
+                        <MenuItem Header="View and tag people…" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Open in another app" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoExternallyCommand}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Use as profile photo" IsVisible="{Binding !IsProfile}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SetProfilePhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Show where it was taken" IsVisible="{Binding HasLocation}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowOnMapCommand}"
+                                  CommandParameter="{Binding MapUrl}" />
+                        <Separator />
+                        <MenuItem Header="Remove from this person (or remove the tag)"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RemovePhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                    <StackPanel Spacing="3">
+                      <Border Classes="frame">
+                        <Panel>
+                          <c:LineIcon Data="{StaticResource IconImage}" Width="30" Height="30"
+                                      Foreground="{DynamicResource Faint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                          <Border Classes="chip" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                  Background="{DynamicResource Surface}" IsVisible="{Binding IsProfile}">
+                            <TextBlock Text="Profile" FontSize="11" />
+                          </Border>
+                          <Border Classes="chip" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                  Background="{DynamicResource Surface}" IsVisible="{Binding IsMissing}">
+                            <TextBlock Text="File not found" FontSize="11" Foreground="{DynamicResource Danger}" />
+                          </Border>
+                        </Panel>
+                      </Border>
+                      <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="2,4,2,0" />
+                      <StackPanel Orientation="Horizontal" Spacing="4" Margin="2,0" Height="16">
+                        <c:LineIcon Data="{StaticResource IconPin}" Width="13" Height="13" Foreground="{DynamicResource Accent}"
+                                    IsVisible="{Binding HasLocation}" ToolTip.Tip="Has a GPS location" />
+                        <TextBlock Classes="faint small" Text="{Binding Caption}" TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="addCard" Width="176" Height="132" Command="{Binding AddPhotosCommand}"
+                    Margin="0,0,14,14" VerticalAlignment="Top">
+              <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <c:LineIcon Data="{StaticResource IconImage}" Width="26" Height="26" Foreground="{DynamicResource Muted}"
+                            HorizontalAlignment="Center" />
+                <TextBlock Text="Add photos" Classes="muted" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </WrapPanel>
+          <TextBlock Classes="faint small" TextWrapping="Wrap" Margin="0,-6,0,0"
+                     Text="Photos stay where they are on your computer. If the camera recorded where a photo was taken, that location is added automatically." />
+        </StackPanel>
+      </Border>
+
+      <!-- Life events -->
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="LIFE EVENTS" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddEventCommand}" Margin="0,-8,-10,-8">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add event" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Classes="muted" Text="No events recorded yet. Add a birth, a residence, an occupation — anything you know."
+                     TextWrapping="Wrap" IsVisible="{Binding !HasEvents}" />
+          <ItemsControl ItemsSource="{Binding Events}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:EventRow">
+                <Button Classes="eventRow" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditEventCommand}"
+                        CommandParameter="{Binding}" AutomationProperties.Name="{Binding Spoken}" ToolTip.Tip="Click to edit">
+                <Grid ColumnDefinitions="52,30,*">
+                  <TextBlock Text="{Binding Year}" FontWeight="SemiBold" Classes="muted" FontSize="13.5"
+                             HorizontalAlignment="Right" Margin="0,1,0,0" />
+                  <Grid Grid.Column="1">
+                    <Border Width="2" Background="{DynamicResource Line}" HorizontalAlignment="Center" Margin="0,16,0,0" />
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource Accent}" VerticalAlignment="Top"
+                             HorizontalAlignment="Center" Margin="0,5,0,0" />
+                  </Grid>
+                  <StackPanel Grid.Column="2" Margin="4,0,0,20" Spacing="3">
+                    <WrapPanel>
+                      <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,0,10,0" />
+                      <TextBlock Classes="muted" Text="{Binding Date}" Margin="0,0,10,0" />
+                      <Border Classes="chip" Padding="7,1" IsVisible="{Binding HasAge}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Age}" FontSize="11" />
+                      </Border>
+                    </WrapPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding HasPlace}">
+                      <c:LineIcon Data="{StaticResource IconPin}" Width="14" Height="14"
+                                  Foreground="{DynamicResource Faint}" VerticalAlignment="Top" Margin="0,2,0,0"
+                                  IsVisible="{Binding !HasGps}" />
+                      <c:LineIcon Data="{StaticResource IconPin}" Width="14" Height="14"
+                                  Foreground="{DynamicResource Accent}" VerticalAlignment="Top" Margin="0,2,0,0"
+                                  IsVisible="{Binding HasGps}" ToolTip.Tip="GPS location recorded" />
+                      <TextBlock Text="{Binding Place}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Classes="faint small" Text="{Binding Detail}" TextWrapping="Wrap"
+                               IsVisible="{Binding HasDetail}" />
+                  </StackPanel>
+                </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Research -->
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="RESEARCH TO DO" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddResearchForPersonCommand}" Margin="0,-8,-10,-8">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add task" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasPersonResearch}"
+                     Text="Nothing yet. Add a task for a record you want to find about this person." />
+          <ItemsControl ItemsSource="{Binding PersonResearch}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ResearchRow">
+                <Grid ColumnDefinitions="Auto,*">
+                  <CheckBox IsChecked="{Binding Done, Mode=OneWay}" VerticalAlignment="Top" Margin="0,6,0,0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleResearchDoneCommand}"
+                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Description, StringFormat='Done: {0}'}" />
+                  <Button Grid.Column="1" Classes="eventRow" Margin="0" Padding="8,6"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditResearchCommand}"
+                          CommandParameter="{Binding}" ToolTip.Tip="Click to edit">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Description}" FontWeight="Medium" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Places and GPS -->
+      <Border Classes="card" Padding="26,22" IsVisible="{Binding HasPlaces}">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="section" Text="PLACES AND GPS" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Paste coordinates from any map site — for example, right-click a spot in Google Maps and click the numbers to copy them." />
+          <ItemsControl ItemsSource="{Binding Places}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="14" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PlaceRow">
+                <Grid ColumnDefinitions="*,14,250,6,Auto" RowDefinitions="Auto,Auto">
+                  <StackPanel VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding Place}" FontWeight="Medium" TextWrapping="Wrap" />
+                    <TextBlock Classes="faint small" Text="{Binding EventsText}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBox Grid.Column="2" VerticalAlignment="Center" Watermark="GPS, e.g. 42.2626, -71.8023"
+                           Text="{Binding Coordinates, UpdateSourceTrigger=LostFocus}"
+                           AutomationProperties.Name="{Binding Place, StringFormat='GPS coordinates for {0}'}" />
+                  <Button Grid.Column="4" Classes="ghost" VerticalAlignment="Center"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ShowOnMapCommand}"
+                          CommandParameter="{Binding MapUrl}"
+                          ToolTip.Tip="Open OpenStreetMap in your browser">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
+                      <TextBlock Text="Map" />
+                    </StackPanel>
+                  </Button>
+                  <TextBlock Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Classes="small" Margin="2,5,0,0"
+                             Foreground="{DynamicResource Danger}" Text="{Binding Error}" TextWrapping="Wrap"
+                             IsVisible="{Binding HasError}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Notes -->
+      <Border Classes="card" Padding="26,22" IsVisible="{Binding HasNote}">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="section" Text="NOTES" />
+          <SelectableTextBlock Text="{Binding CurrentNote}" TextWrapping="Wrap" LineHeight="22" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</UserControl>

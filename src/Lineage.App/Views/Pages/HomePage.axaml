@@ -1,0 +1,134 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.HomePage"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="HomeLineTemplate" x:DataType="vm:HomeLine">
+      <Button Classes="eventRow" Margin="-8,0" Padding="8,7" IsEnabled="{Binding HasPerson}"
+              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPersonCommand}"
+              CommandParameter="{Binding PersonId}">
+        <Grid ColumnDefinitions="Auto,*">
+          <Border Classes="chip" MinWidth="64" VerticalAlignment="Top">
+            <TextBlock Text="{Binding Badge}" HorizontalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="12,1,0,0" Spacing="1">
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontWeight="Medium" />
+            <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+      </Button>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer>
+    <StackPanel MaxWidth="1040" Margin="32,28,32,40" Spacing="20">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="display" Text="{Binding TreeName}" TextWrapping="Wrap" />
+        <TextBlock Classes="muted" Text="{Binding HomeStatsText}" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,20,*">
+        <!-- Home person -->
+        <Border Classes="card" Padding="22,20" VerticalAlignment="Stretch">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="HOME PERSON" />
+            <ContentControl Content="{Binding HomePersonCard}" ContentTemplate="{StaticResource PersonCardTemplate}"
+                            IsVisible="{Binding HasHomePerson}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasHomePerson}"
+                       Text="Choose the person the tree should start from — usually you. Open their page and use ⋯ › Make this the home person." />
+            <TextBlock Classes="faint small" Text="Ctrl+H goes to the home person from anywhere." IsVisible="{Binding HasHomePerson}" />
+          </StackPanel>
+        </Border>
+        <!-- Bookmarks -->
+        <Border Grid.Column="2" Classes="card" Padding="22,20">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="BOOKMARKS" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasBookmarks}"
+                       Text="Star people you come back to often with the ☆ on their page (Ctrl+D)." />
+            <ItemsControl ItemsSource="{Binding BookmarkCards}" ItemTemplate="{StaticResource PersonCardTemplate}"
+                          ItemsPanel="{StaticResource WrapPanel}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,20,*">
+        <!-- Coming up -->
+        <Border Classes="card" Padding="22,20">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="COMING UP IN THE NEXT 30 DAYS" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasAnniversaries}"
+                       Text="Birthdays, weddings and remembrance days appear here when their day and month are known." />
+            <ItemsControl ItemsSource="{Binding Anniversaries}" ItemTemplate="{StaticResource HomeLineTemplate}" />
+          </StackPanel>
+        </Border>
+        <!-- Research -->
+        <Border Grid.Column="2" Classes="card" Padding="22,20">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="section" Text="RESEARCH TO DO" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost accentText" Margin="0,-8,-10,-8"
+                      Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Research}">
+                <TextBlock Text="See all" Foreground="{DynamicResource Accent}" />
+              </Button>
+            </Grid>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasHomeResearch}"
+                       Text="No open tasks. Add one from the Research page or from someone's page." />
+            <ItemsControl ItemsSource="{Binding HomeResearch}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ResearchRow">
+                  <Button Classes="eventRow" Margin="-8,0" Padding="8,6"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditResearchCommand}"
+                          CommandParameter="{Binding}">
+                    <StackPanel Spacing="1">
+                      <TextBlock Text="{Binding Description}" FontWeight="Medium" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,20,*">
+        <!-- Tree health -->
+        <Border Classes="card" Padding="22,20" IsVisible="{Binding HasHealthLines}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="TREE HEALTH" />
+            <ItemsControl ItemsSource="{Binding HealthLines}" ItemTemplate="{StaticResource HomeLineTemplate}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+              <Button Classes="outline" Command="{Binding FindProblemsCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <c:LineIcon Data="{StaticResource IconAlert}" Width="16" Height="16" />
+                  <TextBlock Text="Find problems" />
+                </StackPanel>
+              </Button>
+              <Button Classes="outline" Command="{Binding FindDuplicatesCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <c:LineIcon Data="{StaticResource IconMerge}" Width="16" Height="16" />
+                  <TextBlock Text="Find duplicates" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <!-- Surnames -->
+        <Border Grid.Column="2" Classes="card" Padding="22,20" IsVisible="{Binding HasTopSurnames}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="MOST COMMON SURNAMES" />
+            <ItemsControl ItemsSource="{Binding TopSurnames}" ItemsPanel="{StaticResource WrapPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Classes="chip" Margin="0,0,6,6"><TextBlock Text="{Binding}" /></Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

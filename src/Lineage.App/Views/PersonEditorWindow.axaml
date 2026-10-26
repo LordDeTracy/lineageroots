@@ -1,0 +1,351 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.PersonEditorWindow"
+        x:DataType="vm:PersonEditorViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="640" Height="760" MinHeight="480" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <DockPanel>
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel"
+                HorizontalContentAlignment="Center" />
+        <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave"
+                HorizontalContentAlignment="Center">
+          <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- Title and tabs -->
+    <StackPanel DockPanel.Dock="Top" Margin="28,22,28,6" Spacing="14">
+      <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" TextWrapping="Wrap" />
+      <ListBox Classes="segmented" ItemsSource="{Binding Tabs}" SelectedIndex="{Binding TabIndex}"
+               AutomationProperties.Name="Sections of the editor">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="13,6" />
+          </Style>
+        </ListBox.Styles>
+      </ListBox>
+    </StackPanel>
+
+    <ScrollViewer>
+      <Panel Margin="28,10,28,24">
+
+        <!-- ===== Basics ===== -->
+        <StackPanel Spacing="22" IsVisible="{Binding IsBasicsTab}">
+          <StackPanel Spacing="14">
+            <Grid ColumnDefinitions="3*,14,2*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Given names" />
+                <TextBox Name="GivenBox" Text="{Binding Given}" Watermark="e.g. Thomas Edward" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Surname" />
+                <TextBox Text="{Binding Surname}" Watermark="Family name at birth" />
+              </StackPanel>
+            </Grid>
+            <Grid ColumnDefinitions="*,14,*,14,2*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Title" />
+                <TextBox Text="{Binding PersonTitle}" Watermark="Dr., Rev., Sir…" AutomationProperties.Name="Title" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Suffix" />
+                <TextBox Text="{Binding Suffix}" Watermark="Jr., III…" AutomationProperties.Name="Suffix" />
+              </StackPanel>
+              <StackPanel Grid.Column="4">
+                <TextBlock Classes="label" Text="Sex" />
+                <ListBox Classes="segmented" ItemsSource="{Binding SexOptions}" SelectedIndex="{Binding SexIndex}"
+                         AutomationProperties.Name="Sex">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem"><Setter Property="MinWidth" Value="66" /><Setter Property="Padding" Value="10,6" /></Style>
+                  </ListBox.Styles>
+                </ListBox>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+
+          <StackPanel>
+            <TextBlock Classes="section" Text="BIRTH" Margin="2,0,0,10" />
+            <Grid ColumnDefinitions="2*,14,3*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Date" />
+                <TextBox Text="{Binding BirthDate}" Watermark="e.g. 14 Mar 1842, abt 1840"
+                         AutomationProperties.Name="Birth date" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Place" />
+                <TextBox Text="{Binding BirthPlace}" Watermark="Town, county, country"
+                         AutomationProperties.Name="Birth place" />
+              </StackPanel>
+            </Grid>
+            <TextBlock Classes="hint" Text="{Binding BirthDateHint}" IsVisible="{Binding HasBirthDateHint}" />
+          </StackPanel>
+
+          <StackPanel>
+            <TextBlock Classes="section" Text="DEATH" Margin="2,0,0,10" />
+            <Grid ColumnDefinitions="2*,14,3*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Date" />
+                <TextBox Text="{Binding DeathDate}" Watermark="Leave empty if living"
+                         AutomationProperties.Name="Death date" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Place" />
+                <TextBox Text="{Binding DeathPlace}" Watermark="Town, county, country"
+                         AutomationProperties.Name="Death place" />
+              </StackPanel>
+            </Grid>
+            <TextBlock Classes="hint" Text="{Binding DeathDateHint}" IsVisible="{Binding HasDeathDateHint}" />
+          </StackPanel>
+
+          <StackPanel IsVisible="{Binding HasParents}" Spacing="10">
+            <TextBlock Classes="section" Text="RELATIONSHIP TO PARENTS" Margin="2,0,0,0" />
+            <TextBlock Classes="muted small" Text="{Binding ParentsText, StringFormat='Child of {0}'}" Margin="2,0,0,0" />
+            <Grid ColumnDefinitions="*,14,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="To the father" />
+                <ComboBox ItemsSource="{Binding RelationOptions}" SelectedIndex="{Binding FatherRelation}"
+                          HorizontalAlignment="Stretch" AutomationProperties.Name="Relationship to the father" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="To the mother" />
+                <ComboBox ItemsSource="{Binding RelationOptions}" SelectedIndex="{Binding MotherRelation}"
+                          HorizontalAlignment="Stretch" AutomationProperties.Name="Relationship to the mother" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+
+          <StackPanel>
+            <TextBlock Classes="section" Text="NOTES" Margin="2,0,0,10" />
+            <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="120"
+                     Watermark="Stories, research notes, anything worth remembering"
+                     VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ===== Names ===== -->
+        <StackPanel Spacing="14" IsVisible="{Binding IsNamesTab}">
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Other names this person was known by: a married name, a nickname, a different spelling in a record. They are found by search and kept in GEDCOM exports." />
+          <ItemsControl ItemsSource="{Binding AltNames}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:NameRow">
+                <Border Classes="card" Padding="14,12">
+                  <Grid ColumnDefinitions="*,10,*,10,Auto" RowDefinitions="Auto,Auto">
+                    <ComboBox ItemsSource="{Binding KindOptions}" SelectedIndex="{Binding KindIndex}" MinWidth="170"
+                              AutomationProperties.Name="Kind of name" />
+                    <Button Grid.Column="4" Classes="ghost icon" Width="32" Height="32" Padding="7"
+                            Command="{Binding #Root.((vm:PersonEditorViewModel)DataContext).RemoveNameCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Remove this name" AutomationProperties.Name="Remove name">
+                      <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                    </Button>
+                    <TextBox Grid.Row="1" Text="{Binding Given}" Watermark="Given names" Margin="0,10,0,0"
+                             AutomationProperties.Name="Given names" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding Surname}" Watermark="Surname" Margin="0,10,0,0"
+                             AutomationProperties.Name="Surname" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="outline" Command="{Binding AddNameCommand}" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" />
+              <TextBlock Text="Add a name" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <!-- ===== Tags & colour ===== -->
+        <StackPanel Spacing="22" IsVisible="{Binding IsTagsTab}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="TAGS" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap"
+                       Text="Short labels to group people, like Direct line, Emigrants or Needs census." />
+            <ItemsControl ItemsSource="{Binding Tags}" ItemsPanel="{StaticResource WrapPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Classes="chip" Margin="0,0,6,6" Padding="10,3,4,3">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                      <Button Classes="ghost" Padding="3" MinWidth="0" MinHeight="0"
+                              Command="{Binding #Root.((vm:PersonEditorViewModel)DataContext).RemoveTagCommand}"
+                              CommandParameter="{Binding}" ToolTip.Tip="Remove tag" AutomationProperties.Name="Remove tag">
+                        <c:LineIcon Data="{StaticResource IconX}" Width="12" Height="12" Foreground="{DynamicResource Accent}" />
+                      </Button>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnDefinitions="*,10,Auto">
+              <AutoCompleteBox Text="{Binding NewTag}" ItemsSource="{Binding TagSuggestions}" FilterMode="Contains"
+                               MinimumPrefixLength="0" Watermark="Type a tag and press Add" AutomationProperties.Name="New tag" />
+              <Button Grid.Column="2" Classes="outline" Command="{Binding AddTagCommand}" Content="Add" />
+            </Grid>
+          </StackPanel>
+          <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="COLOUR" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="A coloured dot beside the name in the people list." />
+            <ListBox Classes="swatches" ItemsSource="{Binding ColourOptions}" SelectedIndex="{Binding ColourIndex}"
+                     AutomationProperties.Name="Colour">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <StackPanel Orientation="Horizontal" Spacing="7" ToolTip.Tip="{Binding}">
+                    <Ellipse Width="14" Height="14" Fill="{Binding Converter={x:Static c:Converters.ColourName}}"
+                             Stroke="{DynamicResource LineStrong}" StrokeThickness="1" />
+                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ===== LDS ===== -->
+        <StackPanel Spacing="14" IsVisible="{Binding IsLdsTab}">
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Latter-day Saint temple ordinances. Leave a row empty if it hasn't been done. Sealings to a spouse are edited from the marriage." />
+          <ItemsControl ItemsSource="{Binding Ordinances}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:OrdinanceRow">
+                <Border Classes="card" Padding="14,12">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,10,*,10,*">
+                      <TextBox Text="{Binding Date}" Watermark="Date" AutomationProperties.Name="{Binding Label, StringFormat='{}{0} date'}" />
+                      <TextBox Grid.Column="2" Text="{Binding Temple}" Watermark="Temple" AutomationProperties.Name="{Binding Label, StringFormat='{}{0} temple'}" />
+                      <AutoCompleteBox Grid.Column="4" Text="{Binding Status}" ItemsSource="{Binding StatusOptions}"
+                                       MinimumPrefixLength="0" FilterMode="StartsWith" Watermark="Status"
+                                       AutomationProperties.Name="{Binding Label, StringFormat='{}{0} status'}" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Classes="card" Padding="14,12" IsVisible="{Binding HasParents}">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Sealed to parents" FontWeight="SemiBold" />
+              <TextBlock Classes="muted small" Text="{Binding ParentsText}" />
+              <Grid ColumnDefinitions="*,10,*,10,*">
+                <TextBox Text="{Binding Sealing.Date}" Watermark="Date" AutomationProperties.Name="Sealing to parents date" />
+                <TextBox Grid.Column="2" Text="{Binding Sealing.Temple}" Watermark="Temple" AutomationProperties.Name="Sealing to parents temple" />
+                <AutoCompleteBox Grid.Column="4" Text="{Binding Sealing.Status}" ItemsSource="{Binding Sealing.StatusOptions}"
+                                 MinimumPrefixLength="0" FilterMode="StartsWith" Watermark="Status"
+                                 AutomationProperties.Name="Sealing to parents status" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- ===== DNA ===== -->
+        <StackPanel Spacing="14" IsVisible="{Binding IsDnaTab}">
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="DNA tests taken by this person: which company, the kit or reference number, and the haplogroup if known." />
+          <ItemsControl ItemsSource="{Binding Dna}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DnaRow">
+                <Border Classes="card" Padding="14,12">
+                  <Grid ColumnDefinitions="*,10,*,10,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <ComboBox ItemsSource="{Binding KindOptions}" SelectedItem="{Binding Kind}" HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="Kind of test" />
+                    <TextBox Grid.Column="2" Text="{Binding Company}" Watermark="Company (Ancestry, FTDNA…)" AutomationProperties.Name="Company" />
+                    <Button Grid.Column="4" Classes="ghost icon" Width="32" Height="32" Padding="7"
+                            Command="{Binding #Root.((vm:PersonEditorViewModel)DataContext).RemoveDnaCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Remove this test" AutomationProperties.Name="Remove test">
+                      <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                    </Button>
+                    <TextBox Grid.Row="1" Text="{Binding Reference}" Watermark="Kit or reference number" Margin="0,10,0,0"
+                             AutomationProperties.Name="Kit number" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding Haplogroup}" Watermark="Haplogroup (e.g. R1b)" Margin="0,10,0,0"
+                             AutomationProperties.Name="Haplogroup" />
+                    <TextBox Grid.Row="2" Text="{Binding Date}" Watermark="Date taken" Margin="0,10,0,0" AutomationProperties.Name="Date taken" />
+                    <TextBox Grid.Row="2" Grid.Column="2" Text="{Binding Note}" Watermark="Note" Margin="0,10,0,0" AutomationProperties.Name="Note" />
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Classes="faint small" Margin="2,8,0,0"
+                               Text="{Binding MarkerSummary}" IsVisible="{Binding HasMarkers}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="outline" Command="{Binding AddDnaCommand}" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" />
+              <TextBlock Text="Add a DNA test" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <!-- ===== More ===== -->
+        <StackPanel Spacing="16" IsVisible="{Binding IsMoreTab}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Physical description" />
+            <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="64"
+                     VerticalContentAlignment="Top" Watermark="Height, eye colour, distinguishing marks…"
+                     AutomationProperties.Name="Physical description" />
+          </StackPanel>
+          <TextBlock Classes="section" Text="CONTACT (FOR LIVING RELATIVES)" Margin="2,6,0,0" />
+          <Grid ColumnDefinitions="*,14,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="Email" />
+              <TextBox Text="{Binding Email}" AutomationProperties.Name="Email" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="Phone" />
+              <TextBox Text="{Binding Phone}" AutomationProperties.Name="Phone" />
+            </StackPanel>
+          </Grid>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Address" />
+            <TextBox Text="{Binding Address}" AcceptsReturn="True" TextWrapping="Wrap" Height="64"
+                     VerticalContentAlignment="Top" AutomationProperties.Name="Address" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Web page" />
+            <TextBox Text="{Binding Url}" Watermark="https://…" AutomationProperties.Name="Web page" />
+          </StackPanel>
+          <TextBlock Classes="section" Text="REFERENCE NUMBERS" Margin="2,6,0,0" />
+          <Grid ColumnDefinitions="*,14,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="Your reference" />
+              <TextBox Text="{Binding UserId}" Watermark="Your own numbering" AutomationProperties.Name="Your reference number" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="FamilySearch ID" />
+              <TextBox Text="{Binding FamilySearchId}" Watermark="e.g. KWCB-QZ3" AutomationProperties.Name="FamilySearch ID" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Panel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

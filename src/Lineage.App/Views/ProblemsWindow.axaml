@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.ProblemsWindow"
+        x:DataType="vm:ProblemsViewModel"
+        Title="Problem finder" Width="720" Height="680" MinWidth="520" MinHeight="380"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <Window.Styles>
+    <Style Selector="Border.severity">
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Margin" Value="0,7,12,0" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Background" Value="{DynamicResource Faint}" />
+    </Style>
+    <Style Selector="Border.severity.error"><Setter Property="Background" Value="{DynamicResource Danger}" /></Style>
+    <Style Selector="Border.severity.warning"><Setter Property="Background" Value="#D9A520" /></Style>
+  </Window.Styles>
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Text="Click a problem to open that person. Leave this window open while you fix things." />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Command="{Binding RefreshCommand}" Content="Check again" />
+          <Button Classes="primary" Click="OnClose" IsCancel="True">
+            <TextBlock Text="Close" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <StackPanel DockPanel.Dock="Top" Margin="26,22,26,10" Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconAlert}" /></Border>
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" FontSize="20" Text="Problem finder" />
+          <TextBlock Classes="muted small" Text="{Binding Summary}" />
+        </StackPanel>
+      </StackPanel>
+      <ListBox Classes="segmented" SelectedIndex="{Binding FilterIndex}" HorizontalAlignment="Left" AutomationProperties.Name="Show">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBoxItem Content="Impossible and unlikely" />
+        <ListBoxItem Content="Impossible only" />
+        <ListBoxItem Content="Everything" />
+      </ListBox>
+    </StackPanel>
+    <Panel Margin="14,0,14,10">
+      <TextBlock Classes="muted" Text="Nothing to show — the dates in this tree hang together." HorizontalAlignment="Center"
+                 Margin="0,40,0,0" IsVisible="{Binding IsEmpty}" />
+      <ListBox Classes="people" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="Problems">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ProblemRow">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Classes="severity" Classes.error="{Binding IsError}" Classes.warning="{Binding IsWarning}" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted small" Text="{Binding PersonName}" />
+              </StackPanel>
+              <TextBlock Grid.Column="2" Classes="faint small" Text="{Binding SeverityText}" Margin="12,2,0,0" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </DockPanel>
+</Window>

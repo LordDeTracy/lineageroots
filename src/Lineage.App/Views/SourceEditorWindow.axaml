@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.SourceEditorWindow"
+        x:DataType="vm:SourceEditorViewModel"
+        Title="{Binding Title}" Width="600" Height="760" MinHeight="420" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghost danger" IsVisible="{Binding CanDelete}" Click="OnDelete" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTrash}" Width="16" Height="16" Foreground="{DynamicResource Danger}" />
+            <TextBlock Text="Delete source" Foreground="{DynamicResource Danger}" />
+          </StackPanel>
+        </Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel"
+                  HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="18">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Title" />
+          <TextBox Name="TitleBox" Text="{Binding SourceTitle}" Watermark="e.g. 1880 United States Census"
+                   AutomationProperties.Name="Source title" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Author or creator" />
+            <TextBox Text="{Binding Author}" Watermark="Person or agency" AutomationProperties.Name="Author" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Kind of source" />
+            <TextBox Text="{Binding Type}" Watermark="Census, parish register, book…" AutomationProperties.Name="Kind of source" />
+          </StackPanel>
+        </Grid>
+        <Grid ColumnDefinitions="2*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Publication details" />
+            <TextBox Text="{Binding Publication}" Watermark="Publisher, place, year, website" AutomationProperties.Name="Publication details" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Call number" />
+            <TextBox Text="{Binding CallNumber}" Watermark="Film, shelf or item no." AutomationProperties.Name="Call number" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Spacing="12">
+          <TextBlock Classes="section" Text="WHERE IT IS KEPT" Margin="2,6,0,0" />
+          <ComboBox ItemsSource="{Binding Repositories}" SelectedItem="{Binding Repository}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="Repository" />
+          <StackPanel Spacing="12" IsVisible="{Binding HasRepository}">
+            <Grid ColumnDefinitions="*,14,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Archive or library" />
+                <TextBox Text="{Binding RepositoryName}" Watermark="e.g. West Yorkshire Archive Service"
+                         AutomationProperties.Name="Repository name" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Phone or website" />
+                <TextBox Text="{Binding RepositoryPhone}" AutomationProperties.Name="Repository phone or website" />
+              </StackPanel>
+            </Grid>
+            <StackPanel>
+              <TextBlock Classes="label" Text="Address" />
+              <TextBox Text="{Binding RepositoryAddress}" AcceptsReturn="True" TextWrapping="Wrap" Height="64"
+                       VerticalContentAlignment="Top" AutomationProperties.Name="Repository address" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel>
+          <TextBlock Classes="section" Text="TRANSCRIPT OR EXTRACT" Margin="2,6,0,10" />
+          <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" Height="110"
+                   VerticalContentAlignment="Top" Watermark="Copy the exact wording of the record here"
+                   AutomationProperties.Name="Transcript" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="section" Text="NOTES" Margin="2,6,0,10" />
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
+                   VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

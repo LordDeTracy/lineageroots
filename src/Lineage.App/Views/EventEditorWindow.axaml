@@ -1,0 +1,175 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.EventEditorWindow"
+        x:DataType="vm:EventEditorViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="600" Height="760" MinHeight="420" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <DockPanel>
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghost danger" IsVisible="{Binding CanDelete}" Click="OnDelete" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTrash}" Width="16" Height="16" Foreground="{DynamicResource Danger}" />
+            <TextBlock Text="Delete event" Foreground="{DynamicResource Danger}" />
+          </StackPanel>
+        </Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel"
+                  HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="20">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" TextWrapping="Wrap" />
+
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="What happened" />
+            <ComboBox Name="TypeBox" ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Event type" MaxDropDownHeight="420" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" IsVisible="{Binding IsCustom}">
+            <TextBlock Classes="label" Text="Name of the event" />
+            <TextBox Text="{Binding CustomName}" Watermark="e.g. Apprenticeship" AutomationProperties.Name="Name of the event" />
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="2*,14,3*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Date" />
+            <TextBox Text="{Binding Date}" Watermark="e.g. 14 Mar 1842, abt 1840" AutomationProperties.Name="Date" />
+            <TextBlock Classes="hint" Text="{Binding DateHint}" IsVisible="{Binding HasDateHint}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Place" />
+            <TextBox Text="{Binding Place}" Watermark="Town, county, country" AutomationProperties.Name="Place" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="GPS location (optional)" />
+          <TextBox Text="{Binding Coordinates}" Watermark="Paste coordinates, e.g. 42.2626, -71.8023"
+                   AutomationProperties.Name="GPS location" />
+          <TextBlock Classes="small" Foreground="{DynamicResource Danger}" Margin="2,6,0,0"
+                     Text="{Binding CoordinatesError}" IsVisible="{Binding HasCoordinatesError}" />
+        </StackPanel>
+
+        <StackPanel IsVisible="{Binding ShowValue}">
+          <TextBlock Classes="label" Text="{Binding ValueLabel}" />
+          <TextBox Text="{Binding Value}" AutomationProperties.Name="{Binding ValueLabel}" />
+        </StackPanel>
+
+        <StackPanel IsVisible="{Binding ShowCause}">
+          <TextBlock Classes="label" Text="Cause" />
+          <TextBox Text="{Binding Cause}" Watermark="e.g. Pneumonia" AutomationProperties.Name="Cause" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,14,*" IsVisible="{Binding ShowLds}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Temple" />
+            <TextBox Text="{Binding Temple}" Watermark="Temple code or name" AutomationProperties.Name="Temple" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Status" />
+            <TextBox Text="{Binding Status}" Watermark="e.g. Completed" AutomationProperties.Name="Ordinance status" />
+          </StackPanel>
+        </Grid>
+
+        <!-- Sources -->
+        <StackPanel Spacing="10">
+          <TextBlock Classes="section" Text="SOURCES" Margin="2,6,0,0" />
+          <ItemsControl ItemsSource="{Binding Citations}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CitationRow">
+                <Border Classes="card" Padding="14,10">
+                  <Grid ColumnDefinitions="*,10,170,6,Auto" RowDefinitions="Auto,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <c:LineIcon Data="{StaticResource IconBook}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                      <TextBlock Text="{Binding SourceTitle}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:CitationRow.Qualities}"
+                              SelectedIndex="{Binding QualityIndex}" HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="How reliable" ToolTip.Tip="How reliable is this source for this fact?" />
+                    <Button Grid.Column="4" Classes="ghost icon" Width="32" Height="32" Padding="7"
+                            Command="{Binding #Root.((vm:EventEditorViewModel)DataContext).RemoveCitationCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Remove this citation"
+                            AutomationProperties.Name="Remove citation">
+                      <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                    </Button>
+                    <TextBox Grid.Row="1" Grid.ColumnSpan="5" Margin="0,8,0,0" Text="{Binding Page}"
+                             Watermark="Where in the source: page, entry, film number…" AutomationProperties.Name="Where in the source" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Grid ColumnDefinitions="3*,10,2*,10,Auto">
+            <AutoCompleteBox Text="{Binding NewSourceTitle}" ItemsSource="{Binding SourceTitles}" FilterMode="Contains"
+                             Watermark="Source title — pick one or type a new one" MinimumPrefixLength="0"
+                             AutomationProperties.Name="Source to cite" />
+            <TextBox Grid.Column="2" Text="{Binding NewPage}" Watermark="Page or entry" AutomationProperties.Name="Page or entry" />
+            <Button Grid.Column="4" Classes="outline" Command="{Binding AddCitationCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" />
+                <TextBlock Text="Cite" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </StackPanel>
+
+        <StackPanel Spacing="10" IsVisible="{Binding CanAddPhotos}">
+          <Grid ColumnDefinitions="*,Auto" Margin="2,6,0,0">
+            <TextBlock Classes="section" Text="PHOTOS" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddPhotosCommand}" Margin="0,-8,-10,-8">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add photos" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Photos}" ItemsPanel="{StaticResource WrapPanel}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PhotoTile">
+                <Panel Width="110" Height="82" Margin="0,0,10,10" ToolTip.Tip="{Binding Title}">
+                  <Border CornerRadius="8" ClipToBounds="True" Background="{DynamicResource Sidebar}"
+                          BorderBrush="{DynamicResource Line}" BorderThickness="1">
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                  </Border>
+                  <Button Classes="ghost icon" Width="26" Height="26" Padding="5" Margin="4"
+                          HorizontalAlignment="Right" VerticalAlignment="Top" Background="{DynamicResource Surface}"
+                          Command="{Binding #Root.((vm:EventEditorViewModel)DataContext).RemovePhotoCommand}"
+                          CommandParameter="{Binding}" ToolTip.Tip="Remove" AutomationProperties.Name="Remove photo">
+                    <c:LineIcon Data="{StaticResource IconX}" Width="13" Height="13" />
+                  </Button>
+                </Panel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel>
+          <TextBlock Classes="section" Text="NOTES" Margin="2,6,0,10" />
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="96"
+                   VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+        </StackPanel>
+
+        <CheckBox IsChecked="{Binding Private}" Content="Private — leave this event out of printed reports" />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

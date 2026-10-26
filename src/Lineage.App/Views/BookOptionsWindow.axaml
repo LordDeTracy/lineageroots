@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.BookOptionsWindow"
+        x:DataType="vm:BookOptionsViewModel"
+        Title="Family history book" Width="620" Height="760" MinHeight="460"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+        <Button Classes="primary" IsDefault="True" Click="OnCreate">
+          <TextBlock Text="Create the book" Foreground="{DynamicResource OnAccent}" />
+        </Button>
+      </StackPanel>
+    </Border>
+    <ScrollViewer>
+      <StackPanel Margin="28,24" Spacing="16">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconBook}" /></Border>
+          <StackPanel VerticalAlignment="Center" Spacing="2">
+            <TextBlock Classes="title" FontSize="20" Text="Family history book" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap"
+                       Text="A title page, contents, the ancestors' and descendants' stories, sources and an index of names." />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Title" />
+          <TextBox Text="{Binding BookTitle}" AutomationProperties.Name="Book title" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Subtitle" />
+            <TextBox Text="{Binding Subtitle}" Watermark="Optional" AutomationProperties.Name="Subtitle" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Compiled by" />
+            <TextBox Text="{Binding Author}" AutomationProperties.Name="Compiled by" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Introduction" />
+          <TextBox Text="{Binding Introduction}" AcceptsReturn="True" TextWrapping="Wrap" Height="130"
+                   VerticalContentAlignment="Top" AutomationProperties.Name="Introduction" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Generations of ancestors" />
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding AncestorGenerations}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Generations of ancestors" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Generations of descendants" />
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding DescendantGenerations}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Generations of descendants" />
+          </StackPanel>
+        </Grid>
+        <StackPanel Spacing="6">
+          <CheckBox IsChecked="{Binding IncludeSources}" Content="Source notes and a list of sources" />
+          <CheckBox IsChecked="{Binding IncludeIndex}" Content="An index of names" />
+        </StackPanel>
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="FORMAT" />
+          <ListBox Classes="choices" ItemsSource="{Binding FormatOptions}" SelectedIndex="{Binding FormatIndex}"
+                   AutomationProperties.Name="Format" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

@@ -1,0 +1,386 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        xmlns:pages="using:Lineage.App.Views.Pages"
+        xmlns:svc="using:Lineage.App.Services"
+        x:Class="Lineage.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="1280" Height="820" MinWidth="820" MinHeight="520"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+N" Command="{Binding NewCommand}" />
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}" />
+    <KeyBinding Gesture="Ctrl+I" Command="{Binding ImportCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+    <KeyBinding Gesture="Ctrl+E" Command="{Binding EditPersonCommand}" />
+    <KeyBinding Gesture="Alt+Left" Command="{Binding BackCommand}" />
+    <KeyBinding Gesture="Alt+Right" Command="{Binding ForwardCommand}" />
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+D" Command="{Binding ToggleBookmarkCommand}" />
+    <KeyBinding Gesture="Ctrl+H" Command="{Binding GoToHomePersonCommand}" />
+    <KeyBinding Gesture="Ctrl+R" Command="{Binding FindRelationshipCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+D1" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Details}" />
+    <KeyBinding Gesture="Ctrl+D2" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Pedigree}" />
+    <KeyBinding Gesture="Ctrl+D3" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.FanChart}" />
+    <KeyBinding Gesture="Ctrl+D4" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Descendants}" />
+    <KeyBinding Gesture="Ctrl+D5" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Hourglass}" />
+    <KeyBinding Gesture="Ctrl+D6" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Map}" />
+  </Window.KeyBindings>
+
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- ===== Top bar ===== -->
+    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+            Padding="16,10">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Border Classes="iconTile" Width="32" Height="32" CornerRadius="9">
+            <c:LineIcon Data="{StaticResource IconSprout}" Width="19" Height="19" />
+          </Border>
+          <TextBlock Text="Lineage Roots" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" IsVisible="{Binding HasTree}">
+            <Border Width="1" Height="18" Background="{DynamicResource LineStrong}" />
+            <TextBlock Classes="muted" Text="{Binding TreeName}" VerticalAlignment="Center" MaxWidth="320"
+                       TextTrimming="CharacterEllipsis" />
+            <Border Classes="chip" IsVisible="{Binding IsDirty}" VerticalAlignment="Center">
+              <TextBlock Text="Unsaved" />
+            </Border>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="18,0,0,0"
+                    IsVisible="{Binding HasTree}">
+          <Button Classes="ghost icon" Command="{Binding BackCommand}" ToolTip.Tip="Back (Alt+Left)"
+                  AutomationProperties.Name="Back">
+            <c:LineIcon Data="{StaticResource IconBack}" />
+          </Button>
+          <Button Classes="ghost icon" Command="{Binding ForwardCommand}" ToolTip.Tip="Forward (Alt+Right)"
+                  AutomationProperties.Name="Forward">
+            <c:LineIcon Data="{StaticResource IconForward}" />
+          </Button>
+          <Border Width="1" Height="18" Background="{DynamicResource Line}" Margin="8,0" VerticalAlignment="Center" />
+          <Button Classes="ghost icon" Command="{Binding UndoCommand}" ToolTip.Tip="{Binding UndoText, StringFormat='{}{0} (Ctrl+Z)'}"
+                  AutomationProperties.Name="{Binding UndoText}">
+            <c:LineIcon Data="{StaticResource IconUndo}" />
+          </Button>
+          <Button Classes="ghost icon" Command="{Binding RedoCommand}" ToolTip.Tip="{Binding RedoText, StringFormat='{}{0} (Ctrl+Y)'}"
+                  AutomationProperties.Name="{Binding RedoText}">
+            <c:LineIcon Data="{StaticResource IconRedo}" />
+          </Button>
+        </StackPanel>
+
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+          <Button Classes="ghost" Command="{Binding AddPersonCommand}" IsVisible="{Binding HasTree}"
+                  ToolTip.Tip="Add someone who isn't connected yet">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconUserPlus}" />
+              <TextBlock Text="Add person" />
+            </StackPanel>
+          </Button>
+          <Button Classes="outline" Command="{Binding ImportCommand}" ToolTip.Tip="Import AQ or GEDCOM (Ctrl+I)">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconImport}" />
+              <TextBlock Text="Import" />
+            </StackPanel>
+          </Button>
+          <Button Classes="primary" Command="{Binding SaveCommand}" IsVisible="{Binding HasTree}" ToolTip.Tip="Save (Ctrl+S)">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconSave}" />
+              <TextBlock Text="Save" />
+            </StackPanel>
+          </Button>
+          <Button Classes="ghost icon" ToolTip.Tip="More" AutomationProperties.Name="More options">
+            <c:LineIcon Data="{StaticResource IconMore}" StrokeThickness="2.6" />
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="New tree" Command="{Binding NewCommand}" InputGesture="Ctrl+N" />
+                <MenuItem Header="New window" Click="OnNewWindow" InputGesture="Ctrl+Shift+N" />
+                <MenuItem Header="Open…" Command="{Binding OpenCommand}" InputGesture="Ctrl+O" />
+                <MenuItem Header="Import…" Command="{Binding ImportCommand}" InputGesture="Ctrl+I" />
+                <Separator />
+                <MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
+                <MenuItem Header="Save as…" Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
+                <MenuItem Header="Export GEDCOM…" Command="{Binding ExportGedcomCommand}" />
+                <Separator />
+                <MenuItem Header="{Binding UndoText}" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+                <MenuItem Header="{Binding RedoText}" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
+                <Separator />
+                <MenuItem Header="Find duplicates…" Command="{Binding FindDuplicatesCommand}" />
+                <MenuItem Header="Find problems…" Command="{Binding FindProblemsCommand}" />
+                <MenuItem Header="Compare with another tree…" Command="{Binding CompareTreesCommand}" />
+                <MenuItem Header="How are they related?…" Command="{Binding FindRelationshipCommand}" InputGesture="Ctrl+R" />
+                <MenuItem Header="Reports" x:Name="ReportsMenu">
+                  <MenuItem Header="Family group sheet…" Command="{Binding FamilyGroupReportCommand}" />
+                  <MenuItem Header="Individual summary…" Command="{Binding IndividualSummaryCommand}" />
+                  <MenuItem Header="Ancestors…" Command="{Binding AncestorReportCommand}" />
+                  <MenuItem Header="Descendants (outline)…" Command="{Binding DescendantReportCommand}" />
+                  <MenuItem Header="Descendants (narrative, register style)…" Command="{Binding RegisterReportCommand}" />
+                  <Separator />
+                  <MenuItem Header="List of places…" Command="{Binding PlaceListReportCommand}" />
+                  <MenuItem Header="List of surnames…" Command="{Binding SurnameListReportCommand}" />
+                  <MenuItem Header="Birthday and anniversary calendar…" Command="{Binding BirthdayCalendarCommand}" />
+                  <Separator />
+                  <MenuItem Header="Family history book…" Command="{Binding FamilyBookCommand}" />
+                </MenuItem>
+                <MenuItem Header="Make a family website…" Command="{Binding ExportWebsiteCommand}" />
+                <MenuItem Header="Photos">
+                  <MenuItem Header="Keep photos with the tree (copy into its folder)…" Command="{Binding CopyMediaIntoTreeFolderCommand}" />
+                  <MenuItem Header="Find missing photos…" Command="{Binding FindMissingMediaCommand}" />
+                </MenuItem>
+                <MenuItem Header="FamilySearch">
+                  <MenuItem Header="Sign in to FamilySearch…" Command="{Binding FamilySearchSignInCommand}" />
+                  <MenuItem Header="Find this person on FamilySearch…" Command="{Binding FamilySearchFindCommand}" />
+                  <MenuItem Header="Compare with FamilySearch…" Command="{Binding FamilySearchCompareCommand}" />
+                  <MenuItem Header="Download ancestors from FamilySearch…" Command="{Binding FamilySearchDownloadAncestorsCommand}" />
+                  <Separator />
+                  <MenuItem Header="FamilySearch settings…" Command="{Binding FamilySearchSettingsCommand}" />
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Settings…" Command="{Binding OpenSettingsCommand}" />
+                <MenuItem Header="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
+                <MenuItem Header="Switch light / dark" Click="OnToggleTheme" />
+                <MenuItem Header="Exit" Click="OnExit" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ===== Welcome ===== -->
+    <ScrollViewer Grid.Row="1" IsVisible="{Binding IsWelcome}">
+      <StackPanel MaxWidth="540" Margin="24,64,24,32" Spacing="0" VerticalAlignment="Center">
+        <Border Classes="iconTile" Width="64" Height="64" CornerRadius="18" HorizontalAlignment="Left">
+          <c:LineIcon Data="{StaticResource IconSprout}" Width="32" Height="32" StrokeThickness="1.6" />
+        </Border>
+        <TextBlock Classes="display" Text="Welcome to Lineage Roots" Margin="0,22,0,6" />
+        <TextBlock Classes="muted" FontSize="15" TextWrapping="Wrap" LineHeight="23"
+                   Text="Bring in your family history from AQ or any GEDCOM file, or start a new tree from scratch." />
+
+        <StackPanel Spacing="10" Margin="0,28,0,0">
+          <Button Classes="option" Command="{Binding ImportCommand}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconImport}" /></Border>
+              <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="Import a family file" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Classes="muted" Text="AQ (.aq) or GEDCOM (.ged) — your original is never changed" TextWrapping="Wrap" />
+              </StackPanel>
+              <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
+            </Grid>
+          </Button>
+          <Button Classes="option" Command="{Binding OpenCommand}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconFolder}" /></Border>
+              <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="Open a saved tree" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Classes="muted" Text="Continue where you left off (.lineage)" TextWrapping="Wrap" />
+              </StackPanel>
+              <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
+            </Grid>
+          </Button>
+          <Button Classes="option" Command="{Binding NewCommand}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconPlus}" /></Border>
+              <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="Start a new tree" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Classes="muted" Text="Begin with yourself and work backwards" TextWrapping="Wrap" />
+              </StackPanel>
+              <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
+            </Grid>
+          </Button>
+        </StackPanel>
+
+        <StackPanel Spacing="8" Margin="0,24,0,0" IsVisible="{Binding HasRecoverable}">
+          <TextBlock Classes="section" Text="UNSAVED WORK FROM EARLIER" />
+          <ItemsControl ItemsSource="{Binding Recoverable}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="svc:RecoveryEntry">
+                <Border Classes="card" Padding="16,12" Margin="0,0,0,8">
+                  <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" Classes="ghost" Content="Discard" Margin="8,0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DiscardRecoveryCommand}"
+                            CommandParameter="{Binding}" />
+                    <Button Grid.Column="2" Classes="outline" Content="Recover"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RecoverCommand}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <TextBlock Classes="faint small" Margin="0,24,0,0" TextWrapping="Wrap"
+                   Text="Everything stays on this computer. Lineage Roots never uploads your family data." />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ===== Tree ===== -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" IsVisible="{Binding HasTree}">
+
+      <!-- Navigation rail -->
+      <Border Width="84" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+        <ListBox Classes="rail" SelectedIndex="{Binding SectionIndex}" AutomationProperties.Name="Sections">
+          <ListBoxItem ToolTip.Tip="Home: reminders, research and tree overview">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconHome}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="Home" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="People and their families">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconUsers}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="People" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="Sources and citations">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconBook}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="Sources" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="Places, maps and GPS">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconGlobe}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="Places" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="Research to-do list">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconChecklist}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="Research" />
+            </StackPanel>
+          </ListBoxItem>
+        </ListBox>
+      </Border>
+
+      <!-- List beside the page (people, sources or places) -->
+      <Border Grid.Column="1" Width="300" IsVisible="{Binding HasSidebar}"
+              Background="{DynamicResource Sidebar}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+        <DockPanel Margin="12,14,12,8">
+          <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <TextBox Name="SearchBox" Classes="search" Watermark="{Binding SearchWatermark}"
+                     Text="{Binding SearchText}" AutomationProperties.Name="{Binding SearchWatermark}" />
+            <c:LineIcon Data="{StaticResource IconSearch}" Width="16" Height="16" Margin="12,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
+                        Foreground="{DynamicResource Faint}" />
+          </Grid>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="6,0,0,6" IsVisible="{Binding IsPeopleSection}">
+            <TextBlock Classes="section" Text="{Binding PeopleCountText}" VerticalAlignment="Center" />
+            <ToggleButton Grid.Column="1" Classes="soundsLike" IsChecked="{Binding SoundsLike}" Padding="8,3"
+                          ToolTip.Tip="Also find names that sound alike or are spelled a little differently (Smith, Smyth)">
+              <TextBlock Text="Sounds like" FontSize="12" />
+            </ToggleButton>
+          </Grid>
+          <TextBlock DockPanel.Dock="Top" Classes="section" Margin="6,2,0,6" Text="{Binding PlaceCountText}"
+                     IsVisible="{Binding IsPlacesSection}" />
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="6,0,0,6" IsVisible="{Binding IsSourcesSection}">
+            <TextBlock Classes="section" Text="{Binding SourceCountText}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddSourceCommand}" Padding="8,4">
+              <StackPanel Orientation="Horizontal" Spacing="5">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="15" Height="15" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="New source" Foreground="{DynamicResource Accent}" FontSize="13" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <Panel>
+            <ListBox Classes="people" ItemsSource="{Binding PlaceList}" SelectedItem="{Binding SelectedPlace}"
+                     AutomationProperties.Name="Places" IsVisible="{Binding IsPlacesSection}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PlaceListRow">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <Panel Width="20" VerticalAlignment="Top" Margin="0,2,8,0">
+                      <c:LineIcon Data="{StaticResource IconPin}" Width="16" Height="16" Foreground="{DynamicResource Faint}"
+                                  IsVisible="{Binding !HasGps}" />
+                      <c:LineIcon Data="{StaticResource IconPin}" Width="16" Height="16" Foreground="{DynamicResource Accent}"
+                                  IsVisible="{Binding HasGps}" ToolTip.Tip="Has GPS" />
+                    </Panel>
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted small" Text="{Binding Detail}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <ListBox Classes="people" ItemsSource="{Binding SourceList}" SelectedItem="{Binding SelectedSource}"
+                     AutomationProperties.Name="Sources" IsVisible="{Binding IsSourcesSection}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SourceRow">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <Border Classes="iconTile" Width="34" Height="34" CornerRadius="9">
+                      <c:LineIcon Data="{StaticResource IconBook}" Width="17" Height="17" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center" Spacing="1">
+                      <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted small" Text="{Binding Subtitle}" IsVisible="{Binding HasSubtitle}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <ListBox Classes="people" ItemsSource="{Binding People}" SelectedItem="{Binding SelectedRow}"
+                     AutomationProperties.Name="People" IsVisible="{Binding IsPeopleSection}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PersonRow">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border Classes="avatar" Width="34" Height="34" CornerRadius="17"
+                            Classes.male="{Binding IsMale}" Classes.female="{Binding IsFemale}">
+                      <TextBlock Text="{Binding Initials}" FontSize="12" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center" Spacing="1">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted small" Text="{Binding Subtitle}" IsVisible="{Binding HasSubtitle}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Ellipse Grid.Column="2" Width="9" Height="9" Margin="6,0,2,0" VerticalAlignment="Center"
+                             Fill="{Binding ColourBrush}" IsVisible="{Binding HasColour}" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <!-- Pages -->
+      <Panel Grid.Column="2">
+        <StackPanel IsVisible="{Binding IsEmptyTree}" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Spacing="8" MaxWidth="380">
+          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+            <c:LineIcon Data="{StaticResource IconUsers}" Width="28" Height="28" />
+          </Border>
+          <TextBlock Classes="title" Text="Your tree is empty" HorizontalAlignment="Center" Margin="0,8,0,0" />
+          <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                     Text="Start with yourself or the earliest ancestor you know, then add parents, spouses and children from their page." />
+          <Button Classes="primary" Command="{Binding AddPersonCommand}" HorizontalAlignment="Center" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconUserPlus}" />
+              <TextBlock Text="Add the first person" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+        <pages:PersonPage Name="PersonView" IsVisible="{Binding IsPersonShown}" />
+        <pages:SourcePage IsVisible="{Binding IsSourcesSection}" />
+        <pages:ResearchPage IsVisible="{Binding IsResearchSection}" />
+        <pages:HomePage IsVisible="{Binding IsHomeSection}" />
+        <pages:PlacesPage IsVisible="{Binding IsPlacesSection}" />
+      </Panel>
+    </Grid>
+
+    <!-- ===== Status line ===== -->
+    <Border Grid.Row="2" Padding="16,5" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Line}"
+            Background="{DynamicResource Surface}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <TextBlock Text="{Binding Status}" Classes="faint small" />
+    </Border>
+  </Grid>
+</Window>

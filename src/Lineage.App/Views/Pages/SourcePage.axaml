@@ -1,0 +1,123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.SourcePage"
+             x:DataType="vm:MainViewModel">
+  <ScrollViewer>
+    <Panel>
+      <StackPanel IsVisible="{Binding HasNoSources}" HorizontalAlignment="Center" Margin="32,120,32,32" Spacing="8" MaxWidth="400">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+          <c:LineIcon Data="{StaticResource IconBook}" Width="28" Height="28" />
+        </Border>
+        <TextBlock Classes="title" Text="No sources yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="Sources record where each fact came from — a census, a parish register, a family Bible. Add one here, or cite one while editing an event." />
+        <Button Classes="primary" Command="{Binding AddSourceCommand}" HorizontalAlignment="Center" Margin="0,12,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconPlus}" />
+            <TextBlock Text="Add a source" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+      <StackPanel MaxWidth="980" Margin="32,28,32,40" Spacing="20" IsVisible="{Binding HasSelectedSource}">
+        <Border Classes="card" Padding="26,24">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Border Classes="iconTile" Width="64" Height="64" CornerRadius="16" VerticalAlignment="Top">
+              <c:LineIcon Data="{StaticResource IconBook}" Width="30" Height="30" />
+            </Border>
+            <StackPanel Grid.Column="1" Margin="20,2,16,0" Spacing="6">
+              <SelectableTextBlock Text="{Binding SourceTitle}" TextWrapping="Wrap" FontSize="24" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="{Binding SourceDetail}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasSourceRepository}" Margin="0,4,0,0">
+                <c:LineIcon Data="{StaticResource IconPin}" Width="14" Height="14" Foreground="{DynamicResource Faint}" />
+                <TextBlock Classes="muted small" Text="{Binding SourceRepository}" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+            <Button Grid.Column="2" Classes="outline" Command="{Binding EditSourceCommand}" VerticalAlignment="Top">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <c:LineIcon Data="{StaticResource IconEdit}" Width="16" Height="16" />
+                <TextBlock Text="Edit" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </Border>
+        <Border Classes="card" Padding="26,22" IsVisible="{Binding HasSourceText}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="TRANSCRIPT" />
+            <SelectableTextBlock Text="{Binding SourceText}" TextWrapping="Wrap" LineHeight="22" />
+          </StackPanel>
+        </Border>
+        <Border Classes="card" Padding="26,22">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="{Binding CitedByHeading}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding CitedBy}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CiterRow">
+                  <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="-12,0"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPersonCommand}"
+                          CommandParameter="{Binding PersonId}">
+                    <StackPanel Spacing="1">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                      <TextBlock Classes="muted small" Text="{Binding What}" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="card" Padding="26,22">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="section" Text="IMAGES OF THE RECORD" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddSourcePhotosCommand}" Margin="0,-8,-10,-8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                  <TextBlock Text="Add images" Foreground="{DynamicResource Accent}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+            <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasSourcePhotos}"
+                       Text="Add scans or photos of the original record — a census page, a certificate, a gravestone." />
+            <ItemsControl ItemsSource="{Binding SourcePhotos}" ItemsPanel="{StaticResource WrapPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PhotoTile">
+                  <Button Classes="photo" AutomationProperties.Name="{Binding Spoken}" ToolTip.Tip="{Binding FullPath}">
+                    <Button.Flyout>
+                      <MenuFlyout Placement="Bottom">
+                        <MenuItem Header="View and tag people…" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenSourcePhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Open in another app" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoExternallyCommand}"
+                                  CommandParameter="{Binding}" />
+                        <Separator />
+                        <MenuItem Header="Remove from this source" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RemoveSourcePhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                    <StackPanel Spacing="3">
+                      <Border Classes="frame">
+                        <Panel>
+                          <c:LineIcon Data="{StaticResource IconImage}" Width="30" Height="30"
+                                      Foreground="{DynamicResource Faint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                        </Panel>
+                      </Border>
+                      <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="2,4,2,0" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="card" Padding="26,22" IsVisible="{Binding HasSourceNote}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="section" Text="NOTES" />
+            <SelectableTextBlock Text="{Binding SourceNote}" TextWrapping="Wrap" LineHeight="22" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Panel>
+  </ScrollViewer>
+</UserControl>

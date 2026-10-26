@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.RelationshipWindow"
+        x:DataType="vm:RelationshipViewModel"
+        x:Name="Root"
+        Title="How are they related?" Width="620" Height="640" MinHeight="400"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Button Classes="primary" Click="OnClose" IsCancel="True" HorizontalAlignment="Right" MinWidth="96">
+        <TextBlock Text="Close" Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" />
+      </Button>
+    </Border>
+    <ScrollViewer>
+      <StackPanel Margin="28,24" Spacing="18">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconLink}" /></Border>
+          <TextBlock Classes="title" FontSize="20" Text="How are they related?" VerticalAlignment="Center" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,Auto,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="This person" />
+            <AutoCompleteBox ItemsSource="{Binding People}" SelectedItem="{Binding First}" FilterMode="Contains"
+                             MinimumPrefixLength="1" Watermark="Start typing a name" AutomationProperties.Name="First person" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="ghost icon" Command="{Binding SwapCommand}" Margin="8,22,8,0"
+                  ToolTip.Tip="Swap" AutomationProperties.Name="Swap the two people">
+            <c:LineIcon Data="{StaticResource IconRedo}" Width="16" Height="16" />
+          </Button>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="And this person" />
+            <AutoCompleteBox ItemsSource="{Binding People}" SelectedItem="{Binding Second}" FilterMode="Contains"
+                             MinimumPrefixLength="1" Watermark="Start typing a name" AutomationProperties.Name="Second person" />
+          </StackPanel>
+        </Grid>
+
+        <Border Classes="card" Padding="22,20">
+          <StackPanel Spacing="8">
+            <SelectableTextBlock Text="{Binding Answer}" TextWrapping="Wrap" FontSize="18" FontWeight="SemiBold"
+                                 IsVisible="{Binding Answer, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="muted" Text="{Binding Explanation}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+        <StackPanel Spacing="8" IsVisible="{Binding HasPath}">
+          <TextBlock Classes="section" Text="HOW THEY CONNECT" />
+          <ItemsControl ItemsSource="{Binding Path}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PathStep">
+                <Grid ColumnDefinitions="30,*">
+                  <Grid>
+                    <Border Width="2" Background="{DynamicResource Line}" HorizontalAlignment="Center" />
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource Accent}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                  </Grid>
+                  <Button Grid.Column="1" Classes="eventRow" Margin="0" Padding="8,6"
+                          Command="{Binding #Root.((vm:RelationshipViewModel)DataContext).OpenCommand}" CommandParameter="{Binding}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                      <TextBlock Classes="muted small" Text="{Binding Relation}" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

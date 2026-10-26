@@ -1,0 +1,119 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.ResearchEditorWindow"
+        x:DataType="vm:ResearchEditorViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="600" Height="740" MinHeight="420" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghost danger" IsVisible="{Binding CanDelete}" Click="OnDelete" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTrash}" Width="16" Height="16" Foreground="{DynamicResource Danger}" />
+            <TextBlock Text="Delete task" Foreground="{DynamicResource Danger}" />
+          </StackPanel>
+        </Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="18">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="What needs doing" />
+          <TextBox Name="DescriptionBox" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="64"
+                   VerticalContentAlignment="Top" Watermark="e.g. Find Thomas in the 1881 census"
+                   AutomationProperties.Name="What needs doing" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Kind of record" />
+            <AutoCompleteBox Text="{Binding Category}" ItemsSource="{Binding Categories}" FilterMode="Contains"
+                             MinimumPrefixLength="0" Watermark="Census, parish register…" AutomationProperties.Name="Kind of record" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Date (when done or due)" />
+            <TextBox Text="{Binding Date}" Watermark="Optional" AutomationProperties.Name="Date" />
+            <TextBlock Classes="hint" Text="{Binding DateHint}" IsVisible="{Binding HasDateHint}" />
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Priority" />
+            <ListBox Classes="segmented" ItemsSource="{Binding PriorityOptions}" SelectedIndex="{Binding PriorityIndex}"
+                     AutomationProperties.Name="Priority">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.Styles>
+                <Style Selector="ListBoxItem"><Setter Property="MinWidth" Value="70" /></Style>
+              </ListBox.Styles>
+            </ListBox>
+          </StackPanel>
+          <CheckBox Grid.Column="2" IsChecked="{Binding Done}" Content="Done" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+        </Grid>
+
+        <StackPanel Spacing="10">
+          <TextBlock Classes="section" Text="WHO IT'S ABOUT" Margin="2,6,0,0" />
+          <ItemsControl ItemsSource="{Binding People}" ItemsPanel="{StaticResource WrapPanel}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PersonChoice">
+                <Border Classes="chip" Margin="0,0,6,6" Padding="10,3,4,3">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{Binding Text}" VerticalAlignment="Center" />
+                    <Button Classes="ghost" Padding="3" MinWidth="0" MinHeight="0"
+                            Command="{Binding #Root.((vm:ResearchEditorViewModel)DataContext).RemovePersonCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Remove" AutomationProperties.Name="Remove person">
+                      <c:LineIcon Data="{StaticResource IconX}" Width="12" Height="12" Foreground="{DynamicResource Accent}" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <AutoCompleteBox ItemsSource="{Binding AllPeople}" SelectedItem="{Binding PersonToAdd}" FilterMode="Contains"
+                           MinimumPrefixLength="1" Watermark="Add a person — start typing a name"
+                           AutomationProperties.Name="Add a person" />
+        </StackPanel>
+
+        <StackPanel Spacing="12">
+          <TextBlock Classes="section" Text="WHERE TO LOOK" Margin="2,6,0,0" />
+          <Grid ColumnDefinitions="*,14,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="Archive or library" />
+              <ComboBox ItemsSource="{Binding Repositories}" SelectedItem="{Binding Repository}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Archive or library" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="Source" />
+              <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Source" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+
+        <StackPanel>
+          <TextBlock Classes="section" Text="NOTES" Margin="2,6,0,10" />
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="96"
+                   VerticalContentAlignment="Top" Watermark="What you tried, what you found, film numbers…"
+                   AutomationProperties.Name="Notes" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
