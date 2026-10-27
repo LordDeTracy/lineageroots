@@ -4,8 +4,37 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.1, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.2.1, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
+
+![A person's page](docs/screenshots/person-light.png)
+
+## Download
+
+Get the latest version from the [Releases page](https://github.com/LordDeTracy/lineageroots/releases/latest):
+
+| System | File |
+|---|---|
+| Windows 10/11 (64-bit) | `LineageRoots-<version>-win-x64.zip` — unzip and run `LineageRoots.exe` |
+| Linux (64-bit) | `LineageRoots-<version>-linux-x64.tar.gz` — extract and run `./LineageRoots` |
+
+- The program is a single file: nothing to install, no .NET to download, no folders to keep beside it.
+- Keep it somewhere you can write to (Documents or Desktop, not Program Files) so it can update itself.
+- Windows may say *"Windows protected your PC"* because the program isn't code-signed yet — choose
+  **More info → Run anyway**.
+- **It updates itself** from version 0.2.1 on: when a new version is released it asks whether to update, then
+  downloads it, checks it and restarts. If you have 0.2 or 0.1.0, download the latest version by hand once.
+- The Windows build is the one that is run and tested; the Linux build comes from the same code but hasn't been
+  tried on a Linux machine yet.
+
+## Your data stays yours
+
+Everything is kept on your computer. Your AQ or GEDCOM file is never changed — Lineage Roots imports a copy and
+saves its own `.lineage` file. The program only goes online for three things, and never sends family details:
+
+- **Street maps**: map pictures from OpenStreetMap for the area you're looking at (can be turned off in Settings)
+- **Update check**: asks GitHub whether there's a newer version (can be turned off in Settings)
+- **FamilySearch**: only if you set it up and sign in
 
 ## Why
 
@@ -21,7 +50,16 @@ directly. You don't need AQ installed and you don't need to export from it first
   - scrapbook links, research items, tags, colours, DNA results, FamilySearch IDs
   - deleted records are recognised and skipped.
 
-## Features (0.1)
+## Features
+
+| | |
+|---|---|
+| ![Timeline and census checklist](docs/screenshots/timeline-light.png) | ![Suggested next steps](docs/screenshots/suggested-dark.png) |
+| Life timeline with history and a census checklist | Suggested next steps for your ancestors |
+| ![Pedigree coloured by evidence](docs/screenshots/evidence-pedigree-light.png) | ![DNA match clusters](docs/screenshots/dna-clusters-light.png) |
+| Pedigree coloured by how well each person is proven | DNA match clusters |
+| ![Family map through time](docs/screenshots/map-timeline-light.png) | ![Reviewing a relative's changes](docs/screenshots/review-light.png) |
+| The family map, played through the years | Reviewing a relative's changes |
 
 **Your tree**
 - Import AQ 16 (`.aq`) and GEDCOM 5.5 / 5.5.1 (`.ged`), including AQ's custom tags; export GEDCOM 5.5.1
@@ -127,14 +165,36 @@ dotnet test
 
 To open a file at startup, pass its path: `dotnet run --project src/Lineage.App -- family.aq`
 
+### Making a release
+
+The app updates itself from this repository's GitHub releases, so a release needs files named the same way each
+time. Set `<Version>` in `src/Lineage.App/Lineage.App.csproj`, then build the single-file programs:
+
+```bash
+dotnet publish src/Lineage.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o publish/win-x64
+```
+
+```bash
+dotnet publish src/Lineage.App -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o publish/linux-x64
+```
+
+Package them as `LineageRoots-<version>-win-x64.zip` and `LineageRoots-<version>-linux-x64.tar.gz` (keeping the
+Linux program executable), with `LICENSE`, a `README.txt` and the Lato font's licence (`OFL.txt` from the QuestPDF
+package) beside the program. Publish a GitHub release tagged `v<version>` with both attached; the app finds it,
+checks the download against the SHA-256 GitHub records for each uploaded file, and offers it. Drafts and
+pre-releases aren't offered.
+
 ## Layout
 
 | Project | Contents |
 |---|---|
-| `src/Lineage.Core` | the model (`FamilyTree`, `Person`, `Family`, `Event`, `GenDate`…), SQLite storage, AQ and GEDCOM import, GEDCOM export |
-| `src/Lineage.App` | the Avalonia desktop app (MVVM, CommunityToolkit.Mvvm) |
-| `tests/Lineage.Core.Tests` | xUnit tests for the format, storage, GEDCOM, undo, merging, duplicates and FamilySearch data |
+| `src/Lineage.Core` | the model (`FamilyTree`, `Person`, `Family`, `Event`, `GenDate`…), SQLite storage, AQ and GEDCOM import, GEDCOM export, and the analysis behind the features: duplicates, problems, places, relationships and evidence (`Analysis`), timelines, censuses, history and research suggestions (`History`), DNA inheritance model, odds and clustering (`Dna`), sharing with relatives (`Sharing`), reports and the family website |
+| `src/Lineage.App` | the Avalonia desktop app (MVVM, CommunityToolkit.Mvvm): pages, editors, charts, maps, PDF and Word reports, and the updater |
+| `tests/Lineage.Core.Tests` | xUnit tests for the format, storage, GEDCOM, undo, merging, analysis, history, DNA and sharing |
 | `tests/Lineage.App.Tests` | headless UI tests that drive the app's workflows (Avalonia.Headless) |
+
+The DNA model's table (`src/Lineage.Core/Dna/CmModelData.cs`) is generated by simulation; to regenerate it, run
+`dotnet test tests/Lineage.Core.Tests --filter RegenerateCmModel` with `LINEAGE_GENERATE_CM=20000` set.
 
 ### Tests and private sample data
 
@@ -161,6 +221,9 @@ GEDCOM first.
 - Record hints and FamilySearch upload (deliberately not started yet)
 - Per-change history saved inside the file (undo currently lasts for the session)
 - GEDCOM media records referenced by pointer (`0 @M1@ OBJE`)
+- Password-protected tree files
+- Faces spotted in group photos, to speed up tagging
+- Code-signed Windows builds, and a macOS build
 
 ## License
 
@@ -174,4 +237,5 @@ the strict sense of the Open Source Definition.
 
 Lineage Roots uses these libraries, each under its own licence: Avalonia, CommunityToolkit.Mvvm,
 Microsoft.Data.Sqlite and DocumentFormat.OpenXml (MIT), MetadataExtractor (Apache 2.0) and QuestPDF
-(QuestPDF Community License).
+(QuestPDF Community License). The Lato font built into the program for reports is used under the SIL Open Font
+License 1.1. Street maps are © OpenStreetMap contributors.
