@@ -22,8 +22,32 @@ public abstract class ChartBase : Control
         AvaloniaProperty.Register<ChartBase, ICommand?>(nameof(NavigateCommand));
     public static readonly StyledProperty<ICommand?> OpenCommandProperty =
         AvaloniaProperty.Register<ChartBase, ICommand?>(nameof(OpenCommand));
+    public static readonly StyledProperty<bool> ShowEvidenceProperty =
+        AvaloniaProperty.Register<ChartBase, bool>(nameof(ShowEvidence));
 
-    static ChartBase() => AffectsMeasure<ChartBase>(DataProperty);
+    static ChartBase()
+    {
+        AffectsMeasure<ChartBase>(DataProperty);
+        AffectsRender<ChartBase>(ShowEvidenceProperty);
+    }
+
+    /// <summary>Colour each person by how well their birth and death are proven, instead of by sex.</summary>
+    public bool ShowEvidence { get => GetValue(ShowEvidenceProperty); set => SetValue(ShowEvidenceProperty, value); }
+
+    /// <summary>The theme brush keys (strong ink, soft background) for a person's evidence level.</summary>
+    public static (string Ink, string Soft) EvidenceKeys(Lineage.Core.Analysis.ProofLevel? level) => level switch
+    {
+        Lineage.Core.Analysis.ProofLevel.Proven or Lineage.Core.Analysis.ProofLevel.Strong => ("Accent", "AccentSoft"),
+        Lineage.Core.Analysis.ProofLevel.Good => ("MaleInk", "MaleBg"),
+        Lineage.Core.Analysis.ProofLevel.Weak => ("WarnInk", "WarnBg"),
+        Lineage.Core.Analysis.ProofLevel.Conflicting => ("Danger", "DangerBg"),
+        _ => ("Faint", "OtherBg"),
+    };
+
+    /// <summary>The bar colour for a person: their sex, or how well proven they are when <see cref="ShowEvidence"/> is on.</summary>
+    protected IBrush PersonBar(Person p) => ShowEvidence && Data != null
+        ? Brush(EvidenceKeys(Lineage.Core.Analysis.Evidence.PersonLevel(Data.Tree, p)).Ink)
+        : p.Sex switch { Sex.Male => Brush("MaleInk"), Sex.Female => Brush("FemaleInk"), _ => Brush("OtherInk") };
 
     protected ChartBase()
     {

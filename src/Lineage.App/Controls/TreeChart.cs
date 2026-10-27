@@ -128,7 +128,7 @@ public abstract class TreeChart : ChartBase
                 ctx.DrawText(label.Name, new Point(box.X + left + 9, box.Center.Y - label.Name.Height / 2));
                 continue;
             }
-            var bar = p.Sex switch { Sex.Male => b.Male, Sex.Female => b.Female, _ => b.Other };
+            var bar = ShowEvidence ? PersonBar(p) : p.Sex switch { Sex.Male => b.Male, Sex.Female => b.Female, _ => b.Other };
             ctx.DrawRectangle(bar, null, new Rect(box.X + left, box.Y + 12, 3.5, box.Height - 24), 1.75, 1.75);
             var x = box.X + left + 9;
             var width = box.Right - rightRoom - x;

@@ -1,0 +1,113 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.DnaMatchEditorWindow"
+        x:DataType="vm:DnaMatchEditorViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="620" Height="780" MinHeight="440" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Classes="ghost danger" IsVisible="{Binding CanDelete}" Click="OnDelete" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTrash}" Width="16" Height="16" Foreground="{DynamicResource Danger}" />
+            <TextBlock Text="Delete match" Foreground="{DynamicResource Danger}" />
+          </StackPanel>
+        </Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="18">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" TextWrapping="Wrap" />
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Name (as the testing company shows it)" />
+          <TextBox Name="NameBox" Text="{Binding Name}" Watermark="e.g. J. Pemberwick or a username" AutomationProperties.Name="Match name" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,14,*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Shared cM" />
+            <TextBox Name="CmBox" Text="{Binding SharedCm}" Watermark="e.g. 212" AutomationProperties.Name="Shared centimorgans" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Segments" />
+            <TextBox Text="{Binding Segments}" Watermark="Optional" AutomationProperties.Name="Number of segments" />
+          </StackPanel>
+          <StackPanel Grid.Column="4">
+            <TextBlock Classes="label" Text="Longest segment (cM)" />
+            <TextBox Text="{Binding LongestCm}" Watermark="Optional" AutomationProperties.Name="Longest segment" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="muted" Text="{Binding Prediction}" TextWrapping="Wrap" Margin="2,-8,0,0"
+                   IsVisible="{Binding !!Prediction.Length}" />
+
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Testing company" />
+            <AutoCompleteBox Text="{Binding Company}" ItemsSource="{Binding CompanyOptions}" FilterMode="Contains"
+                             MinimumPrefixLength="0" Watermark="Ancestry, 23andMe…" AutomationProperties.Name="Testing company" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Match ID or kit number" />
+            <TextBox Text="{Binding Reference}" Watermark="Optional" AutomationProperties.Name="Match ID" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Spacing="10">
+          <TextBlock Classes="section" Text="WHO THEY ARE IN THE TREE" Margin="2,6,0,0" />
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsLinked}">
+            <Border Classes="chip" HorizontalAlignment="Left" Padding="10,4">
+              <TextBlock Text="{Binding Linked}" />
+            </Border>
+            <Button Grid.Column="1" Classes="ghost" Command="{Binding UnlinkCommand}" Content="Unlink" />
+          </Grid>
+          <AutoCompleteBox ItemsSource="{Binding AllPeople}" SelectedItem="{Binding Linked}" FilterMode="Contains"
+                           MinimumPrefixLength="1" Watermark="Not identified yet — start typing a name to link them"
+                           IsVisible="{Binding !IsLinked}" AutomationProperties.Name="Person in the tree" />
+          <Panel IsVisible="{Binding HasTreeRelationship}">
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding TreeRelationship}" IsVisible="{Binding FitsTree}" />
+            <TextBlock Classes="small" TextWrapping="Wrap" Text="{Binding TreeRelationship}" IsVisible="{Binding !FitsTree}"
+                       Foreground="{DynamicResource Danger}" />
+          </Panel>
+        </StackPanel>
+
+        <StackPanel Spacing="8" IsVisible="{Binding HasSharedOptions}">
+          <TextBlock Classes="section" Text="SHARED MATCHES" Margin="2,6,0,0" />
+          <TextBlock Classes="faint small" TextWrapping="Wrap"
+                     Text="Tick the other matches the company lists as shared with this one. Clusters are built from these." />
+          <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10" MaxHeight="240" Padding="10,6">
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding SharedOptions}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SharedMatchOption">
+                    <CheckBox IsChecked="{Binding IsChecked}" Content="{Binding Text}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+        </StackPanel>
+
+        <StackPanel>
+          <TextBlock Classes="section" Text="NOTES" Margin="2,6,0,10" />
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="90"
+                   VerticalContentAlignment="Top" Watermark="Messages exchanged, their tree, surnames in common…"
+                   AutomationProperties.Name="Notes" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

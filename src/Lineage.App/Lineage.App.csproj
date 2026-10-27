@@ -9,7 +9,7 @@
     <Product>Lineage Roots</Product>
     <AssemblyTitle>Lineage Roots</AssemblyTitle>
     <RootNamespace>Lineage.App</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.2.1</Version>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -31,7 +31,14 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
     <PackageReference Include="MetadataExtractor" Version="2.8.1" />
-    <PackageReference Include="QuestPDF" Version="2024.12.3" />
+    <PackageReference Include="QuestPDF" Version="2024.12.3" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <!-- QuestPDF's default font (Lato) is built into the program instead of a LatoFont folder beside it;
+       Reports/PdfFonts.cs registers it, and Directory.Build.targets stops the folder being copied.
+       The font's licence ships as a text file with releases. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(PkgQuestPDF)\LatoFont\*.ttf" LogicalName="Fonts.%(Filename)%(Extension)" Visible="false" />
   </ItemGroup>
 
 </Project>

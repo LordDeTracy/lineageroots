@@ -16,10 +16,10 @@ using Lineage.App.Views;
 namespace Lineage.App.ViewModels;
 
 /// <summary>The sections on the navigation rail, top to bottom.</summary>
-public enum AppSection { Home, People, Sources, Places, Research }
+public enum AppSection { Home, People, Sources, Places, Research, Dna }
 
 /// <summary>Which picture of the current person the main area shows.</summary>
-public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map }
+public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map, Timeline }
 
 /// <summary>Ancestors of the person at the centre of a chart, by Ahnentafel number.</summary>
 public sealed record ChartData(FamilyTree Tree, long RootId, IReadOnlyDictionary<int, Person> Ancestors);
@@ -125,7 +125,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDetailsView), nameof(IsPedigreeView), nameof(IsFanView), nameof(IsDescendantsView),
-                              nameof(IsHourglassView), nameof(IsMapView), nameof(IsChartView), nameof(ViewIndex), nameof(ChartGenerationsShown))]
+                              nameof(IsHourglassView), nameof(IsMapView), nameof(IsTimelineView), nameof(IsChartView), nameof(ViewIndex), nameof(ChartGenerationsShown))]
     private PersonView _view = PersonView.Details;
     public bool IsDetailsView => View == PersonView.Details;
     public bool IsPedigreeView => View == PersonView.Pedigree;
@@ -133,22 +133,29 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsDescendantsView => View == PersonView.Descendants;
     public bool IsHourglassView => View == PersonView.Hourglass;
     public bool IsMapView => View == PersonView.Map;
+    public bool IsTimelineView => View == PersonView.Timeline;
     /// <summary>A chart is showing (so the generations, zoom and save-image controls apply).</summary>
-    public bool IsChartView => View is not (PersonView.Details or PersonView.Map);
-    partial void OnViewChanged(PersonView value) { if (value == PersonView.Map) RebuildPersonMap(); }
+    public bool IsChartView => View is not (PersonView.Details or PersonView.Map or PersonView.Timeline);
+    partial void OnViewChanged(PersonView value)
+    {
+        if (value == PersonView.Map) RebuildPersonMap();
+        else StopMapPlayback();
+        if (value == PersonView.Timeline) RebuildTimeline();
+    }
     public int ViewIndex { get => (int)View; set => View = (PersonView)value; }
 
     /// <summary>The section picked on the navigation rail.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SectionIndex), nameof(IsHomeSection), nameof(IsPeopleSection), nameof(IsSourcesSection),
-                              nameof(IsPlacesSection), nameof(IsResearchSection), nameof(HasSidebar), nameof(SearchWatermark))]
+                              nameof(IsPlacesSection), nameof(IsResearchSection), nameof(IsDnaSection), nameof(HasSidebar), nameof(SearchWatermark))]
     private AppSection _section = AppSection.People;
-    public int SectionIndex { get => (int)Section; set => Section = (AppSection)Math.Clamp(value, 0, 4); }
+    public int SectionIndex { get => (int)Section; set => Section = (AppSection)Math.Clamp(value, 0, 5); }
     public bool IsHomeSection => Section == AppSection.Home;
     public bool IsPeopleSection => Section == AppSection.People;
     public bool IsSourcesSection => Section == AppSection.Sources;
     public bool IsPlacesSection => Section == AppSection.Places;
     public bool IsResearchSection => Section == AppSection.Research;
+    public bool IsDnaSection => Section == AppSection.Dna;
     /// <summary>People, Sources and Places have a list beside the page; Home and Research use the full width.</summary>
     public bool HasSidebar => Section is AppSection.People or AppSection.Sources or AppSection.Places;
     partial void OnSectionChanged(AppSection value)
@@ -160,6 +167,7 @@ public sealed partial class MainViewModel : ObservableObject
             case AppSection.Places: RebuildPlaceList(); break;
             case AppSection.Research: RebuildResearch(); break;
             case AppSection.Home: RebuildHome(); break;
+            case AppSection.Dna: RebuildDna(); break;
         }
     }
 
@@ -470,8 +478,10 @@ public sealed partial class MainViewModel : ObservableObject
         ShowPhotos(p);
         RebuildPlaces(p);
         RebuildPersonResearch(p);
+        RebuildPersonHints(p);
         Chart = new ChartData(_tree, p.Id, _tree.Ancestors(p, ChartGenerations));
         if (IsMapView) RebuildPersonMap();
+        if (IsTimelineView) RebuildTimeline();
 
         SyncSelection(id);
         RefreshBookmarkState();
@@ -497,8 +507,9 @@ public sealed partial class MainViewModel : ObservableObject
                 f.Events.Select(e => (e, owner: (Entity)f,
                     suffix: _tree.SpouseIn(f, p) is { } s ? $" — {s.DisplayName}" : ""))));
         foreach (var (e, owner, suffix) in items.OrderBy(x => x.e.Date.SortKey == 0 ? int.MaxValue : x.e.Date.SortKey))
-            Events.Add(ToRow(p, e, owner, suffix));
+            Events.Add(ToRow(p, e, owner, suffix) with { Proof = Lineage.Core.Analysis.Evidence.Assess(_tree, e, owner) });
         HasEvents = Events.Count > 0;
+        ProofTally = EvidenceTally(Events.Select(r => r.Proof!.Level).ToList());
     }
 
     private void ClearCurrent()
@@ -510,7 +521,7 @@ public sealed partial class MainViewModel : ObservableObject
         ProfilePhoto = null;
         Chart = null;
         Events.Clear(); Parents.Clear(); MissingParents.Clear(); Families.Clear(); Chips.Clear();
-        Photos.Clear(); Places.Clear();
+        Photos.Clear(); Places.Clear(); TimelineRows.Clear(); CensusRows.Clear(); PersonHints.Clear();
         NotifyPersonCommands();
     }
 

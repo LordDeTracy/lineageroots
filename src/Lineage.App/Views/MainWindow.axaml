@@ -31,6 +31,8 @@
     <KeyBinding Gesture="Ctrl+D4" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Descendants}" />
     <KeyBinding Gesture="Ctrl+D5" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Hourglass}" />
     <KeyBinding Gesture="Ctrl+D6" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Map}" />
+    <KeyBinding Gesture="Ctrl+D7" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Timeline}" />
+    <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenQuickSearchCommand}" />
   </Window.KeyBindings>
 
 
@@ -77,6 +79,13 @@
         </StackPanel>
 
         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+          <Button Classes="ghost icon" Command="{Binding OpenQuickSearchCommand}" ToolTip.Tip="Quick search: people, places, sources and commands (Ctrl+K)"
+                  AutomationProperties.Name="Quick search">
+            <c:LineIcon Data="{StaticResource IconSearch}" />
+          </Button>
+          <Button Classes="ghost icon" Click="OnToggleTheme" ToolTip.Tip="Switch light / dark" AutomationProperties.Name="Switch light or dark">
+            <c:LineIcon Name="ThemeIcon" Data="{StaticResource IconMoon}" />
+          </Button>
           <Button Classes="ghost" Command="{Binding AddPersonCommand}" IsVisible="{Binding HasTree}"
                   ToolTip.Tip="Add someone who isn't connected yet">
             <StackPanel Orientation="Horizontal" Spacing="7">
@@ -115,6 +124,8 @@
                 <MenuItem Header="Find duplicates…" Command="{Binding FindDuplicatesCommand}" />
                 <MenuItem Header="Find problems…" Command="{Binding FindProblemsCommand}" />
                 <MenuItem Header="Compare with another tree…" Command="{Binding CompareTreesCommand}" />
+                <MenuItem Header="Share a copy with a relative…" Command="{Binding ShareWithRelativeCommand}" />
+                <MenuItem Header="Review a relative's changes…" Command="{Binding ReviewRelativeChangesCommand}" />
                 <MenuItem Header="How are they related?…" Command="{Binding FindRelationshipCommand}" InputGesture="Ctrl+R" />
                 <MenuItem Header="Reports" x:Name="ReportsMenu">
                   <MenuItem Header="Family group sheet…" Command="{Binding FamilyGroupReportCommand}" />
@@ -144,6 +155,7 @@
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="Settings…" Command="{Binding OpenSettingsCommand}" />
+                <MenuItem Header="Check for updates…" Command="{Binding CheckForUpdatesCommand}" />
                 <MenuItem Header="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
                 <MenuItem Header="Switch light / dark" Click="OnToggleTheme" />
                 <MenuItem Header="Exit" Click="OnExit" />
@@ -257,6 +269,12 @@
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconChecklist}" Width="21" Height="21" HorizontalAlignment="Center" />
               <TextBlock Text="Research" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="DNA matches, clusters and relationship odds">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconDna}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <TextBlock Text="DNA" />
             </StackPanel>
           </ListBoxItem>
         </ListBox>
@@ -374,6 +392,7 @@
         <pages:ResearchPage IsVisible="{Binding IsResearchSection}" />
         <pages:HomePage IsVisible="{Binding IsHomeSection}" />
         <pages:PlacesPage IsVisible="{Binding IsPlacesSection}" />
+        <pages:DnaPage IsVisible="{Binding IsDnaSection}" />
       </Panel>
     </Grid>
 
@@ -382,5 +401,37 @@
             Background="{DynamicResource Surface}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
       <TextBlock Text="{Binding Status}" Classes="faint small" />
     </Border>
+
+    <!-- ===== Quick search (Ctrl+K) ===== -->
+    <Panel Grid.RowSpan="3" IsVisible="{Binding IsQuickSearchOpen}" ZIndex="10">
+      <Border Background="#59000000" PointerPressed="OnQuickBackdrop" />
+      <Border Classes="card" Width="640" MaxHeight="540" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,84,0,0"
+              Padding="0" BoxShadow="0 16 48 0 #40000000">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" Margin="16,14,16,10">
+            <TextBox Name="QuickSearchBox" Classes="search" Text="{Binding QuickSearchText}" KeyDown="OnQuickSearchKey"
+                     Watermark="Search people, places, sources and commands…" AutomationProperties.Name="Quick search" />
+            <c:LineIcon Data="{StaticResource IconSearch}" Width="16" Height="16" Margin="12,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource Faint}" />
+          </Grid>
+          <TextBlock DockPanel.Dock="Bottom" Classes="faint small" Margin="20,0,20,12"
+                     Text="↑ ↓ to choose · Enter to open · Esc to close" />
+          <ListBox Name="QuickList" ItemsSource="{Binding QuickResults}" SelectedItem="{Binding SelectedQuickResult}"
+                   Margin="8,0,8,8" Background="Transparent" Tapped="OnQuickResultTapped" AutomationProperties.Name="Results">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:QuickResult">
+                <Grid ColumnDefinitions="78,*">
+                  <TextBlock Classes="faint small" Text="{Binding Kind}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+    </Panel>
   </Grid>
 </Window>

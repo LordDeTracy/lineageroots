@@ -13,6 +13,8 @@ public interface IDialogService
     Task<string?> SaveFileAsync(string title, string suggestedName, params (string Name, string Patterns)[] filters);
     Task ShowMessageAsync(string title, string message);
     Task<bool> ConfirmAsync(string title, string message);
+    /// <summary>A question with several answers; returns the index of the one chosen (the last answers Escape).</summary>
+    Task<int> ChooseAsync(string title, string message, params string[] buttons);
     /// <summary>"Save changes before closing?" with Save, Don't save and Cancel.</summary>
     Task<SaveChoice> AskSaveChangesAsync(string treeName);
     /// <summary>Shows the person editor; true when saved. The caller applies the edits (so they can be undone).</summary>
@@ -20,6 +22,8 @@ public interface IDialogService
     Task<EditorResult> EditEventAsync(EventEditorViewModel editor);
     Task<EditorResult> EditSourceAsync(SourceEditorViewModel editor);
     Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor);
+    Task<EditorResult> EditDnaMatchAsync(DnaMatchEditorViewModel editor);
+    Task<bool> ReviewChangesAsync(ReviewChangesViewModel review);
     Task<bool> EditSettingsAsync(SettingsViewModel settings);
     Task<bool> ExportOptionsAsync(ExportOptionsViewModel options);
     /// <summary>Shows a tree comparison; true when the user asked to copy the ticked people in.</summary>
@@ -75,6 +79,8 @@ public sealed class DialogService(Window owner) : IDialogService
     public Task ShowMessageAsync(string title, string message) => Choose(title, message, "OK");
 
     public async Task<bool> ConfirmAsync(string title, string message) => await Choose(title, message, "Yes", "No") == 0;
+
+    public Task<int> ChooseAsync(string title, string message, params string[] buttons) => Choose(title, message, buttons);
 
     public async Task<SaveChoice> AskSaveChangesAsync(string treeName) =>
         await Choose("Unsaved changes", $"Save the changes to \"{treeName}\" before closing?", "Save", "Don't save", "Cancel") switch
@@ -144,6 +150,12 @@ public sealed class DialogService(Window owner) : IDialogService
 
     public Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor) =>
         new ResearchEditorWindow { DataContext = editor }.ShowDialog<EditorResult>(owner);
+
+    public Task<bool> ReviewChangesAsync(ReviewChangesViewModel review) =>
+        new ReviewChangesWindow { DataContext = review }.ShowDialog<bool>(owner);
+
+    public Task<EditorResult> EditDnaMatchAsync(DnaMatchEditorViewModel editor) =>
+        new DnaMatchEditorWindow { DataContext = editor }.ShowDialog<EditorResult>(owner);
 
     public Task<bool> EditSettingsAsync(SettingsViewModel settings) =>
         new SettingsWindow { DataContext = settings }.ShowDialog<bool>(owner);

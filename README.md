@@ -33,13 +33,27 @@ directly. You don't need AQ installed and you don't need to export from it first
 - **Event editor** for any event type, with date checking, place, GPS, photos and source citations
 - **Sources, citations and repositories**, with scans of the original record on each source
 - **Research to-do list** linked to people, with priorities and a done filter
+- **Suggested next steps** on every person's page, and for the home person's ancestors on the Research page: missing
+  parents, births, marriages and deaths, censuses they should be in, emigration, military service (draft cards,
+  Civil War, First World War), wills and probate, gaps between children, and facts without sources. Each says why
+  it was suggested and where such records usually are for that country and period; one click makes it a task
+- **Quick search** (Ctrl+K): type to jump to any person, place or source, or to run a command
 - **Undo and redo** for every edit (Ctrl+Z / Ctrl+Y)
 
 **Charts and maps**
 - Pedigree, fan, descendant and hourglass charts. Click to centre, double-click to open, mouse wheel to zoom,
   drag to pan. Save as a picture, or print as a wall chart (one big poster, or pages to tape together)
 - A map of where a family lived, with arrows from each parent's birthplace to the child's, and a map of every
-  place in the tree (street maps from OpenStreetMap, or a plain grid when that is turned off)
+  place in the tree (street maps from OpenStreetMap, or a plain grid when that is turned off). Drag the year slider
+  or press Play to watch the family spread over the generations
+- A life timeline for each person: their own events with their age at each one, births, marriages and deaths in
+  their family, and history where they lived — wars, epidemics, emigration waves, and changes in the law and in
+  record keeping (about 80 events for the United States, Britain, Ireland, Canada, Australia, New Zealand and
+  parts of Europe)
+- A census checklist: every census taken while the person was alive, in the country where they were living, marked
+  found, to find, maybe (they moved, or may have died) or lost (the 1890 US census, most Irish censuses before
+  1901). One click adds a research task or records the census. Covers the United States, England, Wales,
+  Scotland, Ireland, Canada, Norway and Sweden
 
 **Places and photos**
 - Places page: GPS for a whole place at once, rename or merge, and suggested clean-ups ("Leeds, Yorks" →
@@ -48,10 +62,38 @@ directly. You don't need AQ installed and you don't need to export from it first
   read from the camera; copy every photo into a folder beside the tree so they travel together; find moved photos
 
 **Checking your work**
+- **Evidence for every fact**: rate each citation the way the Genealogical Proof Standard does — original record,
+  copy or compiled work; first-hand or second-hand information; direct, indirect or negative evidence. Each fact
+  is shown as strong, good, weak, conflicting or without a source (independent sources corroborate one another),
+  with tips on what would make it stronger. Record conflicting records and how you settled them, mark a fact
+  proven or disproved with your reasoning, and colour the charts by how well each person's birth and death are
+  proven. Two records of the same birth, death or marriage that disagree are flagged automatically, and merging
+  two people turns their differences into conflicts to settle. Ratings are kept in GEDCOM (and written as the
+  standard quality rating too)
 - Find and merge duplicates (merges keep everything and can be undone)
 - Problem finder: impossible or unlikely dates and relationships
 - Relationship calculator ("2nd cousin once removed", "wife's aunt") with the line of people between them
 - Compare with another tree (a cousin's GEDCOM): who matches, what differs, and copy people across
+- **Share with relatives and merge their changes back**: save a copy for a cousin (living people left out if you
+  like); when they send their edited copy back — as a Lineage Roots file or a GEDCOM — review what they changed one
+  change at a time: new people and families, corrected names, added or changed facts and sources, removals. Your
+  tree keeps a record of what was sent, so their edits are told apart from yours, and anything you both changed is
+  flagged and starts unticked. Take what you want in one undoable step; what you turn down isn't offered again
+  unless they change it again
+
+**DNA**
+- DNA matches for anyone who tested: shared cM, segments, company, notes and shared matches, typed in or imported
+  from a CSV match list or shared-matches list (column names are recognised automatically; downloading again
+  updates rather than duplicates). Match lists name living people, so privacy-filtered exports leave them out
+- Link identified matches to people in the tree, and each one is checked against the tree: "tree says 1st cousin —
+  fits", or a warning when that much DNA is unlikely for the relationship the tree gives
+- Shared cM calculator: the likely relationships for an amount of shared DNA, with odds and typical ranges. The
+  numbers come from simulating inheritance (48 relationships × 20,000 simulated pairs, with realistic crossover
+  patterns), so no outside data is needed
+- What Are The Odds: test where someone fits — "child of this couple" or "child of that person" — against the DNA
+  they share with every tested relative in the tree, and rank the places. Only birth links count
+- Match clusters: groups matches who share matches with each other (like the Leeds method and autoclusters), shown as
+  a coloured grid, with the ancestors the linked matches in each cluster point to
 
 **Reports and sharing**
 - PDF or Word: family group sheet, individual summary, ancestors, descendants (outline or narrative "register"
@@ -64,10 +106,14 @@ directly. You don't need AQ installed and you don't need to export from it first
 - Each save keeps the previous version in a backups folder; while there are unsaved changes a recovery copy is
   written every few minutes and offered back after a crash; closing asks before discarding changes
 - Several trees open at once, each in its own window
+- **Updates itself**: at start-up it asks GitHub whether there's a newer release (nothing about your family is
+  sent) and, if you agree, downloads it, checks it against GitHub's SHA-256 checksum, and restarts into the new
+  version. Unsaved changes are offered for saving first. Turn the check off in Settings, or check any time from the
+  ⋯ menu. Publishing a GitHub release with the Windows zip and Linux tarball attached is all an update needs
 - **FamilySearch**: open a linked person on FamilySearch.org, find and link people, compare and copy details, and
   download ancestors. Read-only; needs your own app key from the
   [FamilySearch developer program](https://www.familysearch.org/developers/)
-- Light and dark themes; every control has a screen-reader name
+- Light and dark themes (the sun/moon button at the top); every control has a screen-reader name
 
 ## Building
 
@@ -103,6 +149,9 @@ test still runs.
 The `.aq` reader was written from documentation of the file format. That documentation came from analysing the
 program for interoperability and was checked against AQ's own exports of real databases. No AQ code
 is used or included. The importer is read-only and never modifies an `.aq` file.
+
+Lineage Roots is an independent project. It is not affiliated with, endorsed by or connected to the makers of AQ,
+and "AQ" is used here only to say which files it can read.
 
 Supported: AQ 16 (`.aq`, format "3600"). Older AQ formats and PAF files can be imported by exporting them to
 GEDCOM first.

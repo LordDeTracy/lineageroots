@@ -17,7 +17,52 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Opened += (_, _) => (DataContext as MainViewModel)?.StartAutoSave();
+        Opened += async (_, _) =>
+        {
+            if (DataContext is not MainViewModel vm) return;
+            vm.StartAutoSave();
+            await vm.CheckForUpdatesOnStartAsync();
+        };
+        ActualThemeVariantChanged += (_, _) => UpdateThemeIcon();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MainViewModel vm)
+                vm.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(MainViewModel.IsQuickSearchOpen) && vm.IsQuickSearchOpen)
+                        Dispatcher.UIThread.Post(() => QuickSearchBox.Focus(), DispatcherPriority.Input);
+                };
+        };
+        UpdateThemeIcon();
+    }
+
+    /// <summary>The top bar's theme button shows where it will take you: a sun in dark mode, a moon in light.</summary>
+    private void UpdateThemeIcon()
+    {
+        if (this.TryFindResource(ActualThemeVariant == ThemeVariant.Dark ? "IconSun" : "IconMoon", out var icon) && icon is Avalonia.Media.Geometry g)
+            ThemeIcon.Data = g;
+    }
+
+    private void OnQuickSearchKey(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        switch (e.Key)
+        {
+            case Key.Down: vm.MoveQuickSelection(1); break;
+            case Key.Up: vm.MoveQuickSelection(-1); break;
+            case Key.Enter: vm.RunQuickResultCommand.Execute(null); break;
+            case Key.Escape: vm.CloseQuickSearchCommand.Execute(null); break;
+            default: return;
+        }
+        if (vm.SelectedQuickResult != null) QuickList.ScrollIntoView(vm.SelectedQuickResult);
+        e.Handled = true;
+    }
+
+    private void OnQuickBackdrop(object? sender, PointerPressedEventArgs e) => (DataContext as MainViewModel)?.CloseQuickSearchCommand.Execute(null);
+
+    private void OnQuickResultTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is MainViewModel { SelectedQuickResult: { } r } vm) vm.RunQuickResultCommand.Execute(r);
     }
 
     /// <summary>Asks about unsaved changes before the window closes.</summary>

@@ -108,6 +108,9 @@ public static class Privacy
 
         if (options.Living == LivingMode.Exclude) Exclude(copy, living);
         else if (options.Living == LivingMode.Privatize) Privatize(copy, living);
+        // DNA match lists name living people (the matches themselves), so they only go out when living people do.
+        if (options.Living != LivingMode.Include)
+            foreach (var p in copy.People.Values) p.DnaMatches.Clear();
 
         if (options.ExcludePrivateEvents)
         {
@@ -189,6 +192,8 @@ public static class Privacy
             foreach (var e in events)
             {
                 e.Note = "";
+                e.Reasoning = "";      // research notes on the evidence
+                e.Conflicts.Clear();
                 Citations(e.Citations);
             }
         }
@@ -203,6 +208,7 @@ public static class Privacy
             Citations(p.Citations);
             foreach (var m in p.Media) m.Note = "";
             foreach (var d in p.DnaTests) d.Note = "";
+            foreach (var m in p.DnaMatches) m.Note = "";
         }
         foreach (var f in tree.Families.Values)
         {

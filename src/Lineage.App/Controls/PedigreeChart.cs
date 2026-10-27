@@ -102,7 +102,7 @@ public sealed class PedigreeChart : ChartBase
         ctx.DrawRectangle(root ? Brush("AccentSoft") : hover ? Brush("SurfaceAlt") : Brush("Surface"),
                           new Pen(root || hover ? Brush("Accent") : Brush("Line"), root ? 1.6 : 1), r, radius, radius);
         // A coloured bar for sex, like the avatars elsewhere.
-        var edge = p.Sex switch { Sex.Male => Brush("MaleInk"), Sex.Female => Brush("FemaleInk"), _ => Brush("OtherInk") };
+        var edge = PersonBar(p);
         ctx.DrawRectangle(edge, null, new Rect(r.X + 7, r.Y + 12, 3.5, r.Height - 24), 1.75, 1.75);
 
         var x = r.X + 16;

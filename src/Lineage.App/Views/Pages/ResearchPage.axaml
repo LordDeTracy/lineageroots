@@ -86,6 +86,7 @@
         <ListBoxItem Content="To do" />
         <ListBoxItem Content="Done" />
         <ListBoxItem Content="All" />
+        <ListBoxItem Content="Suggested" ToolTip.Tip="Next steps for the home person and their ancestors" />
       </ListBox>
 
       <StackPanel IsVisible="{Binding HasNoResearch}" HorizontalAlignment="Center" Margin="0,60,0,0" Spacing="8" MaxWidth="420">
@@ -95,6 +96,13 @@
         <TextBlock Classes="title" Text="No research tasks yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
         <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
                    Text="Keep a list of records to look for and questions to answer — like 'Find Thomas in the 1881 census'. Link each task to the people it's about." />
+      </StackPanel>
+
+      <StackPanel Spacing="12" IsVisible="{Binding IsSuggestedFilter}">
+        <TextBlock Classes="muted" Text="{Binding SuggestedSummary}" TextWrapping="Wrap" />
+        <Border Classes="card" Padding="24,22,24,6" IsVisible="{Binding !!SuggestedResearch.Count}">
+          <ItemsControl ItemsSource="{Binding SuggestedResearch}" ItemTemplate="{StaticResource HintTemplate}" />
+        </Border>
       </StackPanel>
 
       <ItemsControl ItemsSource="{Binding ResearchList}" ItemTemplate="{StaticResource TaskTemplate}" />

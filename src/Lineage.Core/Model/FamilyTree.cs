@@ -20,6 +20,10 @@ public sealed class FamilyTree
     public long? HomePersonId { get; set; }
     /// <summary>People the user starred for quick access, in the order they were added.</summary>
     public List<long> Bookmarks { get; } = new();
+    /// <summary>Copies of this tree given to relatives, each with a snapshot of what was sent (to review their changes later).</summary>
+    public List<ShareRecord> Shares { get; } = new();
+    /// <summary>In a copy made for a relative: which share it came from, so their changes can be merged back.</summary>
+    public ShareOrigin? SharedFrom { get; set; }
 
     public static string PairKey(long a, long b) => a < b ? $"{a}:{b}" : $"{b}:{a}";
 

@@ -97,22 +97,31 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:CitationRow">
                 <Border Classes="card" Padding="14,10">
-                  <Grid ColumnDefinitions="*,10,170,6,Auto" RowDefinitions="Auto,Auto">
+                  <Grid ColumnDefinitions="*,6,Auto" RowDefinitions="Auto,Auto,Auto">
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                       <c:LineIcon Data="{StaticResource IconBook}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
                       <TextBlock Text="{Binding SourceTitle}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:CitationRow.Qualities}"
-                              SelectedIndex="{Binding QualityIndex}" HorizontalAlignment="Stretch"
-                              AutomationProperties.Name="How reliable" ToolTip.Tip="How reliable is this source for this fact?" />
-                    <Button Grid.Column="4" Classes="ghost icon" Width="32" Height="32" Padding="7"
+                    <Button Grid.Column="2" Classes="ghost icon" Width="32" Height="32" Padding="7"
                             Command="{Binding #Root.((vm:EventEditorViewModel)DataContext).RemoveCitationCommand}"
                             CommandParameter="{Binding}" ToolTip.Tip="Remove this citation"
                             AutomationProperties.Name="Remove citation">
                       <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
                     </Button>
-                    <TextBox Grid.Row="1" Grid.ColumnSpan="5" Margin="0,8,0,0" Text="{Binding Page}"
+                    <TextBox Grid.Row="1" Grid.ColumnSpan="3" Margin="0,8,0,0" Text="{Binding Page}"
                              Watermark="Where in the source: page, entry, film number…" AutomationProperties.Name="Where in the source" />
+                    <!-- Evidence analysis: the record, the informant, and how it shows the fact -->
+                    <Grid Grid.Row="2" Grid.ColumnSpan="3" ColumnDefinitions="*,8,*,8,*" Margin="0,8,0,0">
+                      <ComboBox ItemsSource="{x:Static vm:CitationRow.SourceKinds}" SelectedIndex="{Binding SourceKindIndex}"
+                                HorizontalAlignment="Stretch" AutomationProperties.Name="Kind of record"
+                                ToolTip.Tip="Is this the original record, a copy or index of it, or someone's compiled work? (Applies everywhere this source is cited.)" />
+                      <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:CitationRow.Informations}" SelectedIndex="{Binding InformationIndex}"
+                                HorizontalAlignment="Stretch" AutomationProperties.Name="Informant"
+                                ToolTip.Tip="Did whoever gave this information know it first-hand — were they there?" />
+                      <ComboBox Grid.Column="4" ItemsSource="{x:Static vm:CitationRow.Evidences}" SelectedIndex="{Binding EvidenceIndex}"
+                                HorizontalAlignment="Stretch" AutomationProperties.Name="How it shows the fact"
+                                ToolTip.Tip="Does it state this fact outright, or only imply it, or show it by what's missing?" />
+                    </Grid>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -130,6 +139,70 @@
               </StackPanel>
             </Button>
           </Grid>
+        </StackPanel>
+
+        <!-- Evidence: how well proven, the researcher's conclusion, conflicting records -->
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="Auto,*" Margin="2,6,0,0">
+            <TextBlock Classes="section" Text="EVIDENCE" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+              <Border Classes="proof" Classes.strong="{Binding IsProofStrong}" Classes.good="{Binding IsProofGood}"
+                      Classes.weak="{Binding IsProofWeak}" Classes.conflict="{Binding IsProofConflicting}">
+                <TextBlock Text="{Binding ProofLabel}" />
+              </Border>
+              <TextBlock Classes="muted small" Text="{Binding ProofSummary}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Classes="faint small" Text="{Binding ProofDetails}" TextWrapping="Wrap" IsVisible="{Binding HasProofDetails}" />
+
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock Classes="label" Text="Your conclusion" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ListBox Grid.Column="1" Classes="segmented" ItemsSource="{x:Static vm:EventEditorViewModel.Conclusions}"
+                     SelectedIndex="{Binding ConclusionIndex}" HorizontalAlignment="Left" AutomationProperties.Name="Your conclusion">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+            </ListBox>
+          </Grid>
+          <TextBox Text="{Binding Reasoning}" AcceptsReturn="True" TextWrapping="Wrap" Height="72" VerticalContentAlignment="Top"
+                   Watermark="Your reasoning: how the evidence fits together, and how any conflicts were settled"
+                   AutomationProperties.Name="Reasoning" />
+
+          <ItemsControl ItemsSource="{Binding Conflicts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ConflictRow">
+                <Border Classes="card" Padding="14,10">
+                  <Grid ColumnDefinitions="*,8,*,6,Auto" RowDefinitions="Auto,Auto,Auto">
+                    <TextBox Grid.ColumnSpan="3" Text="{Binding Claim}" Watermark="What the conflicting record says, e.g. 1851 census: aged 30 (born about 1821)"
+                             AutomationProperties.Name="What the conflicting record says" />
+                    <Button Grid.Column="4" Classes="ghost icon" Width="32" Height="32" Padding="7"
+                            Command="{Binding #Root.((vm:EventEditorViewModel)DataContext).RemoveConflictCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Remove" AutomationProperties.Name="Remove conflict">
+                      <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                    </Button>
+                    <AutoCompleteBox Grid.Row="1" Text="{Binding SourceTitle}" Margin="0,8,0,0" FilterMode="Contains" MinimumPrefixLength="0"
+                                     ItemsSource="{Binding #Root.((vm:EventEditorViewModel)DataContext).SourceTitles}"
+                                     Watermark="Its source (optional)" AutomationProperties.Name="Source of the conflicting record" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding Page}" Margin="0,8,0,0" Watermark="Page or entry"
+                             AutomationProperties.Name="Page of the conflicting record" />
+                    <TextBox Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding Resolution}" Margin="0,8,0,0"
+                             Watermark="How it was settled, e.g. ages in the 1851 census are often rounded"
+                             AutomationProperties.Name="How it was settled" />
+                    <CheckBox Grid.Row="2" Grid.Column="4" IsChecked="{Binding Resolved}" Content="Settled" Margin="8,8,0,0" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="ghost accentText" Command="{Binding AddConflictCommand}" HorizontalAlignment="Left" Margin="-10,0,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+              <TextBlock Text="Add a record that disagrees" Foreground="{DynamicResource Accent}" />
+            </StackPanel>
+          </Button>
         </StackPanel>
 
         <StackPanel Spacing="10" IsVisible="{Binding CanAddPhotos}">

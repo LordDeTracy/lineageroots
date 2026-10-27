@@ -54,6 +54,13 @@
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="Map pictures are downloaded for the area you're looking at — no names or other family details are sent. Turned off, maps show a plain grid with your pins." />
       </StackPanel>
+
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="UPDATES" />
+        <CheckBox IsChecked="{Binding CheckForUpdates}" Content="Check for a new version when Lineage Roots starts" />
+        <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
+                   Text="{Binding VersionText, StringFormat='{}{0} Lineage Roots asks GitHub whether there is a newer version — nothing about your family is sent — and asks you before updating. You can also check from the ⋯ menu.'}" />
+      </StackPanel>
     </StackPanel>
   </DockPanel>
 </Window>

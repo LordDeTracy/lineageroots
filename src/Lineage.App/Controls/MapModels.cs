@@ -5,11 +5,14 @@ namespace Lineage.App.Controls;
 /// <summary>What happened at a pin; decides its colour.</summary>
 public enum MapPinKind { Birth, Marriage, Death, Residence, Other }
 
-/// <summary>A place on the map: a person's event with its coordinates.</summary>
-public sealed record MapPin(GeoPoint Location, string Label, string Detail, MapPinKind Kind = MapPinKind.Other, long? PersonId = null);
+/// <summary>A place on the map: a person's event with its coordinates, and its year (0 when undated).</summary>
+public sealed record MapPin(GeoPoint Location, string Label, string Detail, MapPinKind Kind = MapPinKind.Other, long? PersonId = null, int Year = 0);
 
-/// <summary>A move between two places (e.g. a parent's birthplace to a child's), drawn as an arc with an arrowhead.</summary>
-public sealed record MapLine(GeoPoint From, GeoPoint To, string Label = "");
+/// <summary>
+/// A move between two places (e.g. a parent's birthplace to a child's), drawn as an arc with an arrowhead.
+/// <see cref="Year"/> is when it happened (the child's birth), 0 when unknown.
+/// </summary>
+public sealed record MapLine(GeoPoint From, GeoPoint To, string Label = "", int Year = 0);
 
 /// <summary>Builds pins and migration lines for a set of people from the coordinates on their events.</summary>
 public static class MapData
@@ -36,25 +39,27 @@ public static class MapData
         foreach (var p in people.DistinctBy(p => p.Id))
         {
             foreach (var e in p.Events.Where(e => e.Location != null && !e.Private))
-                pins.Add(new MapPin(e.Location!.Value, p.DisplayName, Describe(e), KindOf(e.Tag), p.Id));
+                pins.Add(new MapPin(e.Location!.Value, p.DisplayName, Describe(e), KindOf(e.Tag), p.Id, YearOf(e)));
 
             foreach (var (family, spouse, _) in tree.FamiliesOf(p))
             {
                 if (!families.Add(family.Id)) continue;
                 var couple = spouse != null ? $"{p.DisplayName} & {spouse.DisplayName}" : p.DisplayName;
                 foreach (var e in family.Events.Where(e => e.Location != null && !e.Private))
-                    pins.Add(new MapPin(e.Location!.Value, couple, Describe(e), KindOf(e.Tag), p.Id));
+                    pins.Add(new MapPin(e.Location!.Value, couple, Describe(e), KindOf(e.Tag), p.Id, YearOf(e)));
             }
 
             if (p.Birth?.Location is not { } born) continue;
             foreach (var parent in tree.ParentsOf(p))
             {
                 if (parent.Birth?.Location is not { } from || Close(from, born) || !seenLines.Add((from, born))) continue;
-                lines.Add(new MapLine(from, born, $"{parent.DisplayName} → {p.DisplayName}"));
+                lines.Add(new MapLine(from, born, $"{parent.DisplayName} → {p.DisplayName}", YearOf(p.Birth!)));
             }
         }
         return (pins, lines);
     }
+
+    private static int YearOf(Event e) => e.Date.Kind == DateKind.Text ? 0 : e.Date.Year;
 
     private static bool Close(GeoPoint a, GeoPoint b) =>
         Math.Abs(a.Latitude - b.Latitude) < 0.01 && Math.Abs(a.Longitude - b.Longitude) < 0.01;

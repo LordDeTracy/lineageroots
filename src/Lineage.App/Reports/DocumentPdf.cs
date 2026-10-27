@@ -16,7 +16,7 @@ public static class DocumentPdf
 {
     private const string Ink = "#22252A", Muted = "#6F7378", Faint = "#9A9DA2", Line = "#E4DED5", Accent = "#2E6B58";
 
-    static DocumentPdf() => QuestPDF.Settings.License = LicenseType.Community; // QuestPDF's free Community licence (questpdf.com/license)
+    static DocumentPdf() => PdfFonts.Setup();
 
     private static PageSize Paper => RegionInfo.CurrentRegion.TwoLetterISORegionName is "US" or "CA" ? PageSizes.Letter : PageSizes.A4;
 

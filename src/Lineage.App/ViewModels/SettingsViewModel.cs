@@ -16,6 +16,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _backupIndex = Math.Max(0, Array.IndexOf(BackupCounts, s.BackupsToKeep));
         _themeIndex = Math.Max(0, Array.IndexOf(Themes, s.Theme));
         _onlineMaps = s.OnlineMaps;
+        _checkForUpdates = s.CheckForUpdates;
     }
 
     public string[] AutoSaveOptions { get; } = { "Off", "Every 2 minutes", "Every 5 minutes", "Every 10 minutes", "Every 15 minutes" };
@@ -27,6 +28,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _backupIndex;
     [ObservableProperty] private int _themeIndex;
     [ObservableProperty] private bool _onlineMaps;
+    [ObservableProperty] private bool _checkForUpdates;
+    public string VersionText => $"You have version {Updater.Current}.";
 
     public void Apply(AppSettings s)
     {
@@ -34,5 +37,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         s.BackupsToKeep = BackupCounts[BackupIndex];
         s.Theme = Themes[ThemeIndex];
         s.OnlineMaps = OnlineMaps;
+        s.CheckForUpdates = CheckForUpdates;
     }
 }

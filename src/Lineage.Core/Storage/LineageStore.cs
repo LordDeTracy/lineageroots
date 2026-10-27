@@ -55,6 +55,9 @@ public static class LineageStore
     public static string ToJson<T>(T entity) where T : Entity => JsonSerializer.Serialize(entity, Json);
     public static T FromJson<T>(string json) where T : Entity => JsonSerializer.Deserialize<T>(json, Json)!;
 
+    /// <summary>A deep copy of any model object (an event, a citation…) through the same JSON form as the file.</summary>
+    public static T Copy<T>(T value) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, Json), Json)!;
+
     public static void Save(FamilyTree tree, string path)
     {
         var tmp = path + ".saving";
@@ -62,11 +65,13 @@ public static class LineageStore
         using (var db = Open(tmp))
         {
             using var tx = db.BeginTransaction();
-            Exec(db, tx, "INSERT INTO meta VALUES ('format', $v), ('name', $n), ('not_duplicates', $nd), ('home', $h), ('bookmarks', $b)",
+            Exec(db, tx, "INSERT INTO meta VALUES ('format', $v), ('name', $n), ('not_duplicates', $nd), ('home', $h), ('bookmarks', $b), ('shares', $sh), ('shared_from', $sf)",
                  ("$v", FormatVersion.ToString()), ("$n", tree.Name),
                  ("$nd", JsonSerializer.Serialize(tree.NotDuplicates.Order().ToArray())),
                  ("$h", tree.HomePersonId?.ToString() ?? ""),
-                 ("$b", JsonSerializer.Serialize(tree.Bookmarks)));
+                 ("$b", JsonSerializer.Serialize(tree.Bookmarks)),
+                 ("$sh", JsonSerializer.Serialize(tree.Shares)),
+                 ("$sf", tree.SharedFrom is { } origin ? JsonSerializer.Serialize(origin) : ""));
             Bulk(db, tx, "INSERT INTO person VALUES ($id,$uid,$s,$g,$sex,$by,$dy,$d)", tree.People.Values, p => new object?[]
             {
                 p.Id, p.Uid.ToString(), p.PrimaryName.Surname, p.PrimaryName.Given, p.Sex.ToString(),
@@ -116,6 +121,10 @@ public static class LineageStore
         if (long.TryParse(Scalar(db, "SELECT value FROM meta WHERE key='home'"), out var home)) tree.HomePersonId = home;
         if (Scalar(db, "SELECT value FROM meta WHERE key='bookmarks'") is { Length: > 0 } bm)
             tree.Bookmarks.AddRange(JsonSerializer.Deserialize<long[]>(bm) ?? Array.Empty<long>());
+        if (Scalar(db, "SELECT value FROM meta WHERE key='shares'") is { Length: > 0 } sh)
+            tree.Shares.AddRange(JsonSerializer.Deserialize<List<ShareRecord>>(sh) ?? new());
+        if (Scalar(db, "SELECT value FROM meta WHERE key='shared_from'") is { Length: > 0 } sf)
+            tree.SharedFrom = JsonSerializer.Deserialize<ShareOrigin>(sf);
         foreach (var p in Rows<Person>(db, "person")) tree.AddPerson(p);
         foreach (var f in Rows<Family>(db, "family")) tree.AddFamily(f);
         foreach (var s in Rows<Source>(db, "source")) tree.AddSource(s);
