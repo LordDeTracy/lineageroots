@@ -1,0 +1,271 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.DnaPage"
+             x:DataType="vm:MainViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.misfit"><Setter Property="Foreground" Value="{DynamicResource Danger}" /></Style>
+    <Style Selector="Border.bar">
+      <Setter Property="Height" Value="8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Border.track">
+      <Setter Property="Height" Value="8" />
+      <Setter Property="Width" Value="260" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel MaxWidth="1000" Margin="32,28,32,40" Spacing="18">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="display" Text="DNA" />
+          <TextBlock Classes="muted" Text="Matches, clusters, and where an unknown relative fits." />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Classes="muted" Text="Tester" VerticalAlignment="Center" />
+          <ComboBox ItemsSource="{Binding DnaTesters}" SelectedItem="{Binding DnaTester}" MinWidth="260"
+                    AutomationProperties.Name="Whose DNA matches" PlaceholderText="Choose who tested" />
+        </StackPanel>
+      </Grid>
+
+      <ListBox Classes="segmented" SelectedIndex="{Binding DnaTabIndex}" HorizontalAlignment="Left" AutomationProperties.Name="DNA tools">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBoxItem Content="Matches" ToolTip.Tip="The tester's DNA matches" />
+        <ListBoxItem Content="Clusters" ToolTip.Tip="Group matches by the matches they share" />
+        <ListBoxItem Content="What are the odds" ToolTip.Tip="Test where someone fits in the tree" />
+        <ListBoxItem Content="cM calculator" ToolTip.Tip="What relationship a shared cM amount suggests" />
+      </ListBox>
+
+      <!-- ===== Matches ===== -->
+      <StackPanel Spacing="14" IsVisible="{Binding IsDnaMatchesTab}">
+        <TextBlock Classes="muted" IsVisible="{Binding !HasDnaTester}" TextWrapping="Wrap"
+                   Text="Open someone's page first (or set a home person), then come back to add their DNA matches." />
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding HasDnaTester}">
+          <TextBlock Classes="muted" Text="{Binding DnaSummary}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Grid Grid.Column="1" Width="220" Margin="0,0,10,0" VerticalAlignment="Center" IsVisible="{Binding HasDnaMatches}">
+            <TextBox Classes="search" Text="{Binding DnaFilter}" Watermark="Find a match…" AutomationProperties.Name="Find a match" />
+            <c:LineIcon Data="{StaticResource IconSearch}" Width="16" Height="16" Margin="12,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
+                        Foreground="{DynamicResource Faint}" />
+          </Grid>
+          <Button Grid.Column="2" Classes="outline" Command="{Binding ImportDnaMatchesCommand}" Margin="0,0,8,0"
+                  ToolTip.Tip="Read a match list or shared-matches list saved as CSV">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconImport}" />
+              <TextBlock Text="Import CSV" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="3" Classes="primary" Command="{Binding AddDnaMatchCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconPlus}" />
+              <TextBlock Text="Add match" />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <StackPanel IsVisible="{Binding HasDnaTester}">
+          <StackPanel IsVisible="{Binding !HasDnaMatches}" HorizontalAlignment="Center" Margin="0,50,0,0" Spacing="8" MaxWidth="460">
+            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+              <c:LineIcon Data="{StaticResource IconDna}" Width="28" Height="28" />
+            </Border>
+            <TextBlock Classes="title" Text="No DNA matches yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Add matches one at a time, or import a list saved from your testing company or a download tool. Link the ones you identify to people in the tree to check the tree against the DNA." />
+          </StackPanel>
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding DnaMatchRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DnaMatchRow">
+              <Border Classes="card" Padding="6" Margin="0,0,0,10">
+                <Button Classes="eventRow" Margin="0" Padding="14,10"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EditDnaMatchCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="Click to edit" AutomationProperties.Name="{Binding Name}">
+                  <Grid ColumnDefinitions="96,*,Auto">
+                    <StackPanel VerticalAlignment="Top">
+                      <TextBlock Text="{Binding Cm}" FontWeight="SemiBold" FontSize="15" />
+                      <TextBlock Classes="faint small" Text="{Binding Match.Company}" IsVisible="{Binding HasCompany}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="3" Margin="8,0">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                      <TextBlock Classes="muted small" Text="{Binding Prediction}" TextWrapping="Wrap" />
+                      <TextBlock Classes="faint small" Text="{Binding Numbers}" IsVisible="{Binding !!Numbers.Length}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="3" HorizontalAlignment="Right" MaxWidth="300">
+                      <Button Classes="ghost accentText" IsVisible="{Binding IsLinked}" HorizontalAlignment="Right" Padding="6,2"
+                              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenDnaMatchPersonCommand}"
+                              CommandParameter="{Binding}" ToolTip.Tip="Open their page">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <c:LineIcon Data="{StaticResource IconLink}" Width="14" Height="14" Foreground="{DynamicResource Accent}" />
+                          <TextBlock Text="{Binding Linked}" Foreground="{DynamicResource Accent}" />
+                        </StackPanel>
+                      </Button>
+                      <TextBlock Classes="small" Classes.muted="{Binding !Misfit}" Classes.misfit="{Binding Misfit}"
+                                 Text="{Binding TreeText}" IsVisible="{Binding HasTreeText}" TextWrapping="Wrap" TextAlignment="Right" />
+                    </StackPanel>
+                  </Grid>
+                </Button>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- ===== Clusters ===== -->
+      <StackPanel Spacing="14" IsVisible="{Binding IsDnaClustersTab}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="muted" Text="{Binding ClusterSummary}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="muted" Text="Matches from" VerticalAlignment="Center" />
+            <TextBox Text="{Binding ClusterMinCm}" Width="70" AutomationProperties.Name="Smallest match in cM" />
+            <TextBlock Classes="muted" Text="to" VerticalAlignment="Center" />
+            <TextBox Text="{Binding ClusterMaxCm}" Width="70" AutomationProperties.Name="Largest match in cM" />
+            <TextBlock Classes="muted" Text="cM" VerticalAlignment="Center" />
+          </StackPanel>
+        </Grid>
+        <Border Classes="card" Padding="20" IsVisible="{Binding HasClusters}">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <c:ClusterGrid Result="{Binding DnaClusters}" HorizontalAlignment="Left" />
+          </ScrollViewer>
+        </Border>
+        <ItemsControl ItemsSource="{Binding DnaClusterCards}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DnaClusterCard">
+              <Border Classes="card" Padding="20,16" Margin="0,0,0,10">
+                <Grid ColumnDefinitions="Auto,*">
+                  <Border Width="14" Height="14" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
+                  <StackPanel Grid.Column="1" Spacing="4">
+                    <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted small" Text="{Binding Members}" TextWrapping="Wrap" />
+                    <TextBlock Classes="small" Text="{Binding Ancestors}" TextWrapping="Wrap" IsVisible="{Binding HasAncestors}"
+                               Foreground="{DynamicResource Accent}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="faint small" TextWrapping="Wrap" IsVisible="{Binding HasClusters}"
+                   Text="Matches in the same cluster usually descend from the same ancestral couple. Link a few of them to the tree and their common ancestors show which line the cluster belongs to." />
+      </StackPanel>
+
+      <!-- ===== What are the odds ===== -->
+      <StackPanel Spacing="14" IsVisible="{Binding IsDnaOddsTab}">
+        <Border Classes="card" Padding="24,20">
+          <StackPanel Spacing="14">
+            <StackPanel>
+              <TextBlock Classes="label" Text="Who are you placing?" />
+              <ComboBox ItemsSource="{Binding WatoSubjects}" SelectedItem="{Binding WatoSubject}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Who are you placing" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+              <TextBlock Classes="section" Text="RELATIVES IN THE TREE WHO SHARE DNA WITH THEM" Margin="0,6,0,0" />
+              <ItemsControl ItemsSource="{Binding WatoObservations}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:WatoObservationRow">
+                    <CheckBox IsChecked="{Binding Include}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                        <TextBlock Classes="muted" Text="{Binding Cm}" />
+                        <TextBlock Classes="faint small" Text="{Binding Source}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </CheckBox>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="section" Text="WHERE MIGHT THEY FIT?" Margin="0,6,0,0" />
+              <ItemsControl ItemsSource="{Binding WatoHypotheses}" ItemsPanel="{StaticResource WrapPanel}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ParentChoice">
+                    <Border Classes="chip" Margin="0,0,6,6" Padding="10,3,4,3">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding Text}" VerticalAlignment="Center" />
+                        <Button Classes="ghost" Padding="3" MinWidth="0" MinHeight="0"
+                                Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RemoveWatoHypothesisCommand}"
+                                CommandParameter="{Binding}" ToolTip.Tip="Remove" AutomationProperties.Name="Remove">
+                          <c:LineIcon Data="{StaticResource IconX}" Width="12" Height="12" Foreground="{DynamicResource Accent}" />
+                        </Button>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <AutoCompleteBox ItemsSource="{Binding ParentChoices}" SelectedItem="{Binding WatoHypothesisToAdd}" FilterMode="Contains"
+                               MinimumPrefixLength="1" Watermark="Add a place: type a parent's name, e.g. child of…"
+                               AutomationProperties.Name="Add a hypothesis" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Classes="muted" Text="{Binding WatoSummary}" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding WatoResults}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:WatoHypothesisRow">
+              <Border Classes="card" Padding="20,16" Margin="0,0,0,10">
+                <StackPanel Spacing="6">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                      <TextBlock Classes="muted small" Text="{Binding Odds}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Probability}" FontWeight="SemiBold" FontSize="15" />
+                    </StackPanel>
+                  </Grid>
+                  <Panel HorizontalAlignment="Left">
+                    <Border Classes="track" />
+                    <Border Classes="bar" Width="{Binding BarWidth}" />
+                  </Panel>
+                  <TextBlock Classes="faint small" Text="{Binding Details}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- ===== cM calculator ===== -->
+      <StackPanel Spacing="14" IsVisible="{Binding IsDnaCalculatorTab}">
+        <Border Classes="card" Padding="24,20">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="label" Text="Shared DNA (cM)" />
+            <TextBox Text="{Binding CmCalculatorText}" Width="200" HorizontalAlignment="Left" Watermark="e.g. 412"
+                     AutomationProperties.Name="Shared centimorgans" />
+            <TextBlock Classes="muted small" Text="{Binding CmCalculatorNote}" TextWrapping="Wrap" IsVisible="{Binding !!CmCalculatorNote.Length}" />
+          </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding CmCalculatorRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CmGroupRow">
+              <Border Classes="card" Padding="20,16" Margin="0,0,0,10">
+                <Grid ColumnDefinitions="64,*">
+                  <TextBlock Text="{Binding Probability}" FontWeight="SemiBold" FontSize="17" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1" Spacing="6">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <Panel HorizontalAlignment="Left">
+                      <Border Classes="track" />
+                      <Border Classes="bar" Width="{Binding BarWidth}" />
+                    </Panel>
+                    <TextBlock Classes="faint small" Text="{Binding Range}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="faint small" TextWrapping="Wrap"
+                   Text="Worked out by simulating how DNA is passed down (with realistic crossover patterns) for 48 relationships, counting segments of 7 cM and up. Every relationship is treated as equally likely before the DNA is seen. Real tests vary by company, and very distant matches are often less related than the numbers suggest — use ages and the paper trail too." />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -47,6 +47,12 @@
             <TextBox Text="{Binding Type}" Watermark="Census, parish register, book…" AutomationProperties.Name="Kind of source" />
           </StackPanel>
         </Grid>
+        <StackPanel>
+          <TextBlock Classes="label" Text="Is it the original record?" />
+          <ComboBox ItemsSource="{x:Static vm:SourceEditorViewModel.Kinds}" SelectedIndex="{Binding KindIndex}" MinWidth="320"
+                    AutomationProperties.Name="Original, copy or compiled"
+                    ToolTip.Tip="Original records carry the most weight; copies, transcripts and indexes can introduce mistakes; compiled works are someone's conclusions." />
+        </StackPanel>
         <Grid ColumnDefinitions="2*,14,*">
           <StackPanel>
             <TextBlock Classes="label" Text="Publication details" />

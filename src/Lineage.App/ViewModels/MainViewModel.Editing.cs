@@ -69,6 +69,7 @@ public sealed partial class MainViewModel
         RebuildResearch();
         if (IsHomeSection) RebuildHome();
         if (IsPlacesSection) RebuildPlaceList();
+        if (IsDnaSection) RebuildDna();
         var id = showId ?? _current?.Id;
         if (id is { } i && _tree.Person(i) != null) Show(i, recordHistory: showId != null && showId != _current?.Id);
         else if (_tree.People.Count > 0) Show(_tree.People.Keys.Min(), recordHistory: false);
@@ -87,6 +88,7 @@ public sealed partial class MainViewModel
         AddPhotosCommand.NotifyCanExecuteChanged();
         AddEventCommand.NotifyCanExecuteChanged();
         AddResearchForPersonCommand.NotifyCanExecuteChanged();
+        ShowDnaMatchesCommand.NotifyCanExecuteChanged();
         ToggleBookmarkCommand.NotifyCanExecuteChanged();
         SetHomePersonCommand.NotifyCanExecuteChanged();
         FamilyGroupReportCommand.NotifyCanExecuteChanged();
@@ -219,8 +221,9 @@ public sealed partial class MainViewModel
         var e = Event.Of(p.Find("BIRT") == null ? "BIRT" : "RESI");
         var editor = new EventEditorViewModel(_tree, e, isNew: true, forFamily: false, $"Add an event for {p.DisplayName}");
         editor.AttachPhotos(e, ResolveMedia, () => PickPhotosAsync("Add photos of this event"));
+        editor.AttachOwner(p);
         if (await _dialogs.EditEventAsync(editor) != EditorResult.Saved) return;
-        Change($"add {editor.Type.Label.ToLowerInvariant()}", new[] { p }, () => { editor.Apply(e); p.Events.Add(e); });
+        Change($"add {editor.Type.Label.ToLowerInvariant()}", editor.TouchedSources.Prepend<Entity>(p), () => { editor.Apply(e); p.Events.Add(e); });
     }
 
     [RelayCommand]
@@ -229,11 +232,12 @@ public sealed partial class MainViewModel
         var forFamily = row.Owner is Family;
         var editor = new EventEditorViewModel(_tree, row.Event, isNew: false, forFamily, $"Edit {EventTypes.Label(row.Event).ToLowerInvariant()}");
         editor.AttachPhotos(row.Event, ResolveMedia, () => PickPhotosAsync("Add photos of this event"));
+        editor.AttachOwner(row.Owner);
         var result = await _dialogs.EditEventAsync(editor);
         var events = row.Owner switch { Person p => p.Events, Family f => f.Events, _ => null };
         if (events == null) return;
         if (result == EditorResult.Saved)
-            Change($"edit {EventTypes.Label(row.Event).ToLowerInvariant()}", new[] { row.Owner }, () => editor.Apply(row.Event));
+            Change($"edit {EventTypes.Label(row.Event).ToLowerInvariant()}", editor.TouchedSources.Prepend(row.Owner), () => editor.Apply(row.Event));
         else if (result == EditorResult.Deleted)
             Change($"delete {EventTypes.Label(row.Event).ToLowerInvariant()}", new[] { row.Owner }, () => events.Remove(row.Event));
     }
@@ -248,9 +252,10 @@ public sealed partial class MainViewModel
         var editor = new EventEditorViewModel(_tree, e, isNew: existing == null, forFamily: true,
                                               existing == null ? "Add marriage details" : "Edit marriage");
         editor.AttachPhotos(e, ResolveMedia, () => PickPhotosAsync("Add photos of the wedding"));
+        editor.AttachOwner(f);
         var result = await _dialogs.EditEventAsync(editor);
         if (result == EditorResult.Saved)
-            Change("edit marriage", new[] { f }, () =>
+            Change("edit marriage", editor.TouchedSources.Prepend<Entity>(f), () =>
             {
                 editor.Apply(e);
                 if (existing == null) f.Events.Insert(0, e);

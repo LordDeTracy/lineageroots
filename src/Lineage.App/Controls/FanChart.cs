@@ -85,7 +85,9 @@ public sealed class FanChart : ChartBase
                 var a = -Span / 2 + i * step;
                 var b = a + step;
                 data.Ancestors.TryGetValue(count + i, out var p);
-                var side = i < count / 2 ? male : female;
+                var side = ShowEvidence && p != null
+                    ? Colour(EvidenceKeys(Lineage.Core.Analysis.Evidence.PersonLevel(data.Tree, p)).Soft)
+                    : i < count / 2 ? male : female;
                 IBrush fill = p == null ? Brush("Sidebar")
                     : Hover == p.Id ? Brush("Selected")
                     : new SolidColorBrush(Blend(surface, side, strength));

@@ -21,8 +21,13 @@ public sealed class AppSettings
     public string Theme { get; set; } = "System";
     /// <summary>Whether map views may download map pictures from OpenStreetMap.</summary>
     public bool OnlineMaps { get; set; } = true;
+    /// <summary>Whether to ask GitHub for a newer version when the program starts.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+    /// <summary>A release the user chose to skip (its tag, e.g. "v0.3.0"); not offered again at start-up.</summary>
+    public string SkippedVersion { get; set; } = "";
 
-    private static string FilePath => Path.Combine(
+    /// <summary>Where settings are kept; tests point this at a temporary file so they never touch the user's own.</summary>
+    internal static string FilePath { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LineageRoots", "settings.json");
 
     public static AppSettings Load()

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lineage.Core.Analysis;
 using Lineage.Core.Model;
 
 namespace Lineage.App.ViewModels;
@@ -10,28 +11,64 @@ public sealed record EventTypeOption(string Tag, string Label)
     public override string ToString() => Label;
 }
 
-/// <summary>A citation being edited: which source, and where in it.</summary>
+/// <summary>
+/// A citation being edited: which source, where in it, and its evidence analysis — what kind of record the source is
+/// (stored on the source, so it applies wherever it's cited), whether the information is first-hand, and whether it
+/// states the fact directly.
+/// </summary>
 public sealed partial class CitationRow : ObservableObject
 {
-    public CitationRow(string sourceTitle, Citation citation)
+    public CitationRow(string sourceTitle, Citation citation, SourceKind kind)
     {
         SourceTitle = sourceTitle;
         Citation = citation;
         _page = citation.Page;
         _qualityIndex = (citation.Quality ?? -1) + 1;
+        _sourceKindIndex = (int)kind;
+        _informationIndex = (int)citation.Information;
+        _evidenceIndex = (int)citation.Evidence;
     }
 
     public string SourceTitle { get; }
     public Citation Citation { get; }
     public static string[] Qualities { get; } = { "Not rated", "Unreliable", "Questionable", "Secondary evidence", "Direct evidence" };
+    public static string[] SourceKinds { get; } = { "Kind of record?", "Original record", "Copy or index", "Compiled work" };
+    public static string[] Informations { get; } = { "Informant?", "First-hand", "Second-hand" };
+    public static string[] Evidences { get; } = { "Direct or not?", "States it (direct)", "Implies it (indirect)", "Absence (negative)" };
     [ObservableProperty] private string _page;
     [ObservableProperty] private int _qualityIndex;
+    [ObservableProperty] private int _sourceKindIndex;
+    [ObservableProperty] private int _informationIndex;
+    [ObservableProperty] private int _evidenceIndex;
+
+    public SourceKind SourceKind => (SourceKind)Math.Clamp(SourceKindIndex, 0, 3);
 
     public Citation ToCitation() => new()
     {
         SourceId = Citation.SourceId, Page = Page.Trim(), Text = Citation.Text, Note = Citation.Note,
         Quality = QualityIndex > 0 ? QualityIndex - 1 : null,
+        Information = (InformationKind)Math.Clamp(InformationIndex, 0, 2),
+        Evidence = (EvidenceKind)Math.Clamp(EvidenceIndex, 0, 3),
     };
+}
+
+/// <summary>A conflicting record being edited.</summary>
+public sealed partial class ConflictRow : ObservableObject
+{
+    public ConflictRow(EvidenceConflict c, string sourceTitle)
+    {
+        _claim = c.Claim;
+        _sourceTitle = sourceTitle;
+        _page = c.Page;
+        _resolution = c.Resolution;
+        _resolved = c.Resolved;
+    }
+
+    [ObservableProperty] private string _claim;
+    [ObservableProperty] private string _sourceTitle;
+    [ObservableProperty] private string _page;
+    [ObservableProperty] private string _resolution;
+    [ObservableProperty] private bool _resolved;
 }
 
 public enum EditorResult { Cancelled, Saved, Deleted }
@@ -81,9 +118,116 @@ public sealed partial class EventEditorViewModel : ObservableObject
         _note = e.Note;
         _private = e.Private;
         foreach (var c in e.Citations)
-            Citations.Add(new CitationRow(_tree.Sources.TryGetValue(c.SourceId, out var s) ? s.Title : "(missing source)", c));
+            AddRow(new CitationRow(_tree.Sources.TryGetValue(c.SourceId, out var s) ? s.Title : "(missing source)", c, s?.Kind ?? SourceKind.Unknown));
         SourceTitles = _tree.Sources.Values.Select(s => s.Title).Where(t => t.Length > 0).Distinct().Order().ToList();
+        _original = e;
+        _conclusionIndex = (int)e.Conclusion;
+        _reasoning = e.Reasoning;
+        foreach (var c in e.Conflicts)
+            AddConflictRow(new ConflictRow(c, c.SourceId is { } sid && _tree.Sources.TryGetValue(sid, out var cs) ? cs.Title : ""));
+        Citations.CollectionChanged += (_, _) => UpdateProof();
+        UpdateProof();
     }
+
+    // ---- evidence ----
+
+    private readonly Event _original;
+    private Entity? _owner;
+
+    public static string[] Conclusions { get; } = { "Not decided", "Proven", "Disproved" };
+    public ObservableCollection<ConflictRow> Conflicts { get; } = new();
+    [ObservableProperty] private int _conclusionIndex;
+    [ObservableProperty] private string _reasoning;
+    [ObservableProperty] private string _proofLabel = "";
+    [ObservableProperty] private string _proofSummary = "";
+    [ObservableProperty] private string _proofDetails = "";
+    [ObservableProperty] private ProofLevel _proofLevel;
+    public bool HasProofDetails => ProofDetails.Length > 0;
+    public bool IsProofStrong => ProofLevel is ProofLevel.Strong or ProofLevel.Proven;
+    public bool IsProofGood => ProofLevel == ProofLevel.Good;
+    public bool IsProofWeak => ProofLevel == ProofLevel.Weak;
+    public bool IsProofNone => ProofLevel is ProofLevel.Unsourced or ProofLevel.Disproved;
+    public bool IsProofConflicting => ProofLevel == ProofLevel.Conflicting;
+
+    partial void OnConclusionIndexChanged(int value) => UpdateProof();
+    partial void OnDateChanged(string value) => UpdateProof();
+    partial void OnPlaceChanged(string value) => UpdateProof();
+    partial void OnReasoningChanged(string value) => UpdateProof();
+    partial void OnProofLevelChanged(ProofLevel value)
+    {
+        OnPropertyChanged(nameof(IsProofStrong));
+        OnPropertyChanged(nameof(IsProofGood));
+        OnPropertyChanged(nameof(IsProofWeak));
+        OnPropertyChanged(nameof(IsProofNone));
+        OnPropertyChanged(nameof(IsProofConflicting));
+    }
+
+    /// <summary>Lets the preview find other records of the same fact that disagree (the event's person or family).</summary>
+    public void AttachOwner(Entity owner)
+    {
+        _owner = owner;
+        UpdateProof();
+    }
+
+    private void AddRow(CitationRow row)
+    {
+        row.PropertyChanged += (_, _) => UpdateProof();
+        Citations.Add(row);
+    }
+
+    private void AddConflictRow(ConflictRow row)
+    {
+        row.PropertyChanged += (_, _) => UpdateProof();
+        Conflicts.Add(row);
+        UpdateProof();
+    }
+
+    [RelayCommand]
+    private void AddConflict() => AddConflictRow(new ConflictRow(new EvidenceConflict(), ""));
+
+    [RelayCommand]
+    private void RemoveConflict(ConflictRow row)
+    {
+        Conflicts.Remove(row);
+        UpdateProof();
+    }
+
+    /// <summary>Recomputes the strength from the editor's current state.</summary>
+    private void UpdateProof()
+    {
+        if (_original == null) return;   // still constructing
+        var preview = new Event
+        {
+            Tag = Type?.Tag ?? _original.Tag, Date = GenDate.Parse(Date ?? ""), Place = (Place ?? "").Trim(),
+            Conclusion = (FactConclusion)Math.Clamp(ConclusionIndex, 0, 2), Reasoning = Reasoning ?? "",
+        };
+        // New sources have no id yet; stand-in ids keep them counted as separate sources.
+        var kinds = new Dictionary<long, SourceKind>();
+        var nextNew = -1L;
+        foreach (var row in Citations)
+        {
+            var c = row.ToCitation();
+            if (c.SourceId == 0)
+                c.SourceId = _tree.Sources.Values.FirstOrDefault(x => string.Equals(x.Title, row.SourceTitle, StringComparison.OrdinalIgnoreCase))?.Id ?? nextNew--;
+            kinds[c.SourceId] = row.SourceKind;
+            preview.Citations.Add(c);
+        }
+        foreach (var row in Conflicts.Where(r => r.Claim.Trim().Length > 0))
+            preview.Conflicts.Add(new EvidenceConflict { Claim = row.Claim, Resolved = row.Resolved });
+        var a = Evidence.Assess(_tree, preview, _owner, id => kinds.GetValueOrDefault(id), _original);
+        ProofLevel = a.Level;
+        ProofLabel = a.Label;
+        ProofSummary = a.Summary;
+        ProofDetails = string.Join("\n", a.Reasons.Concat(a.Tips.Select(t => "Tip: " + t)));
+        OnPropertyChanged(nameof(HasProofDetails));
+    }
+
+    /// <summary>Existing sources whose kind of record this edit changes (they need to be part of the undo step).</summary>
+    public IReadOnlyList<Source> TouchedSources =>
+        Citations.Select(r => (Row: r, Source: r.Citation.SourceId != 0 && _tree.Sources.TryGetValue(r.Citation.SourceId, out var s) ? s
+                                     : _tree.Sources.Values.FirstOrDefault(x => string.Equals(x.Title, r.SourceTitle, StringComparison.OrdinalIgnoreCase))))
+                 .Where(x => x.Source != null && x.Row.SourceKind != SourceKind.Unknown && x.Source.Kind != x.Row.SourceKind)
+                 .Select(x => x.Source!).Distinct().ToList();
 
     public string Title { get; }
     public bool IsNew { get; }
@@ -180,7 +324,8 @@ public sealed partial class EventEditorViewModel : ObservableObject
         if (title.Length == 0) return;
         var existing = _tree.Sources.Values.FirstOrDefault(s => string.Equals(s.Title, title, StringComparison.OrdinalIgnoreCase));
         if (existing == null && !NewSources.Contains(title, StringComparer.OrdinalIgnoreCase)) NewSources.Add(title);
-        Citations.Add(new CitationRow(existing?.Title ?? title, new Citation { SourceId = existing?.Id ?? 0, Page = NewPage.Trim() }));
+        AddRow(new CitationRow(existing?.Title ?? title, new Citation { SourceId = existing?.Id ?? 0, Page = NewPage.Trim() },
+                               existing?.Kind ?? SourceKind.Unknown));
         NewSourceTitle = "";
         NewPage = "";
     }
@@ -219,7 +364,24 @@ public sealed partial class EventEditorViewModel : ObservableObject
                              ?? _tree.AddSource(new Source { Title = row.SourceTitle });
                 c.SourceId = source.Id;
             }
+            // The kind of record belongs to the source; leaving it unset leaves the source as it was.
+            if (row.SourceKind != SourceKind.Unknown && _tree.Sources.TryGetValue(c.SourceId, out var src)) src.Kind = row.SourceKind;
             e.Citations.Add(c);
+        }
+        e.Conclusion = (FactConclusion)Math.Clamp(ConclusionIndex, 0, 2);
+        e.Reasoning = Reasoning;
+        e.Conflicts.Clear();
+        foreach (var row in Conflicts.Where(r => r.Claim.Trim().Length > 0))
+        {
+            var title = row.SourceTitle.Trim();
+            var source = title.Length == 0 ? null
+                : _tree.Sources.Values.FirstOrDefault(s => string.Equals(s.Title, title, StringComparison.OrdinalIgnoreCase))
+                  ?? _tree.AddSource(new Source { Title = title });
+            e.Conflicts.Add(new EvidenceConflict
+            {
+                Claim = row.Claim.Trim(), SourceId = source?.Id, Page = row.Page.Trim(),
+                Resolution = row.Resolution.Trim(), Resolved = row.Resolved,
+            });
         }
     }
 }

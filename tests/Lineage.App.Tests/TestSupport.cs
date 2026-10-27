@@ -16,6 +16,8 @@ public static class TestApp
     public static AppBuilder BuildAvaloniaApp()
     {
         MainViewModel.Launcher = opened => Opened.Add(opened); // never open real files or web pages from tests
+        // Never read or change the user's own settings.
+        Lineage.App.Services.AppSettings.FilePath = Path.Combine(Path.GetTempPath(), $"lineage-test-settings-{Guid.NewGuid():N}.json");
         return AppBuilder.Configure<App>().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
     }
 
@@ -43,11 +45,22 @@ public sealed class FakeDialogs : IDialogService
         Task.FromResult(SavePath);
     public Task ShowMessageAsync(string title, string message) { Messages.Add(message); return Task.CompletedTask; }
     public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(ConfirmAnswer);
+    public int ChooseAnswer { get; set; }
+    public List<string> Choices { get; } = new();
+    public Task<int> ChooseAsync(string title, string message, params string[] buttons)
+    {
+        Choices.Add($"{title}: {message}");
+        return Task.FromResult(ChooseAnswer);
+    }
     public Task<SaveChoice> AskSaveChangesAsync(string treeName) => Task.FromResult(SaveAnswer);
     public Task<bool> EditPersonAsync(PersonEditorViewModel editor) => Task.FromResult(Person(editor));
     public Task<EditorResult> EditEventAsync(EventEditorViewModel editor) => Task.FromResult(Event(editor));
     public Task<EditorResult> EditSourceAsync(SourceEditorViewModel editor) => Task.FromResult(Source(editor));
     public Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor) => Task.FromResult(Research(editor));
+    public Func<DnaMatchEditorViewModel, EditorResult> DnaMatch { get; set; } = _ => EditorResult.Saved;
+    public Task<EditorResult> EditDnaMatchAsync(DnaMatchEditorViewModel editor) => Task.FromResult(DnaMatch(editor));
+    public Func<ReviewChangesViewModel, bool> Review { get; set; } = _ => true;
+    public Task<bool> ReviewChangesAsync(ReviewChangesViewModel review) => Task.FromResult(Review(review));
     public Task<bool> EditSettingsAsync(SettingsViewModel settings) => Task.FromResult(false);
     public Func<ExportOptionsViewModel, bool> ExportOptions { get; set; } = _ => true;
     public Func<CompareTreesViewModel, bool> CompareTrees { get; set; } = _ => false;

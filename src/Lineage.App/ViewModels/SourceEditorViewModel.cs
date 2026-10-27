@@ -25,6 +25,7 @@ public sealed partial class SourceEditorViewModel : ObservableObject
         _publication = s.Publication;
         _callNumber = s.CallNumber;
         _type = s.Type;
+        _kindIndex = (int)s.Kind;
         _text = s.Text;
         _note = s.Note;
         Repositories = new[] { RepositoryOption.None }
@@ -44,6 +45,9 @@ public sealed partial class SourceEditorViewModel : ObservableObject
     [ObservableProperty] private string _publication;
     [ObservableProperty] private string _callNumber;
     [ObservableProperty] private string _type;
+    /// <summary>Original record, copy or index, or compiled work (evidence analysis).</summary>
+    [ObservableProperty] private int _kindIndex;
+    public static string[] Kinds => CitationRow.SourceKinds;
     [ObservableProperty] private string _text;
     [ObservableProperty] private string _note;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasRepository))] private RepositoryOption _repository;
@@ -71,6 +75,7 @@ public sealed partial class SourceEditorViewModel : ObservableObject
         s.Publication = Publication.Trim();
         s.CallNumber = CallNumber.Trim();
         s.Type = Type.Trim();
+        s.Kind = (SourceKind)Math.Clamp(KindIndex, 0, 3);
         s.Text = Text;
         s.Note = Note;
         if (Repository.Id == 0) { s.RepositoryId = null; return; }

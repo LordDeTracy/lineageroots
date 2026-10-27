@@ -4,6 +4,33 @@
              xmlns:c="using:Lineage.App.Controls"
              x:Class="Lineage.App.Views.Pages.PersonPage"
              x:DataType="vm:MainViewModel">
+  <UserControl.Styles>
+    <!-- Census checklist status chips -->
+    <Style Selector="Border.chip.toFind"><Setter Property="Background" Value="{DynamicResource FemaleBg}" /></Style>
+    <Style Selector="Border.chip.toFind TextBlock"><Setter Property="Foreground" Value="{DynamicResource FemaleInk}" /></Style>
+    <Style Selector="Border.chip.possible"><Setter Property="Background" Value="{DynamicResource OtherBg}" /></Style>
+    <Style Selector="Border.chip.possible TextBlock"><Setter Property="Foreground" Value="{DynamicResource OtherInk}" /></Style>
+    <Style Selector="Border.chip.lost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.chip.lost TextBlock"><Setter Property="Foreground" Value="{DynamicResource Faint}" /></Style>
+    <Style Selector="TextBlock.lost">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+    </Style>
+    <!-- History lines on the timeline are for reading, not clicking -->
+    <Style Selector="Button.eventRow.history">
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+    <Style Selector="Button.eventRow.history:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.eventRow.history:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+  </UserControl.Styles>
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="32,14,32,0" Spacing="10">
       <ListBox Classes="segmented" SelectedIndex="{Binding ViewIndex}" AutomationProperties.Name="View" HorizontalAlignment="Left">
@@ -49,13 +76,39 @@
             <TextBlock Text="Map" />
           </StackPanel>
         </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Their life in order, with history and a census checklist (Ctrl+7)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTimeline}" Width="16" Height="16" />
+            <TextBlock Text="Timeline" />
+          </StackPanel>
+        </ListBoxItem>
       </ListBox>
 
       <!-- Chart toolbar -->
       <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsChartView}">
-        <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap" Margin="2,0,16,0"
-                   Text="Scroll the wheel to zoom, drag to move around. Click someone to centre them; double-click to open their page." />
+        <Panel VerticalAlignment="Center" Margin="2,0,16,0">
+          <TextBlock Classes="faint small" TextWrapping="Wrap" IsVisible="{Binding !ChartsShowEvidence}"
+                     Text="Scroll the wheel to zoom, drag to move around. Click someone to centre them; double-click to open their page." />
+          <!-- Legend for colouring by evidence: the weaker of each person's birth and death -->
+          <WrapPanel IsVisible="{Binding ChartsShowEvidence}">
+            <WrapPanel.Styles>
+              <Style Selector="Ellipse"><Setter Property="Width" Value="9" /><Setter Property="Height" Value="9" /><Setter Property="Margin" Value="0,0,5,0" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+              <Style Selector="TextBlock"><Setter Property="Margin" Value="0,0,14,0" /></Style>
+            </WrapPanel.Styles>
+            <TextBlock Classes="faint small" Text="Birth and death:" />
+            <StackPanel Orientation="Horizontal"><Ellipse Fill="{DynamicResource Accent}" /><TextBlock Classes="muted small" Text="strong or proven" /></StackPanel>
+            <StackPanel Orientation="Horizontal"><Ellipse Fill="{DynamicResource MaleInk}" /><TextBlock Classes="muted small" Text="good" /></StackPanel>
+            <StackPanel Orientation="Horizontal"><Ellipse Fill="{DynamicResource WarnInk}" /><TextBlock Classes="muted small" Text="weak" /></StackPanel>
+            <StackPanel Orientation="Horizontal"><Ellipse Fill="{DynamicResource Danger}" /><TextBlock Classes="muted small" Text="conflicting" /></StackPanel>
+            <StackPanel Orientation="Horizontal"><Ellipse Fill="{DynamicResource Faint}" /><TextBlock Classes="muted small" Text="no source" /></StackPanel>
+          </WrapPanel>
+        </Panel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+          <ToggleButton Classes="soundsLike" IsChecked="{Binding ChartsShowEvidence}" VerticalAlignment="Center" Margin="0,0,6,0"
+                        ToolTip.Tip="Colour each person by how well their birth and death are proven by sources"
+                        AutomationProperties.Name="Colour by evidence">
+            <TextBlock Text="Colour by evidence" />
+          </ToggleButton>
           <TextBlock Classes="muted small" Text="Generations" VerticalAlignment="Center" />
           <ComboBox ItemsSource="{x:Static vm:MainViewModel.GenerationChoices}" SelectedItem="{Binding ChartGenerationsShown}"
                     AutomationProperties.Name="Generations shown" MinWidth="64" />
@@ -87,26 +140,41 @@
       </Grid>
       <TextBlock Classes="faint small" Text="{Binding PersonMapText}" TextWrapping="Wrap" Margin="2,0"
                  IsVisible="{Binding IsMapView}" />
+      <!-- Through time: the map shows everything up to the chosen year -->
+      <Panel IsVisible="{Binding IsMapView}">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto" IsVisible="{Binding HasMapTimeline}">
+          <Button Classes="outline" Command="{Binding PlayMapCommand}" MinWidth="96" HorizontalContentAlignment="Center"
+                  ToolTip.Tip="Watch the family move over the years">
+            <TextBlock Text="{Binding MapPlayText}" />
+          </Button>
+          <TextBlock Grid.Column="1" Text="{Binding MapYearText}" FontWeight="SemiBold" FontSize="18" VerticalAlignment="Center"
+                     Margin="16,0,12,0" MinWidth="48" />
+          <Slider Grid.Column="2" Minimum="{Binding MapYearMin}" Maximum="{Binding MapYearMax}" Value="{Binding MapYear}"
+                  VerticalAlignment="Center" AutomationProperties.Name="Year shown on the map" />
+          <TextBlock Grid.Column="3" Classes="muted small" Text="{Binding MapLatestText}" VerticalAlignment="Center"
+                     Margin="16,0,0,0" MaxWidth="360" TextTrimming="CharacterEllipsis" />
+        </Grid>
+      </Panel>
     </StackPanel>
 
     <Panel>
       <c:ZoomHost Name="PedigreeHost" IsVisible="{Binding IsPedigreeView}">
-        <c:PedigreeChart Name="Pedigree" Data="{Binding Chart}" Generations="{Binding PedigreeGenerations}"
+        <c:PedigreeChart Name="Pedigree" Data="{Binding Chart}" Generations="{Binding PedigreeGenerations}" ShowEvidence="{Binding ChartsShowEvidence}"
                          NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                          HorizontalAlignment="Left" Margin="8,4,8,8" />
       </c:ZoomHost>
       <c:ZoomHost Name="FanHost" IsVisible="{Binding IsFanView}">
-        <c:FanChart Name="Fan" Data="{Binding Chart}" Generations="{Binding FanGenerations}"
+        <c:FanChart Name="Fan" Data="{Binding Chart}" Generations="{Binding FanGenerations}" ShowEvidence="{Binding ChartsShowEvidence}"
                     NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                     HorizontalAlignment="Center" Margin="8,4,8,8" />
       </c:ZoomHost>
       <c:ZoomHost Name="DescendantHost" IsVisible="{Binding IsDescendantsView}">
-        <c:DescendantChart Name="Descendant" Data="{Binding Chart}" Generations="{Binding DescendantGenerations}"
+        <c:DescendantChart Name="Descendant" Data="{Binding Chart}" Generations="{Binding DescendantGenerations}" ShowEvidence="{Binding ChartsShowEvidence}"
                            NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                            HorizontalAlignment="Center" Margin="8,4,8,8" />
       </c:ZoomHost>
       <c:ZoomHost Name="HourglassHost" IsVisible="{Binding IsHourglassView}">
-        <c:HourglassChart Name="Hourglass" Data="{Binding Chart}"
+        <c:HourglassChart Name="Hourglass" Data="{Binding Chart}" ShowEvidence="{Binding ChartsShowEvidence}"
                           AncestorGenerations="{Binding HourglassGenerations}" DescendantGenerations="{Binding HourglassGenerations}"
                           NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                           HorizontalAlignment="Center" Margin="8,4,8,8" />
@@ -114,8 +182,126 @@
       <Border IsVisible="{Binding IsMapView}" Margin="32,12,32,24" CornerRadius="14" ClipToBounds="True"
               BorderBrush="{DynamicResource Line}" BorderThickness="1">
         <c:MapView Name="PersonMap" Pins="{Binding PersonPins}" Lines="{Binding PersonLines}"
-                   PinClickCommand="{Binding OpenPersonCommand}" AutoFit="True" />
+                   PinClickCommand="{Binding OpenPersonCommand}" AutoFit="{Binding MapAutoFit}" />
       </Border>
+
+  <!-- Timeline and census checklist -->
+  <ScrollViewer IsVisible="{Binding IsTimelineView}" Name="TimelineScroller">
+    <StackPanel MaxWidth="980" Margin="32,18,32,40" Spacing="20">
+
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="CENSUS CHECKLIST" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding CensusSummary}" VerticalAlignment="Center" />
+          </Grid>
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasCensusRows}" Text="{Binding CensusEmptyText}" />
+          <ItemsControl ItemsSource="{Binding CensusRows}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="14" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CensusRow">
+                <Grid ColumnDefinitions="74,*,Auto" AutomationProperties.Name="{Binding Spoken}">
+                  <Border Classes="chip" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,1,0,0"
+                          Classes.toFind="{Binding IsToFind}" Classes.possible="{Binding IsPossible}" Classes.lost="{Binding IsLost}">
+                    <TextBlock Text="{Binding StatusText}" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="2" Margin="6,0,12,0">
+                    <WrapPanel>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,10,0" Classes.lost="{Binding IsLost}" />
+                      <TextBlock Classes="muted" Text="{Binding Date}" />
+                    </WrapPanel>
+                    <TextBlock Classes="muted small" Text="{Binding Reason}" TextWrapping="Wrap" />
+                    <TextBlock Classes="faint small" Text="{Binding Note}" TextWrapping="Wrap" IsVisible="{Binding HasNote}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                    <Button Classes="ghost accentText" IsVisible="{Binding CanAddTask}"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).AddCensusTaskCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Add a task to this person's research to-do list">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:LineIcon Data="{StaticResource IconChecklist}" Width="15" Height="15" Foreground="{DynamicResource Accent}" />
+                        <TextBlock Text="To-do" Foreground="{DynamicResource Accent}" />
+                      </StackPanel>
+                    </Button>
+                    <TextBlock Classes="faint small" Text="On the to-do list" VerticalAlignment="Center" Margin="0,0,8,0"
+                               IsVisible="{Binding HasTask}" />
+                    <Button Classes="outline" IsVisible="{Binding CanRecord}"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RecordCensusCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Found them? Add a census event with what it says">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:LineIcon Data="{StaticResource IconPlus}" Width="15" Height="15" />
+                        <TextBlock Text="Record it" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="LIFE TIMELINE" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16">
+              <CheckBox IsChecked="{Binding ShowFamilyOnTimeline}" Content="Family events" />
+              <CheckBox IsChecked="{Binding ShowHistoryOnTimeline}" Content="History" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Classes="muted small" Text="{Binding TimelineText}" TextWrapping="Wrap" Margin="0,-6,0,0"
+                     IsVisible="{Binding !!TimelineText.Length}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasTimelineRows}"
+                     Text="Nothing to show yet. Add events with dates — a birth, a marriage, where they lived — and they appear here in order." />
+          <ItemsControl ItemsSource="{Binding TimelineRows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TimelineRow">
+                <Button Classes="eventRow" Classes.history="{Binding IsHistory}"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenTimelineEntryCommand}"
+                        CommandParameter="{Binding}" AutomationProperties.Name="{Binding Spoken}" ToolTip.Tip="{Binding Tip}">
+                  <Grid ColumnDefinitions="52,30,*">
+                    <TextBlock Text="{Binding Year}" FontWeight="SemiBold" Classes="muted" FontSize="13.5"
+                               HorizontalAlignment="Right" Margin="0,1,0,0" />
+                    <Grid Grid.Column="1">
+                      <Border Width="2" Background="{DynamicResource Line}" HorizontalAlignment="Center" Margin="0,16,0,0" />
+                      <Ellipse Width="10" Height="10" Fill="{DynamicResource Accent}" VerticalAlignment="Top"
+                               HorizontalAlignment="Center" Margin="0,5,0,0" IsVisible="{Binding IsLife}" />
+                      <Ellipse Width="10" Height="10" Fill="{DynamicResource Surface}" Stroke="{DynamicResource Accent}" StrokeThickness="2"
+                               VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,5,0,0" IsVisible="{Binding IsFamily}" />
+                      <Rectangle Width="8" Height="8" Fill="{DynamicResource LineStrong}" VerticalAlignment="Top"
+                                 HorizontalAlignment="Center" Margin="0,6,0,0" IsVisible="{Binding IsHistory}" RenderTransform="rotate(45deg)" />
+                    </Grid>
+                    <StackPanel Grid.Column="2" Margin="4,0,0,18" Spacing="3">
+                      <WrapPanel>
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,10,0" IsVisible="{Binding !IsHistory}" />
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,10,0" IsVisible="{Binding IsHistory}"
+                                   Foreground="{DynamicResource Muted}" />
+                        <TextBlock Classes="muted" Text="{Binding When}" Margin="0,0,10,0" />
+                        <Border Classes="chip" Padding="7,1" IsVisible="{Binding HasAge}" VerticalAlignment="Center" Margin="0,0,6,0">
+                          <TextBlock Text="{Binding Age}" FontSize="11" />
+                        </Border>
+                        <Border Classes="chip possible" Padding="7,1" IsVisible="{Binding IsHistory}" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding KindLabel}" FontSize="11" />
+                        </Border>
+                      </WrapPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding HasPlace}">
+                        <c:LineIcon Data="{StaticResource IconPin}" Width="14" Height="14"
+                                    Foreground="{DynamicResource Faint}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding Place}" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <TextBlock Classes="faint small" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
+                    </StackPanel>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
 
   <!-- Person page -->
   <ScrollViewer IsVisible="{Binding IsDetailsView}" Name="PageScroller">
@@ -181,6 +367,7 @@
                   <MenuItem Header="Add research task…" Command="{Binding AddResearchForPersonCommand}" />
                   <MenuItem Header="Make this the home person" Command="{Binding SetHomePersonCommand}" />
                   <MenuItem Header="How is this person related to…" Command="{Binding FindRelationshipCommand}" />
+                  <MenuItem Header="DNA matches…" Command="{Binding ShowDnaMatchesCommand}" />
                   <Separator />
                   <MenuItem Header="Family group sheet (PDF)…" Command="{Binding FamilyGroupReportCommand}" />
                   <MenuItem Header="Ancestors report (PDF)…" Command="{Binding AncestorReportCommand}" />
@@ -361,7 +548,11 @@
       <Border Classes="card" Padding="26,22">
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="section" Text="LIFE EVENTS" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Classes="section" Text="LIFE EVENTS" VerticalAlignment="Center" />
+              <TextBlock Classes="faint small" Text="{Binding ProofTally}" VerticalAlignment="Center"
+                         ToolTip.Tip="How well each fact is proven by its sources. Open a fact to rate its sources and record conflicts." />
+            </StackPanel>
             <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddEventCommand}" Margin="0,-8,-10,-8">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
@@ -388,8 +579,13 @@
                     <WrapPanel>
                       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,0,10,0" />
                       <TextBlock Classes="muted" Text="{Binding Date}" Margin="0,0,10,0" />
-                      <Border Classes="chip" Padding="7,1" IsVisible="{Binding HasAge}" VerticalAlignment="Center">
+                      <Border Classes="chip" Padding="7,1" IsVisible="{Binding HasAge}" VerticalAlignment="Center" Margin="0,0,6,0">
                         <TextBlock Text="{Binding Age}" FontSize="11" />
+                      </Border>
+                      <Border Classes="proof" Classes.strong="{Binding IsProofStrong}" Classes.good="{Binding IsProofGood}"
+                              Classes.weak="{Binding IsProofWeak}" Classes.conflict="{Binding IsProofConflicting}"
+                              IsVisible="{Binding HasProof}" ToolTip.Tip="{Binding ProofTip}">
+                        <TextBlock Text="{Binding ProofLabel}" />
                       </Border>
                     </WrapPanel>
                     <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding HasPlace}">
@@ -447,6 +643,21 @@
           </ItemsControl>
         </StackPanel>
       </Border>
+
+      <!-- Suggested next steps -->
+      <Border Classes="card" Padding="26,22" IsVisible="{Binding HasPersonHints}">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="SUGGESTED NEXT STEPS" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding ToggleAllHintsCommand}" IsVisible="{Binding HasMoreHints}"
+                    Margin="0,-8,-10,-8">
+              <TextBlock Text="{Binding MoreHintsText}" Foreground="{DynamicResource Accent}" />
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding PersonHints}" ItemTemplate="{StaticResource HintTemplate}" Margin="0,0,0,-16" />
+        </StackPanel>
+      </Border>
+
 
       <!-- Places and GPS -->
       <Border Classes="card" Padding="26,22" IsVisible="{Binding HasPlaces}">

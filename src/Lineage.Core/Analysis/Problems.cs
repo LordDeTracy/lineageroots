@@ -37,6 +37,7 @@ public static class ProblemCodes
     public const string OwnAncestor = "own-ancestor";
     public const string UnreadableDate = "unreadable-date";
     public const string NoFamily = "no-family";
+    public const string ConflictingEvidence = "conflicting-evidence";
 }
 
 /// <summary>
@@ -116,6 +117,7 @@ public static class Problems
             foreach (var p in _tree.People.Values) CheckPerson(p);
             foreach (var f in _tree.Families.Values) CheckFamily(f);
             CheckLoops();
+            CheckEvidence();
             if (_o.IncludeInfo)
             {
                 CheckTextDates();
@@ -467,6 +469,28 @@ public static class Problems
                     if (e.Date.Kind == DateKind.Text && e.Date.Text.Length > 0)
                         Add(ProblemCodes.UnreadableDate, ProblemSeverity.Info, false, FamilyPerson(f), f.Id,
                             $"Lineage Roots couldn't understand the date \"{e.Date.Text}\" on the {Label(e)} of {Couple(f)}, so it isn't checked.");
+        }
+
+        /// <summary>Facts whose records disagree and haven't been settled (see <see cref="Evidence"/>).</summary>
+        private void CheckEvidence()
+        {
+            void Check(Event e, Entity owner, long personId, long? familyId, string who)
+            {
+                if (e.Conflicts.Count == 0 && e.Tag is not ("BIRT" or "CHR" or "BAPM" or "DEAT" or "BURI" or "CREM" or "MARR")) return;
+                var a = Evidence.Assess(_tree, e, owner);
+                if (a.Level != ProofLevel.Conflicting) return;
+                var detail = a.Reasons.FirstOrDefault(r => r.StartsWith("Unresolved") || r.StartsWith("Another")) ?? a.Summary;
+                Add(ProblemCodes.ConflictingEvidence, ProblemSeverity.Warning, false, personId, familyId,
+                    $"{who}: the records disagree about the {EventTypes.Label(e).ToLowerInvariant()}. {detail}");
+            }
+            foreach (var p in _tree.People.Values)
+                foreach (var e in p.Events) Check(e, p, p.Id, null, Name(p));
+            foreach (var f in _tree.Families.Values)
+            {
+                var first = f.PartnerIds.Select(id => _tree.Person(id)).OfType<Person>().ToList();
+                if (first.Count == 0) continue;
+                foreach (var e in f.Events) Check(e, f, first[0].Id, f.Id, string.Join(" and ", first.Select(Name)));
+            }
         }
 
         private void CheckUnlinked()

@@ -62,7 +62,7 @@ public static class WallChart
         "AccentSoft", "OnAccent", "Hover", "Selected", "MaleBg", "MaleInk", "FemaleBg", "FemaleInk", "OtherBg", "OtherInk", "Danger",
     };
 
-    static WallChart() => QuestPDF.Settings.License = LicenseType.Community; // QuestPDF's free Community licence (questpdf.com/license)
+    static WallChart() => PdfFonts.Setup();
 
     /// <summary>Works out the pages without printing, e.g. to tell the user "6 pages, 1.2 × 0.6 m".</summary>
     public static WallChartPlan Plan(ChartBase chart, WallChartOptions options)

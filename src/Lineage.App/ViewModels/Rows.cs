@@ -135,6 +135,15 @@ public sealed record AddSlot(string Label);
 public sealed record EventRow(string Label, string Year, string Date, string Age, string Place, string Detail,
                               bool HasGps, Event Event, Entity Owner)
 {
+    /// <summary>How well proven the fact is (set when the row is built for a page that shows it).</summary>
+    public Lineage.Core.Analysis.FactEvidence? Proof { get; init; }
+    public bool HasProof => Proof != null;
+    public string ProofLabel => Proof?.Label ?? "";
+    public string ProofTip => Proof == null ? "" : string.Join("\n", Proof.Reasons.Prepend(Proof.Summary).Concat(Proof.Tips.Select(t => "Tip: " + t)));
+    public bool IsProofStrong => Proof?.Level is Lineage.Core.Analysis.ProofLevel.Strong or Lineage.Core.Analysis.ProofLevel.Proven;
+    public bool IsProofGood => Proof?.Level == Lineage.Core.Analysis.ProofLevel.Good;
+    public bool IsProofWeak => Proof?.Level == Lineage.Core.Analysis.ProofLevel.Weak;
+    public bool IsProofConflicting => Proof?.Level == Lineage.Core.Analysis.ProofLevel.Conflicting;
     public bool HasPlace => Place.Length > 0;
     public bool HasDetail => Detail.Length > 0;
     public bool HasAge => Age.Length > 0;

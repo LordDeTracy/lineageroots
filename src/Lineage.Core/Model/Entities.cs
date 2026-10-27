@@ -19,6 +19,18 @@ public abstract class Entity
     public Guid Uid { get; set; } = Guid.NewGuid();
 }
 
+/// <summary>What kind of record a source is (evidence analysis): the original, a copy or index of it, or someone's compiled work.</summary>
+public enum SourceKind { Unknown, Original, Derivative, Authored }
+
+/// <summary>Whether the informant knew the fact first-hand (primary) or second-hand (secondary).</summary>
+public enum InformationKind { Unknown, Primary, Secondary }
+
+/// <summary>Whether the citation answers the question outright (direct), only together with other facts (indirect), or by an absence (negative).</summary>
+public enum EvidenceKind { Unknown, Direct, Indirect, Negative }
+
+/// <summary>The researcher's conclusion about a fact.</summary>
+public enum FactConclusion { NotDecided, Proven, Disproved }
+
 public sealed class Citation
 {
     public long SourceId { get; set; }
@@ -26,6 +38,21 @@ public sealed class Citation
     public string Text { get; set; } = "";
     public string Note { get; set; } = "";
     public int? Quality { get; set; }   // GEDCOM QUAY 0-3
+    public InformationKind Information { get; set; }
+    public EvidenceKind Evidence { get; set; }
+}
+
+/// <summary>
+/// A record that disagrees with a fact ("the 1851 census gives her age as 30, so born about 1821"), and how the
+/// disagreement was settled. Open conflicts count against the fact until resolved.
+/// </summary>
+public sealed class EvidenceConflict
+{
+    public string Claim { get; set; } = "";
+    public long? SourceId { get; set; }
+    public string Page { get; set; } = "";
+    public string Resolution { get; set; } = "";
+    public bool Resolved { get; set; }
 }
 
 /// <summary>
@@ -34,6 +61,8 @@ public sealed class Citation
 /// </summary>
 public sealed class Event
 {
+    /// <summary>Permanent identity, so the same fact can be recognised in a copy of the tree (when merging a relative's changes).</summary>
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Tag { get; set; } = "EVEN";
     public string TypeName { get; set; } = "";     // for EVEN / custom types
     public string Value { get; set; } = "";        // e.g. occupation text, "Y" for DIV
@@ -50,6 +79,11 @@ public sealed class Event
     public List<Citation> Citations { get; } = new();
     /// <summary>Photos and scans of this event: a wedding photo, a certificate, a gravestone.</summary>
     public List<MediaLink> Media { get; } = new();
+    /// <summary>The researcher's verdict on this fact, and the reasoning behind it (the proof argument).</summary>
+    public FactConclusion Conclusion { get; set; }
+    public string Reasoning { get; set; } = "";
+    /// <summary>Records that disagree with this fact.</summary>
+    public List<EvidenceConflict> Conflicts { get; } = new();
 
     public static Event Of(string tag, GenDate? date = null, string place = "") =>
         new() { Tag = tag, Date = date ?? GenDate.Empty, Place = place };
@@ -121,9 +155,30 @@ public sealed class DnaTest
     public string Note { get; set; } = "";
 }
 
+/// <summary>
+/// Someone the person shares DNA with, as listed by a testing company. <see cref="PersonId"/> links the match
+/// to someone in this tree once they are identified. <see cref="SharedWith"/> holds the <see cref="Id"/>s of
+/// the person's other matches that this match also shares DNA with ("shared matches"), for clustering.
+/// </summary>
+public sealed class DnaMatch
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "";
+    public long? PersonId { get; set; }
+    public double SharedCm { get; set; }
+    public int Segments { get; set; }
+    public double LongestCm { get; set; }
+    public string Company { get; set; } = "";
+    public string Reference { get; set; } = "";   // the company's ID for the match, so a new download updates it
+    public string Note { get; set; } = "";
+    public List<Guid> SharedWith { get; } = new();
+}
+
 public sealed class Person : Entity
 {
     public List<DnaTest> DnaTests { get; } = new();
+    /// <summary>People this person shares DNA with (when this person has tested).</summary>
+    public List<DnaMatch> DnaMatches { get; } = new();
     public List<Name> Names { get; } = new();
     public Sex Sex { get; set; }
     public string Title { get; set; } = "";
@@ -141,6 +196,8 @@ public sealed class Person : Entity
     public List<Citation> Citations { get; } = new();
     public List<MediaLink> Media { get; } = new();
     public List<long> ResearchIds { get; } = new();
+    /// <summary>Research suggestions the user has set aside for this person (by suggestion key).</summary>
+    public List<string> DismissedHints { get; } = new();
     /// <summary>Parent families in preference order; the first is the primary set of parents.</summary>
     public List<long> ParentFamilyIds { get; } = new();
     public List<long> SpouseFamilyIds { get; } = new();
@@ -203,6 +260,7 @@ public sealed class Source : Entity
     public string Type { get; set; } = "";
     public long? RepositoryId { get; set; }
     public int? Quality { get; set; }
+    public SourceKind Kind { get; set; }
     /// <summary>Scans or photos of the source itself: a register page, a certificate, a letter.</summary>
     public List<MediaLink> Media { get; } = new();
 }

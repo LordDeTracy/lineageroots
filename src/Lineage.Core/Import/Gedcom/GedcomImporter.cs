@@ -52,6 +52,8 @@ public sealed class GedcomImporter
                 case "NOTE": _notes[r.Xref] = r.Value; break;
             }
         }
+        if (records.FirstOrDefault(r => r.Tag == "HEAD")?.First("_SHARE") is { } share && Guid.TryParse(share.Value.Trim(), out var shareId))
+            _tree.SharedFrom = new ShareOrigin(shareId, share.Text("_FROM"));
         foreach (var r in records.Where(r => r.Tag == "REPO" && r.Xref != null)) ReadRepository(r);
         foreach (var r in records.Where(r => r.Tag == "SOUR" && r.Xref != null)) ReadSource(r);
         foreach (var r in records.Where(r => r.Tag == "_TODO" && r.Xref != null)) ReadResearch(r);
@@ -90,6 +92,13 @@ public sealed class GedcomImporter
 
     private string Notes(GedcomNode owner) => string.Join("\n\n", owner.All("NOTE").Select(NoteValue).Where(s => s.Length > 0));
 
+    /// <summary>A record's _UID (32 hex digits, sometimes followed by a 4-digit checksum), if it has one.</summary>
+    private static Guid? Uid(GedcomNode n)
+    {
+        var text = n.Text("_UID").Trim();
+        return text.Length >= 32 && Guid.TryParse(text[..32], out var g) ? g : null;
+    }
+
     private Citation ReadCitation(GedcomNode n)
     {
         var c = new Citation { Page = n.Text("PAGE"), Note = Notes(n) };
@@ -101,6 +110,11 @@ public sealed class GedcomImporter
         }
         c.Text = n.First("DATA")?.Text("TEXT") ?? n.Text("TEXT");
         if (int.TryParse(n.Text("QUAY"), out var q)) c.Quality = q;
+        c.Information = n.Text("_INFO").Trim().ToUpperInvariant() switch
+        {
+            "PRIMARY" => InformationKind.Primary, "SECONDARY" => InformationKind.Secondary, _ => InformationKind.Unknown,
+        };
+        c.Evidence = Enum.TryParse<EvidenceKind>(n.Text("_EVID").Trim(), ignoreCase: true, out var ev) ? ev : EvidenceKind.Unknown;
         return c;
     }
 
@@ -122,8 +136,26 @@ public sealed class GedcomImporter
             Note = Notes(n),
             Private = n.First("_CONF") != null || n.First("_Private") != null,
         };
+        if (Uid(n) is { } eu) e.Id = eu;
         foreach (var s in n.All("SOUR")) e.Citations.Add(ReadCitation(s));
         foreach (var o in n.All("OBJE")) e.Media.Add(ReadMedia(o));
+        e.Conclusion = n.Text("_PROOF").Trim().ToUpperInvariant() switch
+        {
+            "PROVEN" => FactConclusion.Proven, "DISPROVED" => FactConclusion.Disproved, _ => FactConclusion.NotDecided,
+        };
+        e.Reasoning = n.Text("_PROOFNOTE");
+        foreach (var c in n.All("_CONFLICT"))
+        {
+            var sour = c.First("SOUR");
+            e.Conflicts.Add(new EvidenceConflict
+            {
+                Claim = c.Value,
+                SourceId = sour != null && _sources.TryGetValue(sour.Value.Trim(), out var sid) ? sid : null,
+                Page = sour?.Text("PAGE") ?? "",
+                Resolution = c.Text("_RESOLUTION"),
+                Resolved = c.Text("_RESOLVED") == "Y",
+            });
+        }
         return e;
     }
 
@@ -208,7 +240,29 @@ public sealed class GedcomImporter
         foreach (var t in r.All("_TODO"))
             if (_research.TryGetValue(t.Value.Trim(), out var rid)) p.ResearchIds.Add(rid);
         foreach (var d in r.All("_DNA")) p.DnaTests.Add(ReadDna(d));
+        foreach (var m in r.All("_MATCH")) p.DnaMatches.Add(ReadMatch(m));
         _tree.AddPerson(p);
+    }
+
+    private DnaMatch ReadMatch(GedcomNode n)
+    {
+        static double Num(string s) =>
+            double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0;
+        var m = new DnaMatch
+        {
+            Name = n.Value,
+            SharedCm = Num(n.Text("_CM")),
+            Segments = int.TryParse(n.Text("_SEGMENTS"), out var seg) ? seg : 0,
+            LongestCm = Num(n.Text("_LONGEST")),
+            Company = n.Text("_Company"),
+            Reference = n.Text("REFN"),
+            Note = n.Text("NOTE"),
+        };
+        if (Guid.TryParse(n.Text("_UID"), out var id)) m.Id = id;
+        if (_people.TryGetValue(n.Text("_PERSON").Trim(), out var pid)) m.PersonId = pid;
+        foreach (var s in n.All("_SHARED"))
+            if (Guid.TryParse(s.Value, out var g)) m.SharedWith.Add(g);
+        return m;
     }
 
     private static DnaTest ReadDna(GedcomNode d)
@@ -244,6 +298,7 @@ public sealed class GedcomImporter
     private void ReadFamily(GedcomNode r)
     {
         var f = new Family { Id = _families[r.Xref!], Note = Notes(r) };
+        if (Uid(r) is { } fu) f.Uid = fu;
         if (_people.TryGetValue(r.Text("HUSB").Trim(), out var h)) f.Partner1Id = h;
         if (_people.TryGetValue(r.Text("WIFE").Trim(), out var w)) f.Partner2Id = w;
         foreach (var c in r.Children)
@@ -319,6 +374,8 @@ public sealed class GedcomImporter
             CallNumber = r.Text("CALN").Length > 0 ? r.Text("CALN") : r.First("REPO")?.Text("CALN") ?? "",
         };
         if (int.TryParse(r.Text("QUAY"), out var q)) s.Quality = q;
+        if (Uid(r) is { } su) s.Uid = su;
+        s.Kind = Enum.TryParse<SourceKind>(r.Text("_SRCKIND").Trim(), ignoreCase: true, out var kind) ? kind : SourceKind.Unknown;
         if (_repos.TryGetValue(r.Text("REPO").Trim(), out var rid)) s.RepositoryId = rid;
         foreach (var o in r.All("OBJE")) s.Media.Add(ReadMedia(o));
         _tree.AddSource(s);

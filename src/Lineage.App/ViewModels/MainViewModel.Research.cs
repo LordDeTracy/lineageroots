@@ -21,14 +21,14 @@ public sealed partial class MainViewModel
     public ObservableCollection<ResearchRow> ResearchList { get; } = new();
     public ObservableCollection<ResearchRow> PersonResearch { get; } = new();
 
-    /// <summary>0 = open tasks, 1 = done, 2 = everything.</summary>
+    /// <summary>0 = open tasks, 1 = done, 2 = everything, 3 = suggestions.</summary>
     [ObservableProperty] private int _researchFilterIndex;
     [ObservableProperty] private string _researchSearch = "";
     [ObservableProperty] private string _researchSummary = "";
     [ObservableProperty] private bool _hasPersonResearch;
-    public bool HasNoResearch => _tree.Research.Count == 0;
+    public bool HasNoResearch => _tree.Research.Count == 0 && !IsSuggestedFilter;
     public bool HasResearchResults => ResearchList.Count > 0;
-    public bool ShowNoResearchMatches => !HasNoResearch && ResearchList.Count == 0;
+    public bool ShowNoResearchMatches => !HasNoResearch && ResearchList.Count == 0 && !IsSuggestedFilter;
 
     partial void OnResearchFilterIndexChanged(int value) => RebuildResearch();
     partial void OnResearchSearchChanged(string value) => RebuildResearch();
@@ -64,6 +64,16 @@ public sealed partial class MainViewModel
 
     private void RebuildResearch()
     {
+        OnPropertyChanged(nameof(IsSuggestedFilter));
+        if (IsSuggestedFilter)
+        {
+            ResearchList.Clear();
+            RebuildSuggestedResearch();
+            OnPropertyChanged(nameof(HasNoResearch));
+            OnPropertyChanged(nameof(HasResearchResults));
+            OnPropertyChanged(nameof(ShowNoResearchMatches));
+            return;
+        }
         var people = ResearchPeople();
         var words = ResearchSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var rows = _tree.Research.Values

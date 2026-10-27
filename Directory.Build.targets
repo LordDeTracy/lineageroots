@@ -1,0 +1,10 @@
+<Project>
+  <!-- QuestPDF copies its Lato font files into a LatoFont folder beside every program that uses it. Lineage Roots
+       builds the font into the program instead (src/Lineage.App/Reports/PdfFonts.cs), so leave the folder out
+       everywhere — including the test projects, so the tests prove the built-in font works. -->
+  <Target Name="LeaveOutQuestPdfFontFolder" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <None Remove="@(None)" Condition="$([System.String]::Copy('%(None.Link)').StartsWith('LatoFont'))" />
+    </ItemGroup>
+  </Target>
+</Project>

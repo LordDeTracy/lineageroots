@@ -49,6 +49,10 @@ public static class Merger
         foreach (var t in other.Tags) if (!keep.Tags.Contains(t)) keep.Tags.Add(t);
         foreach (var r in other.ResearchIds) if (!keep.ResearchIds.Contains(r)) keep.ResearchIds.Add(r);
         keep.DnaTests.AddRange(other.DnaTests);
+        keep.DnaMatches.AddRange(other.DnaMatches.Where(m => keep.DnaMatches.All(k => k.Id != m.Id)));
+        foreach (var p in tree.People.Values)
+            foreach (var m in p.DnaMatches)
+                if (m.PersonId == other.Id) m.PersonId = keep.Id;
 
         // Move family links.
         foreach (var fid in other.ParentFamilyIds)
@@ -127,12 +131,22 @@ public static class Merger
                     keep.Add(e);
                 continue;
             }
-            // Fill gaps; when both have a value, keep ours but don't lose theirs.
+            // Fill gaps; when both have a value, keep ours but don't lose theirs — the difference is an open conflict.
             if (same.Date.IsEmpty) same.Date = e.Date;
-            else if (!e.Date.IsEmpty && same.Date != e.Date) same.Note = Join(same.Note, $"Also recorded as {e.Date.ToGedcom()}");
+            else if (!e.Date.IsEmpty && same.Date != e.Date)
+            {
+                same.Note = Join(same.Note, $"Also recorded as {e.Date.ToGedcom()}");
+                same.Conflicts.Add(new EvidenceConflict { Claim = $"The merged record gives {Reports.ReportText.Date(e.Date)}" });
+            }
             if (same.Place.Length == 0) { same.Place = e.Place; same.Location ??= e.Location; }
             else if (e.Place.Length > 0 && !string.Equals(same.Place, e.Place, StringComparison.OrdinalIgnoreCase))
+            {
                 same.Note = Join(same.Note, $"Also recorded at {e.Place}");
+                same.Conflicts.Add(new EvidenceConflict { Claim = $"The merged record gives {e.Place}" });
+            }
+            same.Conflicts.AddRange(e.Conflicts);
+            if (same.Conclusion == FactConclusion.NotDecided) same.Conclusion = e.Conclusion;
+            same.Reasoning = Join(same.Reasoning, e.Reasoning);
             same.Location ??= e.Location;
             same.Cause = Pick(same.Cause, e.Cause);
             same.Note = Join(same.Note, e.Note);

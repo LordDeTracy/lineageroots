@@ -401,6 +401,9 @@ public static class PlaceIndex
     /// <summary>US state postal codes and traditional abbreviations.</summary>
     private static readonly Dictionary<string, string> States = BuildStates();
 
+    /// <summary>Whether a part from <see cref="Normalize(string)"/> is a US state (by name or abbreviation).</summary>
+    internal static bool IsUsState(string normalizedPart) => States.ContainsKey(normalizedPart);
+
     private static Dictionary<string, string> BuildStates()
     {
         var d = new Dictionary<string, string>();

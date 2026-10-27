@@ -34,6 +34,8 @@ public sealed class GedcomExporter
         L(2, "FORM", "LINEAGE-LINKED");
         L(1, "CHAR", "UTF-8");
         O(1, "FILE", _tree.Name);
+        // A copy made for a relative remembers where it came from, so their changes can be merged back.
+        if (_tree.SharedFrom is { } origin) { L(1, "_SHARE", origin.Id.ToString("D")); O(2, "_FROM", origin.From); }
 
         foreach (var p in _tree.People.Values.OrderBy(p => p.Id)) WritePerson(p);
         foreach (var f in _tree.Families.Values.OrderBy(f => f.Id)) WriteFamily(f);
@@ -105,6 +107,7 @@ public sealed class GedcomExporter
         O(1, "_COLOR", p.Colour);
         foreach (var t in p.Tags) L(1, "_TAG", t);
         foreach (var d in p.DnaTests) WriteDna(d);
+        foreach (var m in p.DnaMatches) WriteMatch(m);
         foreach (var rid in p.ResearchIds) L(1, "_TODO", $"@TODO{rid}@");
         foreach (var m in p.Media) WriteMedia(1, m);
         O(1, "NOTE", p.Note);
@@ -167,6 +170,25 @@ public sealed class GedcomExporter
         foreach (var c in e.Citations) WriteCitation(level + 1, c);
         foreach (var m in e.Media) WriteMedia(level + 1, m);
         O(level + 1, "NOTE", e.Note);
+        WriteProof(level + 1, e);
+        L(level + 1, "_UID", e.Id.ToString("N").ToUpperInvariant());   // so a relative's copy can be merged back fact by fact
+    }
+
+    /// <summary>
+    /// Evidence analysis on an event: n _PROOF PROVEN|DISPROVED, n _PROOFNOTE reasoning, and one
+    /// n _CONFLICT claim per conflicting record (n+1 SOUR @S1@ / n+2 PAGE, n+1 _RESOLUTION text, n+1 _RESOLVED Y).
+    /// </summary>
+    private void WriteProof(int level, Event e)
+    {
+        if (e.Conclusion != FactConclusion.NotDecided) L(level, "_PROOF", e.Conclusion == FactConclusion.Proven ? "PROVEN" : "DISPROVED");
+        O(level, "_PROOFNOTE", e.Reasoning);
+        foreach (var c in e.Conflicts)
+        {
+            L(level, "_CONFLICT", c.Claim);
+            if (c.SourceId is { } sid && _tree.Sources.ContainsKey(sid)) { L(level + 1, "SOUR", $"@S{sid}@"); O(level + 2, "PAGE", c.Page); }
+            O(level + 1, "_RESOLUTION", c.Resolution);
+            if (c.Resolved) L(level + 1, "_RESOLVED", "Y");
+        }
     }
 
     private void WriteCitation(int level, Citation c)
@@ -174,13 +196,17 @@ public sealed class GedcomExporter
         L(level, "SOUR", _tree.Sources.ContainsKey(c.SourceId) ? $"@S{c.SourceId}@" : "(unknown source)");
         O(level + 1, "PAGE", c.Page);
         if (c.Text.Length > 0) { L(level + 1, "DATA"); L(level + 2, "TEXT", c.Text); }
-        if (c.Quality is { } q) L(level + 1, "QUAY", q.ToString());
+        // Evidence analysis as custom tags, and as the standard quality rating other programs understand.
+        if (Analysis.Evidence.QualityFor(_tree, c) is { } q) L(level + 1, "QUAY", q.ToString());
+        if (c.Information != InformationKind.Unknown) L(level + 1, "_INFO", c.Information == InformationKind.Primary ? "PRIMARY" : "SECONDARY");
+        if (c.Evidence != EvidenceKind.Unknown) L(level + 1, "_EVID", c.Evidence.ToString().ToUpperInvariant());
         O(level + 1, "NOTE", c.Note);
     }
 
     private void WriteSource(Source s)
     {
         L(0, $"@S{s.Id}@", "SOUR");
+        L(1, "_UID", s.Uid.ToString("N").ToUpperInvariant());
         O(1, "TITL", s.Title);
         O(1, "ABBR", s.ShortTitle);
         O(1, "AUTH", s.Author);
@@ -190,6 +216,7 @@ public sealed class GedcomExporter
         else O(1, "CALN", s.CallNumber);
         O(1, "_TYPE", s.Type);
         if (s.Quality is { } q) L(1, "QUAY", q.ToString());
+        if (s.Kind != SourceKind.Unknown) L(1, "_SRCKIND", s.Kind.ToString().ToUpperInvariant());
         foreach (var m in s.Media) WriteMedia(1, m);
         O(1, "NOTE", s.Note);
     }
@@ -243,6 +270,26 @@ public sealed class GedcomExporter
         foreach (var (name, value) in d.Markers) { L(2, "_Marker", name); L(3, "_Value", value.ToString()); }
         O(2, "NOTE", d.Note);
     }
+
+    /// <summary>
+    /// A DNA match: 1 _MATCH name, 2 _UID, 2 _CM, 2 _SEGMENTS, 2 _LONGEST, 2 _Company, 2 REFN, 2 _PERSON @I12@,
+    /// 2 _SHARED uid (one per shared match), 2 NOTE.
+    /// </summary>
+    private void WriteMatch(DnaMatch m)
+    {
+        L(1, "_MATCH", m.Name);
+        L(2, "_UID", m.Id.ToString("D"));
+        L(2, "_CM", Num(m.SharedCm));
+        if (m.Segments > 0) L(2, "_SEGMENTS", m.Segments.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (m.LongestCm > 0) L(2, "_LONGEST", Num(m.LongestCm));
+        O(2, "_Company", m.Company);
+        O(2, "REFN", m.Reference);
+        if (m.PersonId is { } pid && _tree.Person(pid) != null) L(2, "_PERSON", $"@I{pid}@");
+        foreach (var s in m.SharedWith) L(2, "_SHARED", s.ToString("D"));
+        O(2, "NOTE", m.Note);
+    }
+
+    private static string Num(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
     private void O(int level, string tag, string? value)
     {

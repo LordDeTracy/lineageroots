@@ -1,3 +1,4 @@
+using QuestPDF.Fluent;
 using System.IO.Compression;
 using Avalonia.Headless.XUnit;
 using DocumentFormat.OpenXml;
@@ -111,5 +112,20 @@ public class DocumentRenderTests
         Assert.NotEmpty(links);
         Assert.All(links, a => Assert.Contains(a, bookmarks));
         Assert.Contains(paragraphs, p => Style(p) == "Note" && p.InnerText.Contains("Parish registers of St Mary, Harrow"));
+    }
+}
+
+public class BuiltInFontTests
+{
+    [Fact]
+    public void LatoIsBuiltInAndThereIsNoFontFolder()
+    {
+        Assert.Equal(18, Lineage.App.Reports.PdfFonts.Count);
+        Assert.False(Directory.Exists(Path.Combine(AppContext.BaseDirectory, "LatoFont")));
+
+        // A PDF made now embeds Lato (QuestPDF's default), so the built-in copy really is being used.
+        Lineage.App.Reports.PdfFonts.Setup();
+        var pdf = QuestPDF.Fluent.Document.Create(d => d.Page(page => page.Content().Text("Lineage Roots"))).GeneratePdf();
+        Assert.Contains("Lato", System.Text.Encoding.Latin1.GetString(pdf));
     }
 }
