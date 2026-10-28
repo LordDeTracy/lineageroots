@@ -24,6 +24,8 @@ public interface IDialogService
     Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor);
     Task<EditorResult> EditDnaMatchAsync(DnaMatchEditorViewModel editor);
     Task<bool> ReviewChangesAsync(ReviewChangesViewModel review);
+    Task<bool> FindGpsAsync(FindGpsViewModel review);
+    Task<bool> EnterCensusAsync(CensusEntryViewModel form);
     Task<bool> EditSettingsAsync(SettingsViewModel settings);
     Task<bool> ExportOptionsAsync(ExportOptionsViewModel options);
     /// <summary>Shows a tree comparison; true when the user asked to copy the ticked people in.</summary>
@@ -150,6 +152,12 @@ public sealed class DialogService(Window owner) : IDialogService
 
     public Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor) =>
         new ResearchEditorWindow { DataContext = editor }.ShowDialog<EditorResult>(owner);
+
+    public Task<bool> EnterCensusAsync(CensusEntryViewModel form) =>
+        new CensusEntryWindow { DataContext = form }.ShowDialog<bool>(owner);
+
+    public Task<bool> FindGpsAsync(FindGpsViewModel review) =>
+        new FindGpsWindow { DataContext = review }.ShowDialog<bool>(owner);
 
     public Task<bool> ReviewChangesAsync(ReviewChangesViewModel review) =>
         new ReviewChangesWindow { DataContext = review }.ShowDialog<bool>(owner);

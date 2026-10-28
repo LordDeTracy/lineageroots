@@ -4,7 +4,7 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.2.1, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.3, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -35,6 +35,8 @@ saves its own `.lineage` file. The program only goes online for three things, an
 - **Street maps**: map pictures from OpenStreetMap for the area you're looking at (can be turned off in Settings)
 - **Update check**: asks GitHub whether there's a newer version (can be turned off in Settings)
 - **FamilySearch**: only if you set it up and sign in
+
+Finding GPS for places uses a gazetteer built into the program, so it works offline and sends nothing.
 
 ## Why
 
@@ -71,6 +73,9 @@ saves its own `.lineage` file. The program only goes online for three things, an
 - **Event editor** for any event type, with date checking, place, GPS, photos and source citations
 - **Sources, citations and repositories**, with scans of the original record on each source
 - **Research to-do list** linked to people, with priorities and a done filter
+- **Research log**: record searches as well as tasks, including the ones that found nothing. "Searched…" on a
+  suggestion asks where you looked and what came of it; the suggestion isn't offered again, the census checklist
+  says when and where you searched, and the Research page has a search log, newest first
 - **Suggested next steps** on every person's page, and for the home person's ancestors on the Research page: missing
   parents, births, marriages and deaths, censuses they should be in, emigration, military service (draft cards,
   Civil War, First World War), wills and probate, gaps between children, and facts without sources. Each says why
@@ -92,10 +97,18 @@ saves its own `.lineage` file. The program only goes online for three things, an
   found, to find, maybe (they moved, or may have died) or lost (the 1890 US census, most Irish censuses before
   1901). One click adds a research task or records the census. Covers the United States, England, Wales,
   Scotland, Ireland, Canada, Norway and Sweden
+- **Census household entry**: pick a census and the form has that year's real columns (relationship to head,
+  marital status, age, occupation, birthplace, years married, year of immigration…). The household is filled in
+  from the tree with ages as of census day; correct it from the page, link each line to a person or add newcomers
+  as new people (a wife, son or daughter is linked to the head), and save — everyone gets a census event citing it,
+  occupations can be added as facts, and the checklist ticks itself off
 
 **Places and photos**
 - Places page: GPS for a whole place at once, rename or merge, and suggested clean-ups ("Leeds, Yorks" →
   "Leeds, Yorkshire, England")
+- **Find GPS for places**: looks up every place without coordinates in a built-in gazetteer of the world's towns
+  (offline), using the country, state or county in the name to pick the right one. Sure matches are ticked for you;
+  likely ones and state-only matches are left for you to check. Applied in one undoable step
 - Photos on people, events, marriages and sources; a profile picture; tag people in group photos; GPS and date
   read from the camera; copy every photo into a folder beside the tree so they travel together; find moved photos
 
@@ -238,4 +251,5 @@ the strict sense of the Open Source Definition.
 Lineage Roots uses these libraries, each under its own licence: Avalonia, CommunityToolkit.Mvvm,
 Microsoft.Data.Sqlite and DocumentFormat.OpenXml (MIT), MetadataExtractor (Apache 2.0) and QuestPDF
 (QuestPDF Community License). The Lato font built into the program for reports is used under the SIL Open Font
-License 1.1. Street maps are © OpenStreetMap contributors.
+License 1.1. Street maps are © OpenStreetMap contributors. Place coordinates come from
+[GeoNames](https://www.geonames.org/) (CC BY 4.0).

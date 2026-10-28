@@ -400,6 +400,8 @@ public sealed class GedcomImporter
         };
         if (_repos.TryGetValue(r.Text("REPO").Trim(), out var rid)) t.RepositoryId = rid;
         if (_sources.TryGetValue(r.Text("SOUR").Trim(), out var sid)) t.SourceId = sid;
+        t.Result = Enum.TryParse<SearchResult>(r.Text("_RESULT").Trim(), ignoreCase: true, out var result) ? result : SearchResult.None;
+        t.HintKey = r.Text("_HINT").Trim();
         _tree.AddResearch(t);
     }
 }

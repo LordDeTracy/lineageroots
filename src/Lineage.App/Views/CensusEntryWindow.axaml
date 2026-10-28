@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.CensusEntryWindow"
+        x:DataType="vm:CensusEntryViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="960" Height="780" MinWidth="640" MinHeight="440" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <Window.Styles>
+    <Style Selector="TextBox.cell">
+      <Setter Property="Width" Value="130" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+      <Setter Property="UseFloatingWatermark" Value="True" />
+    </Style>
+    <Style Selector="TextBox.short"><Setter Property="Width" Value="64" /></Style>
+    <Style Selector="TextBox.wide"><Setter Property="Width" Value="220" /></Style>
+  </Window.Styles>
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <CheckBox IsChecked="{Binding AddOccupations}" Content="Also add occupations as facts" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="140" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save household" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="14">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
+        <Grid ColumnDefinitions="2*,14,2*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Census" />
+            <ComboBox ItemsSource="{Binding Censuses}" SelectedItem="{Binding Census}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Census" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Where they were living" />
+            <TextBox Text="{Binding Place}" Watermark="Street, town, county, country" AutomationProperties.Name="Where they were living" />
+          </StackPanel>
+          <StackPanel Grid.Column="4">
+            <TextBlock Classes="label" Text="Reference" />
+            <TextBox Text="{Binding Reference}" Watermark="Piece, folio, page / ED, sheet" AutomationProperties.Name="Census reference" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Classes="faint small" Text="{Binding CensusNote}" TextWrapping="Wrap" IsVisible="{Binding !!CensusNote.Length}" />
+        <TextBlock Classes="muted small" TextWrapping="Wrap"
+                   Text="The household is filled in from the tree, with ages as of census day. Correct it to match the census page, link each line to the right person (or add them as new people), and save: everyone gets a census event citing it." />
+
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CensusLineRow">
+              <Border Classes="card" Padding="14,10,6,4">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <WrapPanel>
+                    <TextBox Classes="cell wide" Text="{Binding Name}" Watermark="Name as written" AutomationProperties.Name="Name" />
+                    <ComboBox ItemsSource="{Binding People}" SelectedItem="{Binding Person}" Width="260" Margin="0,0,8,8"
+                              AutomationProperties.Name="Person in the tree" ToolTip.Tip="Who this is in the tree" />
+                  </WrapPanel>
+                  <Button Grid.Column="1" Classes="ghost icon" Width="32" Height="32" Padding="7" VerticalAlignment="Top"
+                          Command="{Binding #Root.((vm:CensusEntryViewModel)DataContext).RemoveLineCommand}" CommandParameter="{Binding}"
+                          ToolTip.Tip="Remove this line" AutomationProperties.Name="Remove line">
+                    <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                  </Button>
+                  <WrapPanel Grid.Row="1" Grid.ColumnSpan="2">
+                    <TextBox Classes="cell" Text="{Binding Relationship}" Watermark="Relation to head" IsVisible="{Binding Form.ShowRelationship}" AutomationProperties.Name="Relation to head" />
+                    <TextBox Classes="cell" Text="{Binding Condition}" Watermark="Marital status" IsVisible="{Binding Form.ShowCondition}" AutomationProperties.Name="Marital status" />
+                    <TextBox Classes="cell short" Text="{Binding Sex}" Watermark="Sex" IsVisible="{Binding Form.ShowSex}" AutomationProperties.Name="Sex" />
+                    <TextBox Classes="cell short" Text="{Binding Age}" Watermark="Age" IsVisible="{Binding Form.ShowAge}" AutomationProperties.Name="Age" />
+                    <TextBox Classes="cell" Text="{Binding BirthDate}" Watermark="Born (date)" IsVisible="{Binding Form.ShowBirthDate}" AutomationProperties.Name="Birth date" />
+                    <TextBox Classes="cell" Text="{Binding Occupation}" Watermark="Occupation" IsVisible="{Binding Form.ShowOccupation}" AutomationProperties.Name="Occupation" />
+                    <TextBox Classes="cell wide" Text="{Binding Birthplace}" Watermark="Birthplace" IsVisible="{Binding Form.ShowBirthplace}" AutomationProperties.Name="Birthplace" />
+                    <TextBox Classes="cell short" Text="{Binding YearsMarried}" Watermark="Yrs married" IsVisible="{Binding Form.ShowYearsMarried}" AutomationProperties.Name="Years married" />
+                    <TextBox Classes="cell short" Text="{Binding Immigrated}" Watermark="Immigrated" IsVisible="{Binding Form.ShowImmigrated}" AutomationProperties.Name="Year immigrated" />
+                  </WrapPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Classes="ghost accentText" Command="{Binding AddLineCommand}" HorizontalAlignment="Left" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+            <TextBlock Text="Add a line (lodger, servant, visitor…)" Foreground="{DynamicResource Accent}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

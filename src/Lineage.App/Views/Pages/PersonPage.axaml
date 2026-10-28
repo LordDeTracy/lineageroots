@@ -227,6 +227,11 @@
                     <TextBlock Classes="faint small" Text="On the to-do list" VerticalAlignment="Center" Margin="0,0,8,0"
                                IsVisible="{Binding HasTask}" />
                     <Button Classes="outline" IsVisible="{Binding CanRecord}"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).EnterCensusHouseholdCommand}"
+                            CommandParameter="{Binding}" ToolTip.Tip="Enter the whole household from the census page">
+                      <TextBlock Text="Enter household" />
+                    </Button>
+                    <Button Classes="outline" IsVisible="{Binding CanRecord}"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RecordCensusCommand}"
                             CommandParameter="{Binding}" ToolTip.Tip="Found them? Add a census event with what it says">
                       <StackPanel Orientation="Horizontal" Spacing="6">
@@ -365,6 +370,7 @@
                   <MenuItem Header="Add child…" Command="{Binding AddChildCommand}" />
                   <MenuItem Header="Add event…" Command="{Binding AddEventCommand}" />
                   <MenuItem Header="Add research task…" Command="{Binding AddResearchForPersonCommand}" />
+                  <MenuItem Header="Enter a census household…" Command="{Binding EnterCensusHouseholdCommand}" />
                   <MenuItem Header="Make this the home person" Command="{Binding SetHomePersonCommand}" />
                   <MenuItem Header="How is this person related to…" Command="{Binding FindRelationshipCommand}" />
                   <MenuItem Header="DNA matches…" Command="{Binding ShowDnaMatchesCommand}" />

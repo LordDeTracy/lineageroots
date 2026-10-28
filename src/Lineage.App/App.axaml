@@ -162,6 +162,10 @@
             </Button>
             <TextBlock Classes="faint small" Text="On the to-do list" VerticalAlignment="Center" Margin="0,0,6,0"
                        IsVisible="{Binding HasTask}" />
+            <Button Classes="ghost" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).LogHintSearchCommand}"
+                    CommandParameter="{Binding}" ToolTip.Tip="Log a search you've done for this — found or not">
+              <TextBlock Text="Searched…" Classes="muted" />
+            </Button>
             <Button Classes="ghost icon" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DismissHintCommand}"
                     CommandParameter="{Binding}" ToolTip.Tip="Not useful — hide this suggestion" AutomationProperties.Name="Hide suggestion">
               <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" Foreground="{DynamicResource Faint}" />

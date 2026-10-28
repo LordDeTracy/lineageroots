@@ -297,10 +297,21 @@ public static class LifeTimeline
                 : moved ? (CensusStatus.Possible, $"They moved around this time, so they may be in another country's census instead.")
                 : estimatedBirth ? (CensusStatus.Possible, $"Their birth year is only estimated (about {span.Born}).")
                 : (CensusStatus.ToFind, $"Living in {place}" + (NearestYear(sightings, key) is > 0 and var y ? $" ({y})" : "") + ".");
+            // A search already logged for this census (research log) says where they've been looked for.
+            if (record == null && census.Survives && Searched(tree, p, $"census:{census.Region}:{census.Year}") is { } search)
+                reason = $"Searched{(search.Date.IsEmpty ? "" : " " + Reports.ReportText.Date(search.Date))}: " +
+                         (search.Result switch { SearchResult.NotFound => "not found", SearchResult.Found => "found", _ => "unclear" }) +
+                         (search.Note.Trim().Length > 0 ? $" ({search.Note.Trim().Split('\n')[0]})" : "") + ". " + reason;
             result.Add(new CensusCheck(census, status, reason, place) { Record = record });
         }
         return result;
     }
+
+    /// <summary>The latest logged search for this person that answered the given suggestion key, if any.</summary>
+    public static ResearchItem? Searched(FamilyTree tree, Person p, string hintKey) =>
+        p.ResearchIds.Select(id => tree.Research.GetValueOrDefault(id)).OfType<ResearchItem>()
+            .Where(r => r.Result != SearchResult.None && r.HintKey == hintKey)
+            .OrderByDescending(r => r.Date.SortKey).FirstOrDefault();
 
     private static int NearestYear(List<Sighting> sightings, int key) =>
         sightings.Count == 0 ? 0 : sightings.MinBy(s => Math.Abs(s.Key - key)).Year;

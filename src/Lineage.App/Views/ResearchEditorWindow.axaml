@@ -52,6 +52,17 @@
           </StackPanel>
         </Grid>
 
+        <StackPanel>
+          <TextBlock Classes="label" Text="Task or search" />
+          <ListBox Classes="segmented" ItemsSource="{Binding ResultOptions}" SelectedIndex="{Binding ResultIndex}"
+                   HorizontalAlignment="Left" AutomationProperties.Name="Task or search result"
+                   ToolTip.Tip="Log a search you've done — including ones that found nothing, which are worth recording too">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+          </ListBox>
+        </StackPanel>
+
         <Grid ColumnDefinitions="Auto,*,Auto">
           <StackPanel>
             <TextBlock Classes="label" Text="Priority" />

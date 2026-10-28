@@ -273,8 +273,15 @@ public sealed class Repository : Entity
     public string Note { get; set; } = "";
 }
 
+/// <summary>For a logged search: what came of it. <see cref="None"/> means the item is a task, not a search.</summary>
+public enum SearchResult { None, Found, NotFound, Inconclusive }
+
 public sealed class ResearchItem : Entity
 {
+    /// <summary>Set for a logged search (research log); a search records negative results too.</summary>
+    public SearchResult Result { get; set; }
+    /// <summary>The research suggestion this search answered (so it isn't suggested again).</summary>
+    public string HintKey { get; set; } = "";
     public string Description { get; set; } = "";
     public string Category { get; set; } = "";
     public int Priority { get; set; }

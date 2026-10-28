@@ -131,6 +131,7 @@ public partial class App : Application
                         "export" => vm.ExportGedcomCommand.ExecuteAsync(null),
                         "research" => vm.NewResearchCommand.ExecuteAsync(null),
                         "review" => DemoReview(vm),
+                        "census" => vm.EnterCensusHouseholdCommand.ExecuteAsync(null),
                         "dnamatch" => vm.EditDnaMatchCommand.ExecuteAsync(vm.DnaMatchRows.Skip(2).First()),
                         "problems" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindProblemsCommand.Execute(null))),
                         "relationship" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindRelationshipCommand.Execute(null))),

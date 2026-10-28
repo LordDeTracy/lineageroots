@@ -128,6 +128,8 @@ public sealed partial class MainViewModel
         ("Import a file", ImportCommand, null),
         ("Open a tree", OpenCommand, null),
         ("Save", SaveCommand, null),
+        ("Find GPS for places", FindGpsCommand, null),
+        ("Enter a census household", EnterCensusHouseholdCommand, null),
         ("Settings", OpenSettingsCommand, null),
         ("Check for updates", CheckForUpdatesCommand, null),
     };

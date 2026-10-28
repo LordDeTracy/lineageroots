@@ -70,6 +70,28 @@ public sealed partial class MainViewModel
 
     private bool _showingPlace;
 
+    /// <summary>Finds GPS for places that have none, from the built-in gazetteer, and adds the ones the user ticks.</summary>
+    [RelayCommand]
+    private async Task FindGpsAsync()
+    {
+        if (!HasTree) return;
+        Status = "Looking up places…";
+        var tree = _tree;
+        var (suggestions, without) = await Task.Run(() =>
+            (Lineage.Core.Places.Gazetteer.Default.Suggest(tree), Lineage.Core.Analysis.PlaceIndex.Build(tree).Count(p => p.Location == null)));
+        Status = "";
+        var review = new FindGpsViewModel(suggestions, without);
+        if (!await _dialogs.FindGpsAsync(review)) return;
+        var chosen = review.Chosen;
+        if (chosen.Count == 0) return;
+        Change($"add GPS to {chosen.Count} places", Lineage.Core.Analysis.PlaceIndex.Touched(_tree, chosen.Select(c => c.Place.Name)), () =>
+        {
+            foreach (var c in chosen) Lineage.Core.Analysis.PlaceIndex.SetLocation(_tree, c.Place.Name, c.Match.Point);
+        });
+        RebuildPlaceList();
+        Status = chosen.Count == 1 ? "Added GPS to 1 place" : $"Added GPS to {chosen.Count:N0} places";
+    }
+
     private void RebuildPlaceList()
     {
         _allPlaces = PlaceIndex.Build(_tree).OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)

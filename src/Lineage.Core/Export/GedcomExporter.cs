@@ -58,6 +58,8 @@ public sealed class GedcomExporter
             O(1, "_CAT", t.Category);
             if (t.RepositoryId is { } rid) L(1, "REPO", $"@R{rid}@");
             if (t.SourceId is { } sid) L(1, "SOUR", $"@S{sid}@");
+            if (t.Result != SearchResult.None) L(1, "_RESULT", t.Result.ToString().ToUpperInvariant());
+            O(1, "_HINT", t.HintKey);
             O(1, "NOTE", t.Note);
         }
         L(0, "TRLR");
