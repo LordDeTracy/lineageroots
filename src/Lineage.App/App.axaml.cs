@@ -54,7 +54,7 @@ public partial class App : Application
 
             var args = (desktop.Args ?? Array.Empty<string>()).ToList();
             // Developer options: --pdf out.pdf (write a person's summary and quit), --screenshot out.png, --dark, --light, --evidence (colour charts by evidence), --size WxH, --scroll Y,
-            // --view pedigree|fan|timeline|sources|home|places|research|suggested|quick|dna|clusters|odds|cm, --dialog person|event|source|duplicates|familysearch|dnamatch
+            // --view pedigree|fan|timeline|sources|home|places|research|suggested|quick|dna|clusters|odds|cm, --dialog person|event|source|duplicates|familysearch|dnamatch|census|photo
             // (captures that window), --tab N (editor tab)
             string? screenshot = TakeOption(args, "--screenshot");
             var size = TakeOption(args, "--size");
@@ -108,6 +108,7 @@ public partial class App : Application
                     case "suggested": vm.Section = AppSection.Research; vm.ResearchFilterIndex = 3; break;
                     case "quick": vm.OpenQuickSearchCommand.Execute(null); vm.QuickSearchText = "whit"; break;
                     case "clusters": vm.Section = AppSection.Dna; vm.DnaTabIndex = 1; break;
+                    case "chromosomes": vm.Section = AppSection.Dna; vm.DnaTabIndex = 4; break;
                     case "odds":
                         vm.Section = AppSection.Dna;
                         vm.DnaTabIndex = 2;
@@ -132,12 +133,13 @@ public partial class App : Application
                         "research" => vm.NewResearchCommand.ExecuteAsync(null),
                         "review" => DemoReview(vm),
                         "census" => vm.EnterCensusHouseholdCommand.ExecuteAsync(null),
+                        "photo" => vm.OpenPhotoCommand.ExecuteAsync(vm.Photos.First()),
                         "dnamatch" => vm.EditDnaMatchCommand.ExecuteAsync(vm.DnaMatchRows.Skip(2).First()),
                         "problems" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindProblemsCommand.Execute(null))),
                         "relationship" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindRelationshipCommand.Execute(null))),
                         _ => vm.EditPersonCommand.ExecuteAsync(null),
                     };
-                    await Task.Delay(1000);
+                    await Task.Delay(dialog == "photo" ? 4000 : 1000);   // a photo also has its faces found
                     if (screenshot != null && desktop.Windows.LastOrDefault() is { } shown && shown != window)
                     {
                         if (tab != null && shown.DataContext is PersonEditorViewModel editor) editor.TabIndex = int.Parse(tab);

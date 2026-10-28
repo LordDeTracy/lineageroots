@@ -172,6 +172,18 @@ public sealed class DnaMatch
     public string Reference { get; set; } = "";   // the company's ID for the match, so a new download updates it
     public string Note { get; set; } = "";
     public List<Guid> SharedWith { get; } = new();
+    /// <summary>Where on the chromosomes the DNA is shared, from a segment download (for the chromosome painter).</summary>
+    public List<DnaSegment> ChromosomeSegments { get; } = new();
+}
+
+/// <summary>One shared segment: chromosome 1–22 or 23 for X, start and end positions (build 37 base pairs), size and SNPs.</summary>
+public sealed class DnaSegment
+{
+    public int Chromosome { get; set; }
+    public long Start { get; set; }
+    public long End { get; set; }
+    public double Cm { get; set; }
+    public int Snps { get; set; }
 }
 
 public sealed class Person : Entity

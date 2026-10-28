@@ -1,10 +1,12 @@
+![Lineage Roots](docs/brand/banner.jpg)
+
 # Lineage Roots
 
 A free, cross-platform family history program, with its source code published for anyone to read and improve. Lineage Roots opens **AQ 16** databases
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.3, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.4, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -36,7 +38,7 @@ saves its own `.lineage` file. The program only goes online for three things, an
 - **Update check**: asks GitHub whether there's a newer version (can be turned off in Settings)
 - **FamilySearch**: only if you set it up and sign in
 
-Finding GPS for places uses a gazetteer built into the program, so it works offline and sends nothing.
+Finding GPS for places and finding faces in photos both happen inside the program, offline: nothing is sent.
 
 ## Why
 
@@ -111,6 +113,8 @@ Finding GPS for places uses a gazetteer built into the program, so it works offl
   likely ones and state-only matches are left for you to check. Applied in one undoable step
 - Photos on people, events, marriages and sources; a profile picture; tag people in group photos; GPS and date
   read from the camera; copy every photo into a folder beside the tree so they travel together; find moved photos
+- **Faces found for you**: open a photo and the faces in it are outlined (found on your computer, offline, even the
+  small faces of a big group photo); click one and say who it is to tag them
 
 **Checking your work**
 - **Evidence for every fact**: rate each citation the way the Genealogical Proof Standard does — original record,
@@ -145,6 +149,9 @@ Finding GPS for places uses a gazetteer built into the program, so it works offl
   they share with every tested relative in the tree, and rank the places. Only birth links count
 - Match clusters: groups matches who share matches with each other (like the Leeds method and autoclusters), shown as
   a coloured grid, with the ancestors the linked matches in each cluster point to
+- **Chromosome painter**: import segment downloads (FamilyTreeDNA chromosome browser, MyHeritage shared segments,
+  GEDmatch one-to-one) and each segment shared with a linked match is painted on the chromosomes with the ancestors
+  you have in common, on your father's or mother's side, with how much of each side is painted so far
 
 **Reports and sharing**
 - PDF or Word: family group sheet, individual summary, ancestors, descendants (outline or narrative "register"
@@ -201,7 +208,7 @@ pre-releases aren't offered.
 
 | Project | Contents |
 |---|---|
-| `src/Lineage.Core` | the model (`FamilyTree`, `Person`, `Family`, `Event`, `GenDate`…), SQLite storage, AQ and GEDCOM import, GEDCOM export, and the analysis behind the features: duplicates, problems, places, relationships and evidence (`Analysis`), timelines, censuses, history and research suggestions (`History`), DNA inheritance model, odds and clustering (`Dna`), sharing with relatives (`Sharing`), reports and the family website |
+| `src/Lineage.Core` | the model (`FamilyTree`, `Person`, `Family`, `Event`, `GenDate`…), SQLite storage, AQ and GEDCOM import, GEDCOM export, and the analysis behind the features: duplicates, problems, places, relationships and evidence (`Analysis`), timelines, censuses, history and research suggestions (`History`), DNA inheritance model, odds, clustering and chromosome painting (`Dna`), sharing with relatives (`Sharing`), reports and the family website |
 | `src/Lineage.App` | the Avalonia desktop app (MVVM, CommunityToolkit.Mvvm): pages, editors, charts, maps, PDF and Word reports, and the updater |
 | `tests/Lineage.Core.Tests` | xUnit tests for the format, storage, GEDCOM, undo, merging, analysis, history, DNA and sharing |
 | `tests/Lineage.App.Tests` | headless UI tests that drive the app's workflows (Avalonia.Headless) |
@@ -235,7 +242,6 @@ GEDCOM first.
 - Per-change history saved inside the file (undo currently lasts for the session)
 - GEDCOM media records referenced by pointer (`0 @M1@ OBJE`)
 - Password-protected tree files
-- Faces spotted in group photos, to speed up tagging
 - Code-signed Windows builds, and a macOS build
 
 ## License
@@ -249,7 +255,9 @@ Because commercial use is excluded, this is a "source-available" licence rather 
 the strict sense of the Open Source Definition.
 
 Lineage Roots uses these libraries, each under its own licence: Avalonia, CommunityToolkit.Mvvm,
-Microsoft.Data.Sqlite and DocumentFormat.OpenXml (MIT), MetadataExtractor (Apache 2.0) and QuestPDF
+Microsoft.Data.Sqlite, DocumentFormat.OpenXml and ONNX Runtime (MIT), MetadataExtractor (Apache 2.0) and QuestPDF
 (QuestPDF Community License). The Lato font built into the program for reports is used under the SIL Open Font
 License 1.1. Street maps are © OpenStreetMap contributors. Place coordinates come from
-[GeoNames](https://www.geonames.org/) (CC BY 4.0).
+[GeoNames](https://www.geonames.org/) (CC BY 4.0). Faces are found with the
+[Ultra-Light-Fast-Generic-Face-Detector-1MB](https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB)
+model (MIT, © 2019 linzai). The Lineage Roots logo, icon and artwork are in [docs/brand](docs/brand).

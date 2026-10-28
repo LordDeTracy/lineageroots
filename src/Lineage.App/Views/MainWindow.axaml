@@ -7,7 +7,7 @@
         x:Class="Lineage.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         x:Name="Root"
-        Title="{Binding Title}" Width="1280" Height="820" MinWidth="820" MinHeight="520"
+        Title="{Binding Title}" Width="1280" Height="820" MinWidth="820" MinHeight="520" Icon="/Assets/app.ico"
         Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
 
   <Window.KeyBindings>
@@ -43,8 +43,8 @@
             Padding="16,10">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Border Classes="iconTile" Width="32" Height="32" CornerRadius="9">
-            <c:LineIcon Data="{StaticResource IconSprout}" Width="19" Height="19" />
+          <Border Width="32" Height="32" CornerRadius="8" ClipToBounds="True">
+            <Image Source="/Assets/icon.png" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
           </Border>
           <TextBlock Text="Lineage Roots" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
           <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" IsVisible="{Binding HasTree}">
@@ -167,10 +167,15 @@
     </Border>
 
     <!-- ===== Welcome ===== -->
-    <ScrollViewer Grid.Row="1" IsVisible="{Binding IsWelcome}">
-      <StackPanel MaxWidth="540" Margin="24,64,24,32" Spacing="0" VerticalAlignment="Center">
-        <Border Classes="iconTile" Width="64" Height="64" CornerRadius="18" HorizontalAlignment="Left">
-          <c:LineIcon Data="{StaticResource IconSprout}" Width="32" Height="32" StrokeThickness="1.6" />
+    <Grid Grid.Row="1" IsVisible="{Binding IsWelcome}">
+    <Grid.Background>
+      <ImageBrush Source="/Assets/welcome.jpg" Stretch="UniformToFill" />
+    </Grid.Background>
+    <Border Background="{DynamicResource Bg}" Opacity="0.84" />
+    <ScrollViewer>
+      <StackPanel MaxWidth="540" Margin="24,48,24,32" Spacing="0" VerticalAlignment="Center">
+        <Border Width="150" Height="150" CornerRadius="18" ClipToBounds="True" HorizontalAlignment="Left">
+          <Image Source="/Assets/logo.png" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Border>
         <TextBlock Classes="display" Text="Welcome to Lineage Roots" Margin="0,22,0,6" />
         <TextBlock Classes="muted" FontSize="15" TextWrapping="Wrap" LineHeight="23"
@@ -234,6 +239,7 @@
                    Text="Everything stays on this computer. Lineage Roots never uploads your family data." />
       </StackPanel>
     </ScrollViewer>
+    </Grid>
 
     <!-- ===== Tree ===== -->
     <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" IsVisible="{Binding HasTree}">

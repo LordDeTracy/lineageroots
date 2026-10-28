@@ -34,6 +34,11 @@ public sealed class PhotoTagSurface : Control
     /// <summary>The rectangle being drawn, normalised; set by dragging while tagging.</summary>
     public static readonly StyledProperty<Rect?> PendingProperty =
         AvaloniaProperty.Register<PhotoTagSurface, Rect?>(nameof(Pending), defaultBindingMode: BindingMode.TwoWay);
+    /// <summary>Faces found but not tagged, normalised: drawn dashed, and clicking one runs <see cref="SuggestionCommand"/>.</summary>
+    public static readonly StyledProperty<IReadOnlyList<Rect>?> SuggestionsProperty =
+        AvaloniaProperty.Register<PhotoTagSurface, IReadOnlyList<Rect>?>(nameof(Suggestions));
+    public static readonly StyledProperty<System.Windows.Input.ICommand?> SuggestionCommandProperty =
+        AvaloniaProperty.Register<PhotoTagSurface, System.Windows.Input.ICommand?>(nameof(SuggestionCommand));
     public static readonly StyledProperty<IBrush> HighlightBrushProperty =
         AvaloniaProperty.Register<PhotoTagSurface, IBrush>(nameof(HighlightBrush), new SolidColorBrush(Color.Parse("#8FD3BA")));
 
@@ -43,6 +48,8 @@ public sealed class PhotoTagSurface : Control
     private static readonly IPen Shadow = new Pen(new SolidColorBrush(Color.FromArgb(120, 0, 0, 0)), 3.5);
     private static readonly IPen Outline = new Pen(Brushes.White, 1.5);
     private static readonly IBrush PendingFill = new SolidColorBrush(Color.FromArgb(36, 255, 255, 255));
+    private static readonly IPen SuggestionPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)), 1.5,
+                                                         new DashStyle(new double[] { 3, 3 }, 0));
     private static readonly Typeface LabelFace = new(FontFamily.Default, FontStyle.Normal, FontWeight.SemiBold);
 
     /// <summary>Drags shorter than this are clicks: they place a box of a typical face size.</summary>
@@ -54,7 +61,8 @@ public sealed class PhotoTagSurface : Control
 
     static PhotoTagSurface()
     {
-        AffectsRender<PhotoTagSurface>(SourceProperty, HighlightedProperty, IsTaggingProperty, PendingProperty, HighlightBrushProperty);
+        AffectsRender<PhotoTagSurface>(SourceProperty, HighlightedProperty, IsTaggingProperty, PendingProperty, HighlightBrushProperty,
+                                       SuggestionsProperty);
         ClipToBoundsProperty.OverrideDefaultValue<PhotoTagSurface>(true);
     }
 
@@ -64,6 +72,13 @@ public sealed class PhotoTagSurface : Control
     public bool IsTagging { get => GetValue(IsTaggingProperty); set => SetValue(IsTaggingProperty, value); }
     public Rect? Pending { get => GetValue(PendingProperty); set => SetValue(PendingProperty, value); }
     public IBrush HighlightBrush { get => GetValue(HighlightBrushProperty); set => SetValue(HighlightBrushProperty, value); }
+    public IReadOnlyList<Rect>? Suggestions { get => GetValue(SuggestionsProperty); set => SetValue(SuggestionsProperty, value); }
+    public System.Windows.Input.ICommand? SuggestionCommand { get => GetValue(SuggestionCommandProperty); set => SetValue(SuggestionCommandProperty, value); }
+
+    /// <summary>The untagged face under a point in the view, if any (the smallest, where they overlap).</summary>
+    private Rect? SuggestionAt(Point at, Rect image) =>
+        (Suggestions ?? Array.Empty<Rect>()).Where(r => ToView(r, image).Inflate(4).Contains(at))
+            .OrderBy(r => r.Width * r.Height).Select(r => (Rect?)r).FirstOrDefault();
 
     /// <summary>Where the photo is drawn: as large as fits, centred.</summary>
     public Rect ImageRect
@@ -103,6 +118,13 @@ public sealed class PhotoTagSurface : Control
         var image = ImageRect;
         if (Source is not { } source || image.Width <= 0) return;
         context.DrawImage(source, new Rect(source.Size), image);
+
+        var pendingNow = IsTagging ? Pending : null;
+        foreach (var face in Suggestions ?? Array.Empty<Rect>())
+        {
+            if (pendingNow is { } pr && pr.Intersects(face)) continue;
+            context.DrawRectangle(null, SuggestionPen, new RoundedRect(ToView(face, image), 4));
+        }
 
         var lit = Highlighted;
         var regions = (Regions ?? Enumerable.Empty<ITaggedRegion>()).ToList();
@@ -163,6 +185,13 @@ public sealed class PhotoTagSurface : Control
         base.OnPointerPressed(e);
         var image = ImageRect;
         var at = e.GetPosition(this);
+        if (!IsTagging && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && SuggestionAt(at, image) is { } face
+            && SuggestionCommand is { } command && command.CanExecute(face))
+        {
+            command.Execute(face);
+            e.Handled = true;
+            return;
+        }
         if (!IsTagging || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || !image.Contains(at)) return;
         _dragFrom = at;
         e.Pointer.Capture(this);
@@ -182,7 +211,10 @@ public sealed class PhotoTagSurface : Control
             e.Handled = true;
             return;
         }
-        if (IsTagging || image.Width <= 0) return;
+        if (image.Width <= 0) return;
+        Cursor = IsTagging ? new Cursor(StandardCursorType.Cross)
+               : SuggestionAt(at, image) != null ? new Cursor(StandardCursorType.Hand) : Cursor.Default;
+        if (IsTagging) return;
         // Hovering a rectangle highlights it (and its name in the list).
         var hit = (Regions ?? Enumerable.Empty<ITaggedRegion>())
             .Where(r => ToView(r.Bounds, image).Contains(at))
@@ -205,6 +237,11 @@ public sealed class PhotoTagSurface : Control
         if (image.Width <= 0) return;
         var to = Clamp(e.GetPosition(this), image);
         var box = Box(from, to);
+        if (box.Width < MinDrag && box.Height < MinDrag && SuggestionAt(from, image) is { } face && SuggestionCommand is { } command)
+        {
+            command.Execute(face);   // a click on a face found: tag that face
+            return;
+        }
         if (box.Width < MinDrag && box.Height < MinDrag)
         {
             // A click: a square about the size of a face in a group photo, centred where clicked.

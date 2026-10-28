@@ -42,6 +42,7 @@
         <ListBoxItem Content="Clusters" ToolTip.Tip="Group matches by the matches they share" />
         <ListBoxItem Content="What are the odds" ToolTip.Tip="Test where someone fits in the tree" />
         <ListBoxItem Content="cM calculator" ToolTip.Tip="What relationship a shared cM amount suggests" />
+        <ListBoxItem Content="Chromosomes" ToolTip.Tip="Paint each shared segment with the ancestors it came from" />
       </ListBox>
 
       <!-- ===== Matches ===== -->
@@ -57,7 +58,7 @@
                         Foreground="{DynamicResource Faint}" />
           </Grid>
           <Button Grid.Column="2" Classes="outline" Command="{Binding ImportDnaMatchesCommand}" Margin="0,0,8,0"
-                  ToolTip.Tip="Read a match list or shared-matches list saved as CSV">
+                  ToolTip.Tip="Read a match list, shared-matches list or segment list saved as CSV">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <c:LineIcon Data="{StaticResource IconImport}" />
               <TextBlock Text="Import CSV" />
@@ -117,6 +118,47 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+      </StackPanel>
+
+      <!-- ===== Chromosome painter ===== -->
+      <StackPanel Spacing="14" IsVisible="{Binding IsDnaChromosomesTab}">
+        <TextBlock Classes="muted" IsVisible="{Binding !HasDnaTester}" TextWrapping="Wrap"
+                   Text="Open someone's page first (or set a home person), then come back to paint their chromosomes." />
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDnaTester}">
+          <TextBlock Classes="muted" Text="{Binding PaintingSummary}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0" />
+          <Button Grid.Column="1" Classes="outline" Command="{Binding ImportDnaMatchesCommand}" VerticalAlignment="Top"
+                  ToolTip.Tip="Read a segment download saved as CSV">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <c:LineIcon Data="{StaticResource IconImport}" />
+              <TextBlock Text="Import segments" />
+            </StackPanel>
+          </Button>
+        </Grid>
+        <Border Classes="card" Padding="20,18" IsVisible="{Binding HasPainting}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="faint small" TextWrapping="Wrap"
+                       Text="Each chromosome has a bar for the father's side (F) and one for the mother's (M), and one for segments whose side can't be told (?). Overlapping segments stack; hover one to see whose it is." />
+            <c:ChromosomeMap Painting="{Binding DnaPainting}" />
+          </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding PaintGroupRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:PaintGroupRow">
+              <Border Classes="card" Padding="20,14" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Border Width="14" Height="14" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted small" Text="{Binding Detail}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Classes="faint small" Text="{Binding Side}" VerticalAlignment="Top" Margin="12,2,0,0" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="faint small" TextWrapping="Wrap" IsVisible="{Binding HasPainting}"
+                   Text="A segment is painted with the ancestors the tester and the match have in common, so link matches to the tree to paint them. Two different lines overlapping on the same side are worth a second look: one of those links may be wrong." />
       </StackPanel>
 
       <!-- ===== Clusters ===== -->

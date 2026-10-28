@@ -262,6 +262,16 @@ public sealed class GedcomImporter
         if (_people.TryGetValue(n.Text("_PERSON").Trim(), out var pid)) m.PersonId = pid;
         foreach (var s in n.All("_SHARED"))
             if (Guid.TryParse(s.Value, out var g)) m.SharedWith.Add(g);
+        foreach (var s in n.All("_SEG"))
+        {
+            var f = s.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (f.Length >= 4 && int.TryParse(f[0], out var chr) && long.TryParse(f[1], out var start) && long.TryParse(f[2], out var end))
+                m.ChromosomeSegments.Add(new DnaSegment
+                {
+                    Chromosome = chr, Start = start, End = end, Cm = Num(f[3]),
+                    Snps = f.Length > 4 && int.TryParse(f[4], out var snps) ? snps : 0,
+                });
+        }
         return m;
     }
 

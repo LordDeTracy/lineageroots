@@ -184,6 +184,44 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
     /// <summary>Tagging, but no box drawn yet.</summary>
     public bool IsDrawing => IsTagging && PendingRegion == null;
     public bool HasTagError => TagError.Length > 0;
+
+    /// <summary>Faces found in the photo that aren't tagged yet, normalised; click one to tag it.</summary>
+    [ObservableProperty] private IReadOnlyList<Rect> _faceBoxes = Array.Empty<Rect>();
+    private List<Lineage.Core.Media.FaceBox> _faces = new();
+    public bool HasFaceBoxes => FaceBoxes.Count > 0;
+    public string FaceHint => FaceBoxes.Count switch
+    {
+        0 => "",
+        1 => "1 face found that isn't tagged yet: click it on the photo to say who it is.",
+        var n => $"{n} faces found that aren't tagged yet: click one on the photo to say who it is.",
+    };
+    /// <summary>The face search for the current photo; tests await it.</summary>
+    internal Task FaceTask { get; private set; } = Task.CompletedTask;
+
+    partial void OnFaceBoxesChanged(IReadOnlyList<Rect> value)
+    {
+        OnPropertyChanged(nameof(HasFaceBoxes));
+        OnPropertyChanged(nameof(FaceHint));
+    }
+
+    /// <summary>Starts tagging the face clicked on the photo, with a box a little larger than the face.</summary>
+    [RelayCommand]
+    private void TagFace(Rect face)
+    {
+        ClearPending();
+        IsTagging = true;
+        var (dx, dy) = (face.Width * 0.15, face.Height * 0.12);
+        var x = Math.Max(0, face.X - dx);
+        var y = Math.Max(0, face.Y - dy);
+        PendingRegion = new Rect(x, y, Math.Min(1 - x, face.Width + 2 * dx), Math.Min(1 - y, face.Height + 2 * dy));
+    }
+
+    /// <summary>The faces not already covered by a tag.</summary>
+    private void RefreshFaceBoxes() =>
+        FaceBoxes = _faces.Where(f => !Current.Regions.Any(r =>
+                f.Overlap(r.X, r.Y, r.Width, r.Height) > 0.15
+                || (f.X + f.Width / 2 >= r.X && f.X + f.Width / 2 <= r.X + r.Width && f.Y + f.Height / 2 >= r.Y && f.Y + f.Height / 2 <= r.Y + r.Height)))
+            .Select(f => new Rect(f.X, f.Y, f.Width, f.Height)).ToList();
     public bool HasTags => Tags.Count > 0;
     public bool ShowEmpty => !HasTags && !IsTagging;
     public string TaggingHint => PendingRegion == null
@@ -290,6 +328,7 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
         Tags.Clear();
         foreach (var r in Current.Regions.OrderBy(r => r.X)) Tags.Add(new TagRow(r, _tree.Person(r.PersonId)));   // left to right
         HighlightedTag = null;
+        RefreshFaceBoxes();
         OnPropertyChanged(nameof(HasTags));
         OnPropertyChanged(nameof(ShowEmpty));
     }
@@ -320,6 +359,9 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
         var old = Image;
         Image = null;
         old?.Dispose();
+        _faces = new();
+        RefreshFaceBoxes();
+        FaceTask = Task.CompletedTask;
         MessageTitle = MessageDetail = "";
         IsLoading = false;   // an earlier load still running no longer counts
         if (!File.Exists(path))
@@ -339,6 +381,21 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
             return;
         }
         Image = bitmap;
+        FaceTask = FindFacesAsync(path, version);
+    }
+
+    private async Task FindFacesAsync(string path, int version)
+    {
+        var faces = await Task.Run(() => FaceFinder.Find(path));
+        if (version != _loadVersion) return;
+        ShowFaces(faces);
+    }
+
+    /// <summary>Shows faces found in the current photo (those not tagged yet).</summary>
+    internal void ShowFaces(List<Lineage.Core.Media.FaceBox> faces)
+    {
+        _faces = faces;
+        RefreshFaceBoxes();
     }
 
     /// <summary>Decodes a photo, scaling very large ones down to <see cref="MaxSide"/> as they are read.</summary>

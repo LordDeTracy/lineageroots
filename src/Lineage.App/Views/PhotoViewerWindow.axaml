@@ -122,6 +122,10 @@
               </Button>
             </Grid>
 
+            <Border Classes="card" Padding="14,10" IsVisible="{Binding HasFaceBoxes}">
+              <TextBlock Classes="muted small" Text="{Binding FaceHint}" TextWrapping="Wrap" />
+            </Border>
+
             <!-- Tagging: draw a box, then say who it is -->
             <Border Classes="card" Padding="14,12" IsVisible="{Binding IsTagging}">
               <StackPanel Spacing="10">
@@ -202,7 +206,8 @@
       <Panel>
         <c:PhotoTagSurface x:Name="Surface" Margin="76,28" Source="{Binding Image}" Regions="{Binding Tags}"
                            Highlighted="{Binding HighlightedTag}" IsTagging="{Binding IsTagging}"
-                           Pending="{Binding PendingRegion}" />
+                           Pending="{Binding PendingRegion}"
+                           Suggestions="{Binding FaceBoxes}" SuggestionCommand="{Binding TagFaceCommand}" />
         <StackPanel IsVisible="{Binding HasMessage}" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Spacing="10" MaxWidth="440" Margin="24">
           <c:LineIcon Data="{StaticResource IconImage}" Width="40" Height="40" Foreground="#8A8D91" HorizontalAlignment="Center" />

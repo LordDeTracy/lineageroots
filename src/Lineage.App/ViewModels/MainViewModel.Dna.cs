@@ -23,6 +23,14 @@ public sealed record DnaClusterCard(int Number, string Members, string Ancestors
     public bool HasAncestors => Ancestors.Length > 0;
 }
 
+/// <summary>An ancestor (or couple) in the chromosome painter's key: its colour, side and the matches painted for it.</summary>
+public sealed record PaintGroupRow(PaintGroup Group, Avalonia.Media.IBrush Brush)
+{
+    public string Label => Group.Label;
+    public string Side => Group.Side switch { PaintSide.Father => "Father's side", PaintSide.Mother => "Mother's side", _ => "Either side" };
+    public string Detail => $"{Group.Segments:N0} segment{(Group.Segments == 1 ? "" : "s")}, {Group.Cm:0.#} cM · " + string.Join(", ", Group.Matches);
+}
+
 /// <summary>One hypothesis in "What are the odds", with its place in the ranking.</summary>
 public sealed record WatoHypothesisRow(Hypothesis Hypothesis, string Probability, string Odds, double Share, string Details, bool IsBest)
 {
@@ -78,10 +86,11 @@ public sealed partial class MainViewModel
     public ObservableCollection<ParentChoice> WatoHypotheses { get; } = new();
     public ObservableCollection<WatoHypothesisRow> WatoResults { get; } = new();
     public ObservableCollection<CmGroupRow> CmCalculatorRows { get; } = new();
+    public ObservableCollection<PaintGroupRow> PaintGroupRows { get; } = new();
 
     [ObservableProperty] private PersonChoice? _dnaTester;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDnaMatchesTab), nameof(IsDnaClustersTab), nameof(IsDnaOddsTab), nameof(IsDnaCalculatorTab))]
+    [NotifyPropertyChangedFor(nameof(IsDnaMatchesTab), nameof(IsDnaClustersTab), nameof(IsDnaOddsTab), nameof(IsDnaCalculatorTab), nameof(IsDnaChromosomesTab))]
     private int _dnaTabIndex;
     [ObservableProperty] private string _dnaFilter = "";
     [ObservableProperty] private string _dnaSummary = "";
@@ -95,12 +104,16 @@ public sealed partial class MainViewModel
     [ObservableProperty] private string _watoSummary = "";
     [ObservableProperty] private string _cmCalculatorText = "";
     [ObservableProperty] private string _cmCalculatorNote = "";
+    [ObservableProperty] private Painting? _dnaPainting;
+    [ObservableProperty] private string _paintingSummary = "";
     private IReadOnlyList<ParentChoice>? _parentChoices;
 
     public bool IsDnaMatchesTab => DnaTabIndex == 0;
     public bool IsDnaClustersTab => DnaTabIndex == 1;
     public bool IsDnaOddsTab => DnaTabIndex == 2;
     public bool IsDnaCalculatorTab => DnaTabIndex == 3;
+    public bool IsDnaChromosomesTab => DnaTabIndex == 4;
+    public bool HasPainting => DnaPainting is { Segments.Count: > 0 };
     public bool HasDnaTester => DnaTester != null;
     public bool HasClusters => DnaClusterCards.Count > 0;
     public bool HasWatoResults => WatoResults.Count > 0;
@@ -177,7 +190,36 @@ public sealed partial class MainViewModel
         if (IsDnaClustersTab) RebuildClusters();
         if (IsDnaOddsTab) RebuildWatoSubjects();
         if (IsDnaCalculatorTab) RebuildCmCalculator();
+        if (IsDnaChromosomesTab) RebuildPainting();
     }
+
+    // ---- chromosome painter ----
+
+    private void RebuildPainting()
+    {
+        PaintGroupRows.Clear();
+        DnaPainting = Tester is { } tester ? ChromosomePainter.Paint(_tree, tester) : null;
+        OnPropertyChanged(nameof(HasPainting));
+        if (DnaPainting is not { } painting || Tester is not { } t) { PaintingSummary = ""; return; }
+        foreach (var g in painting.Groups) PaintGroupRows.Add(new PaintGroupRow(g, ClusterBrush(g.Number)));
+        if (!t.DnaMatches.Any(m => m.ChromosomeSegments.Count > 0))
+        {
+            PaintingSummary = "No segment data yet. Import a segment download (FamilyTreeDNA chromosome browser, MyHeritage shared segments, GEDmatch one-to-one) to paint where each match's DNA sits.";
+            return;
+        }
+        var parts = new List<string>
+        {
+            $"Painted {Percent(painting.Coverage(PaintSide.Father))} of the father's side and " +
+            $"{Percent(painting.Coverage(PaintSide.Mother))} of the mother's, from {painting.Segments.Count:N0} segment{(painting.Segments.Count == 1 ? "" : "s")}.",
+        };
+        if (painting.Unlinked > 0)
+            parts.Add($"{painting.Unlinked:N0} match{(painting.Unlinked == 1 ? " has" : "es have")} segments but no link to the tree yet: link them on the Matches tab to paint them.");
+        if (painting.Unrelated > 0)
+            parts.Add($"{painting.Unrelated:N0} linked match{(painting.Unrelated == 1 ? " isn't" : "es aren't")} related by blood in the tree.");
+        PaintingSummary = string.Join(" ", parts);
+    }
+
+    private static string Percent(double share) => share > 0 && share < 0.01 ? "under 1%" : $"{share:0%}";
 
     // ---- matches ----
 
@@ -276,19 +318,28 @@ public sealed partial class MainViewModel
     private async Task ImportDnaMatchesAsync()
     {
         if (Tester is not { } tester) return;
-        var path = await _dialogs.OpenFileAsync($"Import DNA matches for {tester.DisplayName}", ("Match lists", "*.csv;*.txt;*.tsv"));
+        var path = await _dialogs.OpenFileAsync($"Import DNA matches for {tester.DisplayName}", ("Match or segment lists", "*.csv;*.txt;*.tsv"));
         if (path == null) return;
         string text;
         try { text = await File.ReadAllTextAsync(path); }
         catch (Exception ex) { await _dialogs.ShowMessageAsync("Couldn't read the file", ex.Message); return; }
 
+        var matchName = "";
+        if (SegmentImport.NeedsMatchName(text))
+        {
+            matchName = (await _dialogs.PromptAsync("Whose segments are these?",
+                "This segment file doesn't name the match. Choose the match it compares with, or type a new name.",
+                "", tester.DnaMatches.Select(m => m.Name).Order(StringComparer.OrdinalIgnoreCase).ToList()))?.Trim() ?? "";
+            if (matchName.Length == 0) return;
+        }
         var company = await _dialogs.PromptAsync("Which company is this list from?",
             "Optional — it keeps matches from different companies apart. Leave it blank for a shared-matches list.",
             "", DnaMatchEditorViewModel.Companies) ?? "";
         MatchImportResult? result = null;
-        Change("import DNA matches", new[] { tester }, () => result = MatchImport.Import(tester, text, company.Trim()));
+        Change("import DNA matches", new[] { tester }, () => result = MatchImport.Import(tester, text, company.Trim(), matchName));
         var problems = result!.Problems.Count > 0 ? "\n\n" + string.Join("\n", result.Problems.Take(8)) + (result.Problems.Count > 8 ? "\n…" : "") : "";
-        await _dialogs.ShowMessageAsync("DNA matches imported", result.Summary + "." + problems);
+        await _dialogs.ShowMessageAsync(result.Kind == "segments" ? "DNA segments imported" : "DNA matches imported", result.Summary + "." + problems);
+        if (IsDnaChromosomesTab) RebuildPainting();
     }
 
     // ---- clusters ----

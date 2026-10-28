@@ -7,4 +7,12 @@
       <None Remove="@(None)" Condition="$([System.String]::Copy('%(None.Link)').StartsWith('LatoFont'))" />
     </ItemGroup>
   </Target>
+
+  <!-- ONNX Runtime (the face detector) brings .lib import libraries, which only C++ programs linking to it need;
+       leave them out of a published build so the program stays a single file. -->
+  <Target Name="LeaveOutImportLibraries" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.lib'" />
+    </ItemGroup>
+  </Target>
 </Project>
