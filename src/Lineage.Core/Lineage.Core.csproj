@@ -8,11 +8,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Towns of 1,000+ people from GeoNames (geonames.org, CC BY 4.0), for finding GPS from place names. -->
     <EmbeddedResource Include="Places\gazetteer.tsv.gz" LogicalName="Lineage.Core.Places.gazetteer.tsv.gz" />
+    <!-- Face detector (Ultra-Light-Fast-Generic-Face-Detector-1MB, version-RFB-320; MIT, © 2019 linzai), for photo tagging. -->
+    <EmbeddedResource Include="Media\face-detector.onnx" LogicalName="Lineage.Core.Media.face-detector.onnx" />
   </ItemGroup>
 
 </Project>

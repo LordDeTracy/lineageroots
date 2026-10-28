@@ -7,7 +7,10 @@ namespace Lineage.Core.Dna;
 /// <summary>What an import did.</summary>
 public sealed record MatchImportResult(string Kind, int Added, int Updated, int Links, IReadOnlyList<string> Problems)
 {
-    public string Summary => Kind == "shared"
+    public string Summary => Kind == "segments"
+        ? $"{Links:N0} segment{(Links == 1 ? "" : "s")} for {Updated + Added:N0} match{(Updated + Added == 1 ? "" : "es")}"
+          + (Added > 0 ? $" ({Added:N0} new)" : "") + (Problems.Count > 0 ? $"; {Problems.Count:N0} rows skipped" : "")
+        : Kind == "shared"
         ? $"{Links:N0} shared-match link{(Links == 1 ? "" : "s")} added" + (Problems.Count > 0 ? $"; {Problems.Count:N0} rows skipped" : "")
         : $"{Added:N0} match{(Added == 1 ? "" : "es")} added, {Updated:N0} updated" + (Problems.Count > 0 ? $"; {Problems.Count:N0} rows skipped" : "");
 }
@@ -23,11 +26,12 @@ public sealed record MatchImportResult(string Kind, int Added, int Updated, int 
 /// </summary>
 public static class MatchImport
 {
-    public static MatchImportResult Import(Person tester, string csv, string company = "")
+    public static MatchImportResult Import(Person tester, string csv, string company = "", string matchName = "")
     {
         var rows = ParseCsv(csv);
         if (rows.Count == 0) return new MatchImportResult("matches", 0, 0, 0, new[] { "The file is empty." });
         var header = rows[0].Select(Key).ToArray();
+        if (SegmentImport.Columns(header) is { } seg) return SegmentImport.Import(tester, rows, seg, company, matchName);
         // A shared-matches list may also give cM, so look for its pair of columns first.
         if (SharedColumns(header) is { } p) return ImportShared(tester, rows, p.A, p.B);
         var cm = Find(header, h => (h.Contains("cm") || h.Contains("centimorgan") || h == "shareddna")
@@ -95,7 +99,7 @@ public static class MatchImport
     }
 
     /// <summary>The match this row updates: the same ID, or (when either has no ID) the same name at the same company.</summary>
-    private static DnaMatch? Existing(Person tester, string reference, string name, string company)
+    internal static DnaMatch? Existing(Person tester, string reference, string name, string company)
     {
         if (reference.Length > 0 && tester.DnaMatches.FirstOrDefault(m => m.Reference == reference) is { } byId) return byId;
         return tester.DnaMatches.FirstOrDefault(m =>
@@ -125,20 +129,20 @@ public static class MatchImport
         return a < 0 ? null : (a, b);
     }
 
-    private static int Find(string[] header, Func<string, bool> test)
+    internal static int Find(string[] header, Func<string, bool> test)
     {
         for (var i = 0; i < header.Length; i++) if (test(header[i])) return i;
         return -1;
     }
 
     /// <summary>A header in a comparable form: lower case letters and digits only ("Shared cM" → "sharedcm", "# Segments" → "segments").</summary>
-    private static string Key(string header) =>
+    internal static string Key(string header) =>
         new(header.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
 
-    private static string Cell(string[] row, int col) => col >= 0 && col < row.Length ? row[col].Trim() : "";
+    internal static string Cell(string[] row, int col) => col >= 0 && col < row.Length ? row[col].Trim() : "";
 
     /// <summary>A number from a cell like "1,234.5 cM" (thousands separators and units ignored).</summary>
-    private static double? Number(string cell)
+    internal static double? Number(string cell)
     {
         var digits = new string(cell.Where(c => char.IsDigit(c) || c == '.').ToArray());
         return double.TryParse(digits, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : null;

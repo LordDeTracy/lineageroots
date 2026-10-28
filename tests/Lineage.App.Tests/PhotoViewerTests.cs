@@ -10,6 +10,7 @@ using Lineage.App.Controls;
 using Lineage.App.ViewModels;
 using Lineage.App.Views;
 using Lineage.Core.Import.Gedcom;
+using Lineage.Core.Media;
 using Lineage.Core.Model;
 
 namespace Lineage.App.Tests;
@@ -271,5 +272,28 @@ public sealed class PhotoViewerTests : IDisposable
         if (Environment.GetEnvironmentVariable("LINEAGE_SCREENSHOTS") is not { Length: > 0 } dir) return;
         Directory.CreateDirectory(dir);
         window.CaptureRenderedFrame()?.Save(Path.Combine(dir, name));
+    }
+
+    [AvaloniaFact]
+    public async Task FacesFoundCanBeTaggedWithAClick()
+    {
+        var (tree, photos) = Setup();
+        using var vm = Viewer(tree, photos, 1);   // the wedding, with Eliza tagged on the right
+        await vm.ImageTask;
+        await vm.FaceTask;
+        vm.ShowFaces(new() { new FaceBox(0.25, 0.3, 0.1, 0.15, 0.99), new FaceBox(0.62, 0.3, 0.1, 0.15, 0.98) });
+        var face = Assert.Single(vm.FaceBoxes);   // the other is Eliza's face, already tagged
+        Assert.Equal(new Rect(0.25, 0.3, 0.1, 0.15), face);
+        Assert.StartsWith("1 face found that isn't tagged yet", vm.FaceHint);
+
+        vm.TagFaceCommand.Execute(face);
+        Assert.True(vm.IsTagging);
+        var box = vm.PendingRegion!.Value;   // a little larger than the face
+        Assert.Equal((0.235, 0.282, 0.13, 0.186), (Math.Round(box.X, 3), Math.Round(box.Y, 3), Math.Round(box.Width, 3), Math.Round(box.Height, 3)));
+        vm.PendingPerson = vm.People.Single(p => p.Id == 1);
+        vm.ConfirmTagCommand.Execute(null);
+        Assert.Equal(2, vm.Tags.Count);
+        Assert.False(vm.HasFaceBoxes);
+        Assert.Equal("", vm.FaceHint);
     }
 }

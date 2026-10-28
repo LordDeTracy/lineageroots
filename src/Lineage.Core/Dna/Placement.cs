@@ -99,7 +99,7 @@ public static class Placement
     // ---- ancestry by birth ----
 
     /// <summary>The person (0) and their birth ancestors with the fewest generations up to each.</summary>
-    private static Dictionary<long, int> Ancestors(FamilyTree tree, Person start)
+    internal static Dictionary<long, int> Ancestors(FamilyTree tree, Person start)
     {
         var gen = new Dictionary<long, int> { [start.Id] = 0 };
         var queue = new Queue<Person>();

@@ -288,6 +288,8 @@ public sealed class GedcomExporter
         O(2, "REFN", m.Reference);
         if (m.PersonId is { } pid && _tree.Person(pid) != null) L(2, "_PERSON", $"@I{pid}@");
         foreach (var s in m.SharedWith) L(2, "_SHARED", s.ToString("D"));
+        foreach (var g in m.ChromosomeSegments)
+            L(2, "_SEG", string.Join(' ', g.Chromosome, g.Start, g.End, Num(g.Cm), g.Snps));
         O(2, "NOTE", m.Note);
     }
 
