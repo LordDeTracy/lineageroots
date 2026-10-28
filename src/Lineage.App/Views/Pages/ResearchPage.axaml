@@ -87,6 +87,7 @@
         <ListBoxItem Content="Done" />
         <ListBoxItem Content="All" />
         <ListBoxItem Content="Suggested" ToolTip.Tip="Next steps for the home person and their ancestors" />
+        <ListBoxItem Content="Search log" ToolTip.Tip="Searches you've done and what they found — including nothing" />
       </ListBox>
 
       <StackPanel IsVisible="{Binding HasNoResearch}" HorizontalAlignment="Center" Margin="0,60,0,0" Spacing="8" MaxWidth="420">

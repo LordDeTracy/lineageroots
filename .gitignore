@@ -5,6 +5,7 @@ obj/
 .vs/
 .idea/
 TestResults/
+publish/
 
 # Family data must never be committed: databases, exports and samples are personal
 *.lineage

@@ -21,8 +21,17 @@
               IsVisible="{Binding HasPlacePins}">
         <c:MapView Name="PlacesMap" Pins="{Binding PlacePins}" />
       </Border>
-      <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasPlacePins}"
-                 Text="Give places a GPS location (paste coordinates below) and they appear on a map here." />
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !HasNoPlaces}">
+        <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"
+                   Text="Places with a GPS location appear on the map. Find them automatically from place names, or paste coordinates below." />
+        <Button Grid.Column="1" Classes="primary" Command="{Binding FindGpsCommand}" VerticalAlignment="Center"
+                ToolTip.Tip="Look up places without GPS in the built-in gazetteer of the world's towns (works offline)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconPin}" />
+            <TextBlock Text="Find GPS for places" />
+          </StackPanel>
+        </Button>
+      </Grid>
 
       <!-- Clean-up suggestions -->
       <Border Classes="card" Padding="26,22" IsVisible="{Binding HasPlaceSuggestions}">

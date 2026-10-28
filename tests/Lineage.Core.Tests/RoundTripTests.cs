@@ -38,6 +38,8 @@ public class RoundTripTests
         t.AddChild(fam, kid, new ChildLink { ChildId = kid.Id, ToFather = ParentRelation.Adopted });
         var todo = t.AddResearch(new ResearchItem { Description = "Find census", Priority = 2 });
         dad.ResearchIds.Add(todo.Id);
+        var search = t.AddResearch(new ResearchItem { Description = "Searched the 1851 census", Result = SearchResult.NotFound, HintKey = "census:England:1851", Done = true });
+        dad.ResearchIds.Add(search.Id);
         return t;
     }
 
@@ -60,7 +62,7 @@ public class RoundTripTests
         }),
         Sources = t.Sources.Values.Select(s => $"{s.Id}|{s.Title}|{s.RepositoryId}|{s.Quality}"),
         Repos = t.Repositories.Values.Select(r => $"{r.Id}|{r.Name}"),
-        Research = t.Research.Values.Select(r => $"{r.Id}|{r.Description}|{r.Priority}"),
+        Research = t.Research.Values.Select(r => $"{r.Id}|{r.Description}|{r.Priority}|{r.Result}|{r.HintKey}|{r.Done}"),
     }, Json);
 
     [Fact]

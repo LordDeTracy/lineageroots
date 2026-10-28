@@ -109,4 +109,33 @@ public sealed partial class MainViewModel
 
     [RelayCommand]
     private void OpenHintPerson(HintRow row) => OpenPerson(row.PersonId);
+
+    /// <summary>Logs a search made for a suggestion (research log): where, and what came of it. It isn't suggested again.</summary>
+    [RelayCommand]
+    private async Task LogHintSearchAsync(HintRow row)
+    {
+        if (_tree.Person(row.PersonId) is not { } p) return;
+        var where = await _dialogs.PromptAsync("Log a search", $"{row.Task}. Where did you look?", "",
+            new[] { "FamilySearch", "Ancestry", "Findmypast", "MyHeritage", "The record office", "Online index" });
+        if (where == null) return;
+        var choice = await _dialogs.ChooseAsync("What did you find?", $"{row.Task}, in {(where.Trim().Length > 0 ? where.Trim() : "the place you searched")}.",
+            "Not found", "Found it", "Unclear", "Cancel");
+        if (choice is < 0 or > 2) return;
+        var result = choice switch { 0 => SearchResult.NotFound, 1 => SearchResult.Found, _ => SearchResult.Inconclusive };
+        var item = new ResearchItem
+        {
+            Description = row.Task, Category = row.Category, Result = result, HintKey = row.Hint.Key, Done = true,
+            Date = new GenDate { Year = DateTime.Today.Year, Month = DateTime.Today.Month, Day = DateTime.Today.Day },
+            Note = where.Trim(),
+        };
+        Change("log a search", new Entity[] { p, item }, () =>
+        {
+            _tree.AddResearch(item);
+            p.ResearchIds.Add(item.Id);
+        });
+        if (IsResearchSection) RebuildSuggestedResearch();
+        Status = result == SearchResult.Found && row.Hint.Kind == HintKind.Census
+            ? "Logged. Use Enter household on the Timeline to record what the census says."
+            : "Search logged";
+    }
 }

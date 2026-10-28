@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        x:Class="Lineage.App.Views.FindGpsWindow"
+        x:DataType="vm:FindGpsViewModel"
+        Title="Find GPS for places" Width="860" Height="740" MinWidth="560" MinHeight="420" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <Button Classes="ghost" Command="{Binding TickAllCommand}" Content="Tick all" Margin="-10,0,0,0" />
+        <Button Grid.Column="1" Classes="ghost" Command="{Binding UntickAllCommand}" Content="Untick all" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="160" Click="OnApply" HorizontalContentAlignment="Center">
+            <TextBlock Text="{Binding ApplyText}" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="14">
+        <TextBlock Classes="title" FontSize="20" Text="Find GPS for places" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:GpsRow">
+              <Border Classes="card" Padding="14,10">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" Margin="0,2,10,0"
+                            AutomationProperties.Name="{Binding Place, StringFormat='Add GPS for {0}'}" />
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <WrapPanel>
+                      <TextBlock Text="{Binding Place}" FontWeight="SemiBold" Margin="0,0,10,0" />
+                      <TextBlock Classes="faint small" Text="{Binding Uses}" VerticalAlignment="Center" />
+                    </WrapPanel>
+                    <TextBlock Classes="muted small" TextWrapping="Wrap">
+                      <Run Text="→ " /><Run Text="{Binding Match}" /><Run Text="   " /><Run Text="{Binding Coordinates}" />
+                    </TextBlock>
+                  </StackPanel>
+                  <Border Grid.Column="2" Classes="proof" Classes.strong="{Binding IsSure}" Classes.weak="{Binding !IsSure}"
+                          VerticalAlignment="Top">
+                    <TextBlock Text="{Binding Confidence}" />
+                  </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="faint small" TextWrapping="Wrap"
+                   Text="Found offline in the built-in GeoNames gazetteer (geonames.org, CC BY 4.0) of towns with 1,000 people or more. Smaller villages, farms and churches may not be there; you can still paste their coordinates on the Places page." />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

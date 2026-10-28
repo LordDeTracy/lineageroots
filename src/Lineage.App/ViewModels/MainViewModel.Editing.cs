@@ -89,6 +89,7 @@ public sealed partial class MainViewModel
         AddEventCommand.NotifyCanExecuteChanged();
         AddResearchForPersonCommand.NotifyCanExecuteChanged();
         ShowDnaMatchesCommand.NotifyCanExecuteChanged();
+        EnterCensusHouseholdCommand.NotifyCanExecuteChanged();
         ToggleBookmarkCommand.NotifyCanExecuteChanged();
         SetHomePersonCommand.NotifyCanExecuteChanged();
         FamilyGroupReportCommand.NotifyCanExecuteChanged();

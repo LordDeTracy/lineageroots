@@ -169,6 +169,9 @@ public static class ResearchSuggestions
                 "Record where each fact came from, so it can be checked and trusted.", 0));
 
         var dismissed = p.DismissedHints.ToHashSet();
+        // Suggestions already searched for (research log) aren't suggested again, whatever the result.
+        dismissed.UnionWith(p.ResearchIds.Select(id => tree.Research.GetValueOrDefault(id)).OfType<ResearchItem>()
+            .Where(r => r.Result != SearchResult.None && r.HintKey.Length > 0).Select(r => r.HintKey));
         return hints.Where(h => !dismissed.Contains(h.Key)).OrderBy(h => h.Priority).ThenBy(h => h.Year).ToList();
     }
 

@@ -10,4 +10,9 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Towns of 1,000+ people from GeoNames (geonames.org, CC BY 4.0), for finding GPS from place names. -->
+    <EmbeddedResource Include="Places\gazetteer.tsv.gz" LogicalName="Lineage.Core.Places.gazetteer.tsv.gz" />
+  </ItemGroup>
+
 </Project>

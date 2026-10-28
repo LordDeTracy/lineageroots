@@ -153,6 +153,28 @@ public sealed partial class MainViewModel
         Change("add census", editor.TouchedSources.Prepend<Entity>(p), () => { editor.Apply(e); p.Events.Add(e); });
     }
 
+    /// <summary>Enters a whole census household for the current person (from a checklist line, or the first still to find).</summary>
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private async Task EnterCensusHouseholdAsync(CensusRow? row)
+    {
+        if (_current is not { } p) return;
+        var checklist = LifeTimeline.CensusChecklist(_tree, p);
+        var mine = checklist.Where(c => c.Census.Survives).Select(c => c.Census).ToList();
+        var all = mine.Concat(Censuses.All.Where(c => c.Survives && !mine.Contains(c))).ToList();
+        var initial = row?.Check.Census ?? checklist.FirstOrDefault(c => c.Status == CensusStatus.ToFind)?.Census ?? all[0];
+        var place = row?.Check.Place ?? checklist.FirstOrDefault(c => c.Census == initial)?.Place ?? "";
+        var form = new CensusEntryViewModel(_tree, p, all, initial, place);
+        if (!await _dialogs.EnterCensusAsync(form)) return;
+        var lines = form.Lines;
+        var touched = new List<Entity> { p };
+        touched.AddRange(lines.Select(l => _tree.Person(l.PersonId)).OfType<Person>());
+        touched.AddRange(_tree.FamiliesOf(p).Select(x => x.Family));
+        var census = form.Census.Census;
+        Change($"enter the {census.Name}", touched.Distinct(), () =>
+            CensusHousehold.Save(_tree, census, p, form.Place, form.Reference, lines, form.AddOccupations));
+        Status = $"Recorded the {census.Name} for {lines.Count(l => l.PersonId != null || l.AddAsNew)} people";
+    }
+
     [RelayCommand]
     private void AddCensusTask(CensusRow row)
     {

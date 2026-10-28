@@ -23,6 +23,9 @@ public sealed record RecordOption(long Id, string Text)
 public sealed partial class ResearchEditorViewModel : ObservableObject
 {
     public static readonly string[] Priorities = { "None", "High", "Medium", "Low" };
+    /// <summary>A task still to do, or a logged search and what came of it (index = <see cref="SearchResult"/>).</summary>
+    public static readonly string[] Results = { "To do", "Searched: found", "Searched: not found", "Searched: unclear" };
+    private readonly string _hintKey;
 
     private readonly FamilyTree _tree;
 
@@ -34,6 +37,8 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
         _description = item.Description;
         _category = item.Category;
         _priorityIndex = Math.Clamp(item.Priority, 0, 3);
+        _resultIndex = (int)item.Result;
+        _hintKey = item.HintKey;
         _done = item.Done;
         _date = Display.Date(item.Date);
         _note = item.Note;
@@ -68,6 +73,8 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
     [ObservableProperty] private string _description;
     [ObservableProperty] private string _category;
     [ObservableProperty] private int _priorityIndex;
+    [ObservableProperty] private int _resultIndex;
+    public string[] ResultOptions => Results;
     [ObservableProperty] private bool _done;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DateHint), nameof(HasDateHint))] private string _date;
     [ObservableProperty] private string _note;
@@ -95,7 +102,9 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
         item.Description = Description.Trim();
         item.Category = Category.Trim();
         item.Priority = PriorityIndex;
-        item.Done = Done;
+        item.Result = (SearchResult)Math.Clamp(ResultIndex, 0, 3);
+        item.HintKey = _hintKey;
+        item.Done = Done || item.Result != SearchResult.None;   // a logged search is finished by definition
         item.Date = GenDate.Parse(Date);
         item.Note = Note;
         item.RepositoryId = Repository.Id > 0 ? Repository.Id : null;

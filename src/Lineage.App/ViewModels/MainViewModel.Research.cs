@@ -21,7 +21,7 @@ public sealed partial class MainViewModel
     public ObservableCollection<ResearchRow> ResearchList { get; } = new();
     public ObservableCollection<ResearchRow> PersonResearch { get; } = new();
 
-    /// <summary>0 = open tasks, 1 = done, 2 = everything, 3 = suggestions.</summary>
+    /// <summary>0 = open tasks, 1 = done, 2 = everything, 3 = suggestions, 4 = search log.</summary>
     [ObservableProperty] private int _researchFilterIndex;
     [ObservableProperty] private string _researchSearch = "";
     [ObservableProperty] private string _researchSummary = "";
@@ -56,11 +56,19 @@ public sealed partial class MainViewModel
         var where = r.SourceId is { } sid && _tree.Sources.TryGetValue(sid, out var s) ? s.Title
                   : r.RepositoryId is { } rid && _tree.Repositories.TryGetValue(rid, out var repo) ? repo.Name : "";
         return new ResearchRow(r.Id, r.Description.Length > 0 ? r.Description : "(no description)",
-            Display.Join(r.Category, where, Display.Date(r.Date)),
+            Display.Join(ResultText(r.Result), r.Category, where, Display.Date(r.Date)),
             ResearchEditorViewModel.Priorities[Math.Clamp(r.Priority, 0, 3)], Math.Clamp(r.Priority, 0, 3), r.Done,
             (people ?? new()).Select(p => new PersonChoice(p.Id, p.DisplayName)).ToList(),
             r.Note.Length > 140 ? r.Note[..140].TrimEnd() + "…" : r.Note);
     }
+
+    private static string ResultText(SearchResult r) => r switch
+    {
+        SearchResult.Found => "Searched: found",
+        SearchResult.NotFound => "Searched: not found",
+        SearchResult.Inconclusive => "Searched: unclear",
+        _ => "",
+    };
 
     private void RebuildResearch()
     {
@@ -76,18 +84,24 @@ public sealed partial class MainViewModel
         }
         var people = ResearchPeople();
         var words = ResearchSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var isLog = ResearchFilterIndex == 4;
         var rows = _tree.Research.Values
-            .Where(r => ResearchFilterIndex == 2 || r.Done == (ResearchFilterIndex == 1))
+            .Where(r => isLog ? r.Result != SearchResult.None
+                        : r.Result == SearchResult.None && (ResearchFilterIndex == 2 || r.Done == (ResearchFilterIndex == 1)))
+            .OrderByDescending(r => isLog ? r.Date.SortKey : 0)   // the search log runs newest first
             .Select(r => ToRow(r, people.GetValueOrDefault(r.Id)))
             .Where(row => words.All(w => row.Description.Contains(w, StringComparison.OrdinalIgnoreCase)
                                       || row.Detail.Contains(w, StringComparison.OrdinalIgnoreCase)
                                       || row.People.Any(p => p.Text.Contains(w, StringComparison.OrdinalIgnoreCase))))
-            .OrderBy(row => row.Done).ThenBy(row => row.PriorityLevel == 0 ? 9 : row.PriorityLevel).ThenBy(row => row.Description)
+            .OrderBy(row => !isLog && row.Done).ThenBy(row => isLog || row.PriorityLevel == 0 ? 9 : row.PriorityLevel)
+            .ThenBy(row => isLog ? "" : row.Description)
             .ToList();
         ResearchList.Clear();
         foreach (var row in rows) ResearchList.Add(row);
         var open = _tree.Research.Values.Count(r => !r.Done);
-        ResearchSummary = _tree.Research.Count == 0 ? "" : $"{open:N0} open · {_tree.Research.Count - open:N0} done";
+        var searches = _tree.Research.Values.Count(r => r.Result != SearchResult.None);
+        ResearchSummary = _tree.Research.Count == 0 ? "" : $"{open:N0} open · {_tree.Research.Count - open - searches:N0} done"
+            + (searches > 0 ? $" · {searches:N0} search{(searches == 1 ? "" : "es")} logged" : "");
         OnPropertyChanged(nameof(HasNoResearch));
         OnPropertyChanged(nameof(HasResearchResults));
         OnPropertyChanged(nameof(ShowNoResearchMatches));

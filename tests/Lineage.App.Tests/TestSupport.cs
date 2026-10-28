@@ -60,6 +60,10 @@ public sealed class FakeDialogs : IDialogService
     public Func<DnaMatchEditorViewModel, EditorResult> DnaMatch { get; set; } = _ => EditorResult.Saved;
     public Task<EditorResult> EditDnaMatchAsync(DnaMatchEditorViewModel editor) => Task.FromResult(DnaMatch(editor));
     public Func<ReviewChangesViewModel, bool> Review { get; set; } = _ => true;
+    public Func<FindGpsViewModel, bool> FindGps { get; set; } = _ => true;
+    public Func<CensusEntryViewModel, bool> CensusEntry { get; set; } = _ => true;
+    public Task<bool> EnterCensusAsync(CensusEntryViewModel form) => Task.FromResult(CensusEntry(form));
+    public Task<bool> FindGpsAsync(FindGpsViewModel review) => Task.FromResult(FindGps(review));
     public Task<bool> ReviewChangesAsync(ReviewChangesViewModel review) => Task.FromResult(Review(review));
     public Task<bool> EditSettingsAsync(SettingsViewModel settings) => Task.FromResult(false);
     public Func<ExportOptionsViewModel, bool> ExportOptions { get; set; } = _ => true;
