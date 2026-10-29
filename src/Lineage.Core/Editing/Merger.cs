@@ -85,7 +85,7 @@ public static class Merger
     {
         var groups = ids.Select(id => tree.Family(id)).OfType<Family>()
                         .Where(f => f.PartnerIds.Any())
-                        .GroupBy(f => string.Join(",", f.PartnerIds.Order()))
+                        .GroupBy(f => string.Join(",", f.PartnerIds.OrderBy(x => x)))
                         .Where(g => g.Count() > 1).ToList();
         foreach (var g in groups)
         {

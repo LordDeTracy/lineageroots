@@ -6,7 +6,7 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.4.2, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.4.3, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -18,6 +18,7 @@ Get the latest version from the [Releases page](https://github.com/LordDeTracy/l
 | System | File |
 |---|---|
 | Windows 10/11 (64-bit) | `LineageRoots-<version>-win-x64.zip` — unzip and run `LineageRoots.exe` |
+| Windows 7 SP1 / 8.1 (64-bit) | `LineageRoots-<version>-win7-x64.zip` — the same program built for older Windows (see below) |
 | Linux (64-bit) | `LineageRoots-<version>-linux-x64.tar.gz` — extract and run `./LineageRoots` |
 
 - The program is a single file: nothing to install, no .NET to download, no folders to keep beside it.
@@ -26,6 +27,10 @@ Get the latest version from the [Releases page](https://github.com/LordDeTracy/l
   **More info → Run anyway**.
 - **It updates itself** from version 0.2.1 on: when a new version is released it asks whether to update, then
   downloads it, checks it and restarts. If you have 0.2 or 0.1.0, download the latest version by hand once.
+- **Windows 7 and 8.1:** use the `win7-x64` download. It's built on .NET 6, the last .NET that runs there, which
+  no longer gets security fixes from Microsoft. Windows 8 needs the free update to 8.1 first, and Windows 7 needs
+  Service Pack 1 and its later updates. Finding faces in photos may not work there; everything else does. It
+  updates itself only to newer Windows 7/8.1 builds. It has been tested on Windows 10, not yet on Windows 7 or 8.1.
 - The Windows build is the one that is run and tested; the Linux build comes from the same code but hasn't been
   tried on a Linux machine yet.
 
@@ -200,6 +205,13 @@ time. Set `<Version>` in `src/Lineage.App/Lineage.App.csproj`, then build the si
 
 ```bash
 dotnet publish src/Lineage.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o publish/win-x64
+```
+
+For Windows 7 SP1 and 8.1, build the same program on .NET 6 with `-p:Legacy=true` and package it as
+`LineageRoots-<version>-win7-x64.zip`:
+
+```bash
+dotnet publish src/Lineage.App -p:Legacy=true -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o publish/win7-x64
 ```
 
 ```bash

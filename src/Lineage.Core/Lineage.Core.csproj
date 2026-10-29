@@ -1,7 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- The Windows 7 SP1 / 8.1 build: publish with -p:Legacy=true. .NET 6 is the last .NET that runs there. -->
+    <TargetFramework Condition="'$(Legacy)' == 'true'">net6.0</TargetFramework>
+    <LangVersion>12</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -9,6 +12,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+    <!-- .NET 6 has an older System.Text.Json built in; storage needs the .NET 8 one. -->
+    <PackageReference Include="System.Text.Json" Version="8.0.5" Condition="'$(Legacy)' == 'true'" />
   </ItemGroup>
 
   <ItemGroup>

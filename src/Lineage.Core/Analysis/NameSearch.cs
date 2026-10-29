@@ -28,7 +28,7 @@ public static class NameSearch
         foreach (var raw in (query ?? "").Split(Separators, StringSplitOptions.RemoveEmptyEntries))
         {
             var token = raw.TrimStart('#');
-            if (token.Length is > 0 and <= 18 && token.All(char.IsAsciiDigit))
+            if (token.Length is > 0 and <= 18 && token.All(c => c is >= '0' and <= '9'))
             {
                 numbers.Add((long.Parse(token, CultureInfo.InvariantCulture), token.Length == 4));
                 continue;

@@ -67,7 +67,7 @@ public static class LineageStore
             using var tx = db.BeginTransaction();
             Exec(db, tx, "INSERT INTO meta VALUES ('format', $v), ('name', $n), ('not_duplicates', $nd), ('home', $h), ('bookmarks', $b), ('shares', $sh), ('shared_from', $sf)",
                  ("$v", FormatVersion.ToString()), ("$n", tree.Name),
-                 ("$nd", JsonSerializer.Serialize(tree.NotDuplicates.Order().ToArray())),
+                 ("$nd", JsonSerializer.Serialize(tree.NotDuplicates.OrderBy(x => x).ToArray())),
                  ("$h", tree.HomePersonId?.ToString() ?? ""),
                  ("$b", JsonSerializer.Serialize(tree.Bookmarks)),
                  ("$sh", JsonSerializer.Serialize(tree.Shares)),

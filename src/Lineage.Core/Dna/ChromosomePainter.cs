@@ -88,7 +88,7 @@ public static class ChromosomePainter
         {
             var mine = segments.Where(s => s.Group == x.Number).ToList();
             return new PaintGroup(x.Number, x.Value.Ancestors, Label(tree, x.Value.Ancestors), x.Value.Side,
-                                  mine.Count, mine.Sum(s => s.Segment.Cm), x.Value.Matches.Order(StringComparer.OrdinalIgnoreCase).ToList());
+                                  mine.Count, mine.Sum(s => s.Segment.Cm), x.Value.Matches.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
         }).ToList();
         return new Painting(segments, paintGroups, unlinked, unrelated);
     }

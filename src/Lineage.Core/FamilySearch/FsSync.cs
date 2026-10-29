@@ -96,7 +96,7 @@ public static class FsSync
         var local = new Dictionary<int, Person> { [1] = root };
         if (root.FamilySearchId.Length == 0 && byNumber.TryGetValue(1, out var me)) root.FamilySearchId = me.Id;
         var added = 0;
-        foreach (var n in byNumber.Keys.Where(n => n > 1).Order())
+        foreach (var n in byNumber.Keys.Where(n => n > 1).OrderBy(x => x))
         {
             if (!local.TryGetValue(n / 2, out var child)) continue; // the child line is missing
             var fs = byNumber[n];

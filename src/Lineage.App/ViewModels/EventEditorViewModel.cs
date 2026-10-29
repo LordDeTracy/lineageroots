@@ -119,7 +119,7 @@ public sealed partial class EventEditorViewModel : ObservableObject
         _private = e.Private;
         foreach (var c in e.Citations)
             AddRow(new CitationRow(_tree.Sources.TryGetValue(c.SourceId, out var s) ? s.Title : "(missing source)", c, s?.Kind ?? SourceKind.Unknown));
-        SourceTitles = _tree.Sources.Values.Select(s => s.Title).Where(t => t.Length > 0).Distinct().Order().ToList();
+        SourceTitles = _tree.Sources.Values.Select(s => s.Title).Where(t => t.Length > 0).Distinct().OrderBy(x => x).ToList();
         _original = e;
         _conclusionIndex = (int)e.Conclusion;
         _reasoning = e.Reasoning;

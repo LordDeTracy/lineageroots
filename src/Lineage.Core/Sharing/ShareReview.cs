@@ -196,7 +196,7 @@ public static class ShareReview
 
     private static string? DetailsCanon(Person? p) => p == null ? null : Canon(new
     {
-        p.Title, p.Description, p.UserId, p.FamilySearchId, p.Email, p.Url, p.Address, p.Phone, p.Colour, Tags = p.Tags.Order().ToList(),
+        p.Title, p.Description, p.UserId, p.FamilySearchId, p.Email, p.Url, p.Address, p.Phone, p.Colour, Tags = p.Tags.OrderBy(x => x).ToList(),
     });
 
     private static string? CitationsCanon(List<Citation>? cs, Index ix) =>

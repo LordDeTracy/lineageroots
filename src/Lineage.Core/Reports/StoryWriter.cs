@@ -134,7 +134,7 @@ internal sealed class StoryWriter
     public IEnumerable<Run> Refs(IEnumerable<Citation> citations)
     {
         if (_notes == null) yield break;
-        foreach (var n in citations.Select(_notes.Cite).OfType<int>().Distinct().Order())
+        foreach (var n in citations.Select(_notes.Cite).OfType<int>().Distinct().OrderBy(x => x))
             yield return Run.Ref(n);
     }
 

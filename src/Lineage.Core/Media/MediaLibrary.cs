@@ -293,7 +293,8 @@ public static class MediaLibrary
         {
             if (_cache.TryGetValue(path, out var hash)) return hash;
             using var stream = File.OpenRead(path);
-            return _cache[path] = SHA256.HashData(stream);
+            using var sha = SHA256.Create();   // (HashData(Stream) isn't in .NET 6, which the Windows 7 build uses)
+            return _cache[path] = sha.ComputeHash(stream);
         }
     }
 

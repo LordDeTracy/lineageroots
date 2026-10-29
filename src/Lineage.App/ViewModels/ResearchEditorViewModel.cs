@@ -51,7 +51,7 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
         foreach (var id in linkedPeople)
             if (tree.Person(id) is { } p) People.Add(Option(p));
         Categories = tree.Research.Values.Select(r => r.Category).Where(c => c.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase).Order()
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x)
             .Concat(new[] { "Census", "Parish register", "Civil registration", "Probate", "Newspaper", "Military", "Immigration", "Cemetery" })
             .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         AllPeople = tree.People.Values.OrderBy(p => p.PrimaryName.SortKey).Select(Option).ToList();

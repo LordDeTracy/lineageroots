@@ -1,15 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- The Windows 7 SP1 / 8.1 build: publish with -p:Legacy=true. .NET 6 is the last .NET that runs there. -->
+    <TargetFramework Condition="'$(Legacy)' == 'true'">net6.0</TargetFramework>
+    <LangVersion>12</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>LineageRoots</AssemblyName>
     <Product>Lineage Roots</Product>
     <AssemblyTitle>Lineage Roots</AssemblyTitle>
     <RootNamespace>Lineage.App</RootNamespace>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
@@ -17,6 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The .NET 7+ attributes the Windows 7 build needs (compiles to nothing in the normal build). -->
+    <Compile Include="..\Lineage.Core\LegacyCompat.cs" Link="LegacyCompat.cs" />
     <InternalsVisibleTo Include="Lineage.App.Tests" />
   </ItemGroup>
 

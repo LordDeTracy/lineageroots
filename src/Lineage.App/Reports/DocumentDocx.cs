@@ -294,7 +294,7 @@ public static class DocumentDocx
         {
             if (_bookmarks.TryGetValue(anchor, out var existing)) return existing;
             var sb = new StringBuilder("r_");
-            foreach (var c in anchor) sb.Append(char.IsAsciiLetterOrDigit(c) ? c : '_');
+            foreach (var c in anchor) sb.Append(c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' ? c : '_');
             var name = sb.Length > 36 ? sb.ToString(0, 36) : sb.ToString();
             for (var n = 2; _usedNames.Contains(name); n++) name = $"{(sb.Length > 32 ? sb.ToString(0, 32) : sb.ToString())}_{n}";
             _usedNames.Add(name);
