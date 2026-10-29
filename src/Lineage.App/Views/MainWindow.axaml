@@ -298,6 +298,14 @@
                         Foreground="{DynamicResource Faint}" />
           </Grid>
           <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8" IsVisible="{Binding IsPeopleSection}">
+            <Border Classes="card" Padding="12,8" IsVisible="{Binding HasListFilter}">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="small" Text="{Binding ListFilterText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Accent}" />
+                <Button Grid.Column="1" Classes="ghost" Command="{Binding ClearListFilterCommand}" Padding="6,2" Margin="8,0,0,0"
+                        Content="Show everyone" />
+              </Grid>
+            </Border>
             <Grid ColumnDefinitions="*,Auto">
               <Button Classes="ghost accentText" Command="{Binding ToggleFiltersCommand}" Padding="6,2" HorizontalAlignment="Left"
                       ToolTip.Tip="Narrow the list by place, dates, the years they lived, or sex">
@@ -434,8 +442,12 @@
 
     <!-- ===== Status line ===== -->
     <Border Grid.Row="2" Padding="16,5" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Line}"
-            Background="{DynamicResource Surface}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-      <TextBlock Text="{Binding Status}" Classes="faint small" />
+            Background="{DynamicResource Surface}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding Status}" Classes="faint small" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="1" Text="{Binding VersionText}" Classes="faint" FontSize="10.5" Margin="12,0,0,0"
+                   VerticalAlignment="Center" ToolTip.Tip="The version of Lineage Roots you are running" />
+      </Grid>
     </Border>
 
     <!-- ===== Quick search (Ctrl+K) ===== -->

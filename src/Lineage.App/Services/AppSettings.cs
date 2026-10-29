@@ -13,6 +13,17 @@ public sealed class AppSettings
 
     public string FamilySearchRedirectUri => $"http://127.0.0.1:{FamilySearchPort}/familysearch/";
 
+    /// <summary>Save the tree file a moment after every change, so there's nothing to remember to save.</summary>
+    public bool SaveAutomatically { get; set; } = true;
+    /// <summary>The tree last opened or saved; it opens again when the program starts.</summary>
+    public string LastFile { get; set; } = "";
+    /// <summary>For each AQ or GEDCOM file imported: the .lineage copy that holds the user's work on it.</summary>
+    public Dictionary<string, string> ImportCopies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Where imported trees are saved; tests point this at a temporary folder.</summary>
+    internal static string CopiesFolder { get; set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Lineage Roots");
+
     /// <summary>Minutes between recovery copies while there are unsaved changes; 0 turns it off.</summary>
     public int AutoSaveMinutes { get; set; } = 5;
     /// <summary>How many earlier versions of each tree file to keep in the backups folder; 0 turns it off.</summary>

@@ -122,7 +122,7 @@ public sealed partial class PlaceRow : ObservableObject
     /// <summary>A marker at the coordinates, or a search for the place name when there are none yet.</summary>
     public string MapUrl => GeoPoint.Parse(Coordinates) is { } at
         ? at.OpenStreetMapUrl
-        : "https://www.openstreetmap.org/search?query=" + Uri.EscapeDataString(Place);
+        : Lineage.Core.Places.Gazetteer.MapUrl(Place);
 
     partial void OnCoordinatesChanged(string value)
     {

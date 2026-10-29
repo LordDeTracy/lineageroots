@@ -35,6 +35,112 @@ public sealed partial class MainViewModel
         await SaveRecoveryNowAsync();
     }
 
+    /// <summary>
+    /// A copy of the whole tree, taken on the UI thread (where edits happen) so it can be written in the background
+    /// while the user carries on.
+    /// </summary>
+    private Lineage.Core.Model.FamilyTree Snapshot()
+    {
+        var snapshot = new Lineage.Core.Model.FamilyTree { Name = _tree.Name, HomePersonId = _tree.HomePersonId };
+        foreach (var p in _tree.People.Values) snapshot.AddPerson(LineageStore.FromJson<Lineage.Core.Model.Person>(LineageStore.ToJson(p)));
+        foreach (var f in _tree.Families.Values) snapshot.AddFamily(LineageStore.FromJson<Lineage.Core.Model.Family>(LineageStore.ToJson(f)));
+        foreach (var s in _tree.Sources.Values) snapshot.AddSource(LineageStore.FromJson<Lineage.Core.Model.Source>(LineageStore.ToJson(s)));
+        foreach (var r in _tree.Repositories.Values) snapshot.AddRepository(LineageStore.FromJson<Lineage.Core.Model.Repository>(LineageStore.ToJson(r)));
+        foreach (var r in _tree.Research.Values) snapshot.AddResearch(LineageStore.FromJson<Lineage.Core.Model.ResearchItem>(LineageStore.ToJson(r)));
+        snapshot.Bookmarks.AddRange(_tree.Bookmarks);
+        snapshot.NotDuplicates.UnionWith(_tree.NotDuplicates);
+        snapshot.Shares.AddRange(_tree.Shares.Select(LineageStore.Copy));
+        snapshot.SharedFrom = _tree.SharedFrom is { } from ? LineageStore.Copy(from) : null;
+        return snapshot;
+    }
+
+    // ---- saving automatically ----
+
+    private DispatcherTimer? _saveSoon;
+    private int _changeCount;
+    private string? _backedUp;
+    /// <summary>The automatic save in progress, if any; tests await it.</summary>
+    internal Task AutoSaveTask { get; private set; } = Task.CompletedTask;
+
+    /// <summary>Called after every change: saves the tree file a moment later (several quick changes, one save).</summary>
+    private void ScheduleAutoSave()
+    {
+        _changeCount++;
+        if (!_settings.SaveAutomatically || FilePath == null) return;
+        _saveSoon ??= new DispatcherTimer(TimeSpan.FromSeconds(1.5), DispatcherPriority.Background, (_, _) =>
+        {
+            _saveSoon!.Stop();
+            AutoSaveTask = AutoSaveFileAsync();
+        });
+        _saveSoon.Stop();
+        _saveSoon.Start();
+    }
+
+    /// <summary>Saves the tree file now, in the background, if there are changes and it has a file.</summary>
+    internal async Task AutoSaveFileAsync()
+    {
+        if (_autoSaving || !HasTree || !IsDirty || FilePath is not { } path) return;
+        _autoSaving = true;
+        try
+        {
+            var count = _changeCount;
+            var snapshot = Snapshot();
+            var keep = _settings.BackupsToKeep;
+            var backUp = !string.Equals(_backedUp, path, StringComparison.OrdinalIgnoreCase);   // one backup a session, not one a change
+            await Task.Run(() =>
+            {
+                if (backUp)
+                {
+                    try { Backups.BackUpBeforeSave(path, keep); }
+                    catch (Exception) { /* a failed backup must never block saving */ }
+                }
+                LineageStore.Save(snapshot, path);
+            });
+            _backedUp = path;
+            Backups.ClearRecovery(path, _tree.Name);
+            if (count == _changeCount && path == FilePath) IsDirty = false;   // nothing changed meanwhile
+            else ScheduleAutoSave();
+        }
+        catch (Exception) { Status = "Couldn't save automatically. Use Save (Ctrl+S) to try again."; }
+        finally { _autoSaving = false; }
+    }
+
+    /// <summary>
+    /// An imported tree is saved straight away as a .lineage file in Documents\Lineage Roots, so work on it is kept
+    /// (the AQ or GEDCOM file itself is never changed); importing the same file again offers this copy.
+    /// </summary>
+    private async Task SaveImportedCopyAsync(string source)
+    {
+        if (!_settings.SaveAutomatically) return;
+        try
+        {
+            Directory.CreateDirectory(AppSettings.CopiesFolder);
+            var name = SafeName(Path.GetFileNameWithoutExtension(source));
+            var path = Path.Combine(AppSettings.CopiesFolder, name + ".lineage");
+            for (var n = 2; File.Exists(path); n++) path = Path.Combine(AppSettings.CopiesFolder, $"{name} ({n}).lineage");
+            await SaveToAsync(path);
+            if (FilePath != path) return;
+            _settings.ImportCopies[Path.GetFullPath(source)] = path;
+            try { _settings.Save(); } catch (Exception) { }
+            Status = $"Imported {_tree.People.Count:N0} people and saved them as {Path.GetFileName(path)} in Documents\\Lineage Roots. Changes save automatically.";
+        }
+        catch (Exception) { /* the tree is open either way; Save asks where */ }
+    }
+
+    private void RememberLastFile(string path)
+    {
+        if (string.Equals(_settings.LastFile, path, StringComparison.OrdinalIgnoreCase)) return;
+        _settings.LastFile = path;
+        try { _settings.Save(); } catch (Exception) { }
+    }
+
+    /// <summary>At start-up, opens the tree that was open last time (nothing to find again).</summary>
+    public async Task OpenLastFileAsync()
+    {
+        if (HasTree || _settings.LastFile is not { Length: > 0 } last || !File.Exists(last)) return;
+        await OpenPathAsync(last);
+    }
+
     /// <summary>Writes a recovery copy now. Edits only happen on the UI thread, so a snapshot is taken first.</summary>
     internal async Task SaveRecoveryNowAsync()
     {
@@ -42,14 +148,7 @@ public sealed partial class MainViewModel
         try
         {
             // Copy every record on the UI thread (fast), then write the copy in the background.
-            var snapshot = new Lineage.Core.Model.FamilyTree { Name = _tree.Name, HomePersonId = _tree.HomePersonId };
-            foreach (var p in _tree.People.Values) snapshot.AddPerson(LineageStore.FromJson<Lineage.Core.Model.Person>(LineageStore.ToJson(p)));
-            foreach (var f in _tree.Families.Values) snapshot.AddFamily(LineageStore.FromJson<Lineage.Core.Model.Family>(LineageStore.ToJson(f)));
-            foreach (var s in _tree.Sources.Values) snapshot.AddSource(LineageStore.FromJson<Lineage.Core.Model.Source>(LineageStore.ToJson(s)));
-            foreach (var r in _tree.Repositories.Values) snapshot.AddRepository(LineageStore.FromJson<Lineage.Core.Model.Repository>(LineageStore.ToJson(r)));
-            foreach (var r in _tree.Research.Values) snapshot.AddResearch(LineageStore.FromJson<Lineage.Core.Model.ResearchItem>(LineageStore.ToJson(r)));
-            snapshot.Bookmarks.AddRange(_tree.Bookmarks);
-            snapshot.NotDuplicates.UnionWith(_tree.NotDuplicates);
+            var snapshot = Snapshot();
             var path = FilePath;
             await Task.Run(() => Backups.SaveRecovery(snapshot, path));
             _lastRecoverySave = DateTime.Now;

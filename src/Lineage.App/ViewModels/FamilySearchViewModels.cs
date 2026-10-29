@@ -49,7 +49,7 @@ public sealed partial class FamilySearchSearchViewModel : ObservableObject
     public FamilySearchSearchViewModel(FamilySearchApi api, Person p)
     {
         _api = api;
-        Title = $"Find {p.DisplayName} on FamilySearch";
+        Title = $"Find {p.RecordName} on FamilySearch";
         _given = p.PrimaryName.Given;
         _surname = p.PrimaryName.Surname;
         _birthYear = p.Birth?.Date.Year is > 0 and var y ? y.ToString() : "";

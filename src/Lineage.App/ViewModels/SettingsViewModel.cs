@@ -16,6 +16,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _backupIndex = Math.Max(0, Array.IndexOf(BackupCounts, s.BackupsToKeep));
         _themeIndex = Math.Max(0, Array.IndexOf(Themes, s.Theme));
         _onlineMaps = s.OnlineMaps;
+        _saveAutomatically = s.SaveAutomatically;
         _checkForUpdates = s.CheckForUpdates;
     }
 
@@ -28,6 +29,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _backupIndex;
     [ObservableProperty] private int _themeIndex;
     [ObservableProperty] private bool _onlineMaps;
+    [ObservableProperty] private bool _saveAutomatically;
     [ObservableProperty] private bool _checkForUpdates;
     public string VersionText => $"You have version {Updater.Current}.";
 
@@ -37,6 +39,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         s.BackupsToKeep = BackupCounts[BackupIndex];
         s.Theme = Themes[ThemeIndex];
         s.OnlineMaps = OnlineMaps;
+        s.SaveAutomatically = SaveAutomatically;
         s.CheckForUpdates = CheckForUpdates;
     }
 }

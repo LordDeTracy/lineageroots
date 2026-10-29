@@ -65,4 +65,14 @@ public class GazetteerTests
         var s = Assert.Single(Gazetteer.Default.Suggest(t));
         Assert.Equal("Leeds, Yorkshire, England", s.Place.Name);
     }
+
+    [Fact]
+    public void MapLinksGoStraightToTheTownWhenItIsKnown()
+    {
+        // OpenStreetMap's own search is rate-limited (error 429) and can pick a same-named town elsewhere.
+        var url = Gazetteer.MapUrl("Burlington, Chittenden, Vermont, USA");
+        Assert.DoesNotContain("search", url);
+        Assert.Contains("44.4", url);   // Burlington, Vermont, not Burlington in England or Ontario
+        Assert.Contains("search?query=", Gazetteer.MapUrl("Qzxv Farm, Nowhereshire"));
+    }
 }

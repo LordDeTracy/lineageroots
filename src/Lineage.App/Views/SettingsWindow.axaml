@@ -50,6 +50,8 @@
 
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="MAPS" />
+        <CheckBox IsChecked="{Binding SaveAutomatically}" Content="Save automatically after every change"
+                  ToolTip.Tip="Imported trees are saved in Documents\Lineage Roots; Undo still works" />
         <CheckBox IsChecked="{Binding OnlineMaps}" Content="Show street maps from OpenStreetMap" />
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="Map pictures are downloaded for the area you're looking at — no names or other family details are sent. Turned off, maps show a plain grid with your pins." />

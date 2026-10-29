@@ -126,7 +126,7 @@ public sealed partial class MainViewModel
         p.ResearchIds.Select(id => _tree.Research.GetValueOrDefault(id)).OfType<ResearchItem>()
             .Select(r => r.Description).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    private static string CensusTask(Person p, CensusRecord c) => $"Find {p.DisplayName} in the {c.Name}";
+    private static string CensusTask(Person p, CensusRecord c) => $"Find {p.RecordName} in the {c.Name}";
 
     [RelayCommand]
     private async Task OpenTimelineEntryAsync(TimelineRow row)
