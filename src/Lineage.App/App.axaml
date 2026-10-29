@@ -126,6 +126,8 @@
             <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center" Spacing="1">
               <TextBlock Classes="section" FontSize="10.5" Text="{Binding Role}" IsVisible="{Binding HasRole}" />
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="small" Text="{Binding Calling}" IsVisible="{Binding HasCalling}"
+                         Foreground="{DynamicResource Accent}" TextTrimming="CharacterEllipsis" />
               <TextBlock Classes="muted small" Text="{Binding Detail}" IsVisible="{Binding HasDetail}"
                          TextTrimming="CharacterEllipsis" />
             </StackPanel>

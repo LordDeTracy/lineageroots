@@ -6,7 +6,7 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.4.1, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.4.2, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -85,6 +85,9 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 - **Quick search** (Ctrl+K): type to jump to any person, place or source, or to run a command
 - **Filters** on the people list: a place (any of their events or marriages), born or died between two years, alive
   at some time in a span of years, and men or women, on top of the name search
+- The search box also finds words in notes and event descriptions: search "killed in the mine" and anyone whose
+  story says so is listed, after the people whose names match
+- Person cards (parents, spouses, children) show the person's title and latest occupation, to tell relatives apart
 - **Christening and burial instead of birth and death** in the person editor, for when that's all there is (a
   foundling, say); they count as birth and death for dates, ages and filters
 - **Plural marriages**: mark a marriage as one of several at the same time (polygamy), shown on the spouse's card

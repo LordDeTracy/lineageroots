@@ -42,6 +42,20 @@ public sealed record PersonFilter(string Place = "", int BornFrom = 0, int BornT
         return true;
     }
 
+    /// <summary>
+    /// Whether the words appear in what's written about the person: their notes, their events' notes and descriptions,
+    /// and their marriages' notes ("killed by Indians" finds the man whose note says so).
+    /// </summary>
+    public static bool Mentions(FamilyTree tree, Person p, string phrase)
+    {
+        var text = phrase.Trim();
+        if (text.Length < 3) return false;
+        bool In(string s) => s.Contains(text, StringComparison.OrdinalIgnoreCase);
+        if (In(p.Note) || p.Events.Any(e => In(e.Note) || In(e.Description) || In(e.Value))) return true;
+        return p.SpouseFamilyIds.Select(id => tree.Family(id)).OfType<Family>()
+            .Any(f => In(f.Note) || f.Events.Any(e => In(e.Note) || In(e.Description)));
+    }
+
     private static bool Within(int year, int from, int to) =>
         year > 0 && (from == 0 || year >= from) && (to == 0 || year <= to);
 }
