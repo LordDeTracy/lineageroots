@@ -35,7 +35,7 @@ public sealed partial class MainViewModel
             await _dialogs.ShowMessageAsync("Couldn't save the copy", ex.Message);
             return;
         }
-        IsDirty = true;   // the record of what was sent is part of this tree
+        MarkChanged();   // the record of what was sent is part of this tree
         Status = $"Saved a copy for {(share.With.Length > 0 ? share.With : "a relative")}";
         await _dialogs.ShowMessageAsync("Copy saved",
             $"Send {Path.GetFileName(path)} to {(share.With.Length > 0 ? share.With : "your relative")}. They can open it in Lineage Roots, add and correct things, and send it back. " +
@@ -102,7 +102,7 @@ public sealed partial class MainViewModel
         if (accepted.Count > 0)
             Change($"take changes from {review.With}", ShareReview.Touched(_tree, theirs, accepted), () => ShareReview.Apply(_tree, theirs, accepted));
         ShareReview.Reject(share, review.Refused);
-        IsDirty = true;
+        MarkChanged();
         Status = $"Took {accepted.Count:N0} of {changes.Count:N0} changes from {review.With}";
     }
 }

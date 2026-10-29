@@ -328,6 +328,8 @@
           <StackPanel Grid.Column="1" Margin="20,2,16,0" Spacing="6">
             <SelectableTextBlock Classes="display" Text="{Binding CurrentName}" TextWrapping="Wrap"
                                  FontSize="28" FontWeight="SemiBold" />
+            <TextBlock Classes="small" Text="{Binding CurrentRelation}" IsVisible="{Binding HasCurrentRelation}"
+                       Foreground="{DynamicResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Classes="muted" FontSize="14.5" Text="{Binding CurrentDetail}" TextWrapping="Wrap" />
             <ItemsControl ItemsSource="{Binding Chips}" ItemsPanel="{StaticResource WrapPanel}" Margin="0,6,0,0">
               <ItemsControl.ItemTemplate>

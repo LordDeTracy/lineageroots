@@ -32,7 +32,7 @@ public sealed partial class MainViewModel
     {
         if (_current is not { } p) return;
         if (!_tree.Bookmarks.Remove(p.Id)) _tree.Bookmarks.Add(p.Id);
-        IsDirty = true;
+        MarkChanged();
         RefreshBookmarkState();
         Status = IsBookmarked ? $"Bookmarked {p.DisplayName}." : $"Removed the bookmark for {p.DisplayName}.";
     }
@@ -42,9 +42,11 @@ public sealed partial class MainViewModel
     {
         if (_current is not { } p) return;
         _tree.HomePersonId = p.Id;
-        IsDirty = true;
+        MarkChanged();
         RefreshBookmarkState();
         Status = $"{p.DisplayName} is now the home person — the tree opens on them.";
+        CurrentRelation = RelationToHome(p);
+        Show(p.Id, recordHistory: false);   // the family cards say how each is related to the new home person
     }
 
     [RelayCommand]
