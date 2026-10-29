@@ -613,7 +613,7 @@ public sealed class MapView : Control
 
     private void DrawLegend(DrawingContext ctx, Size view)
     {
-        var kinds = _pins.Select(p => p.Kind).Distinct().Order().ToList();
+        var kinds = _pins.Select(p => p.Kind).Distinct().OrderBy(x => x).ToList();
         if (kinds.Count == 0) return;
         var muted = Paint("Muted");
         var labels = kinds.Select(k => (Kind: k, Text: Text(k.ToString(), 11, muted))).ToList();

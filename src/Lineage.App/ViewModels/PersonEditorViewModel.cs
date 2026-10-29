@@ -179,7 +179,7 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         else Sealing = new OrdinanceRow("SLGC", "Sealed to parents", null);
 
         TagSuggestions = tree == null ? Array.Empty<string>()
-            : tree.People.Values.SelectMany(p => p.Tags).Distinct(StringComparer.OrdinalIgnoreCase).Order().ToList();
+            : tree.People.Values.SelectMany(p => p.Tags).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
     }
 
     public string Title { get; }

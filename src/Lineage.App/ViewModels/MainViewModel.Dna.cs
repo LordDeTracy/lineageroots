@@ -329,7 +329,7 @@ public sealed partial class MainViewModel
         {
             matchName = (await _dialogs.PromptAsync("Whose segments are these?",
                 "This segment file doesn't name the match. Choose the match it compares with, or type a new name.",
-                "", tester.DnaMatches.Select(m => m.Name).Order(StringComparer.OrdinalIgnoreCase).ToList()))?.Trim() ?? "";
+                "", tester.DnaMatches.Select(m => m.Name).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList()))?.Trim() ?? "";
             if (matchName.Length == 0) return;
         }
         var company = await _dialogs.PromptAsync("Which company is this list from?",

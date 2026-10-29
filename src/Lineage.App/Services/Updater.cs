@@ -1,5 +1,7 @@
 using System.Diagnostics;
+#if NET7_0_OR_GREATER
 using System.Formats.Tar;
+#endif
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
@@ -45,7 +47,11 @@ public static partial class Updater
     /// <summary>The end of the release file name for this computer, or null where no build is published.</summary>
     public static string? AssetSuffix =>
         RuntimeInformation.OSArchitecture != Architecture.X64 ? null
+#if NET8_0_OR_GREATER
         : OperatingSystem.IsWindows() ? "win-x64.zip"
+#else
+        : OperatingSystem.IsWindows() ? "win7-x64.zip"   // the Windows 7/8.1 build updates only to the Windows 7/8.1 build
+#endif
         : OperatingSystem.IsLinux() ? "linux-x64.tar.gz"
         : null;
 
@@ -131,11 +137,11 @@ public static partial class Updater
         return null;
     }
 
-    [GeneratedRegex(@"^\s*v?(\d+)(?:\.(\d+))?(?:\.(\d+))?", RegexOptions.IgnoreCase)]
-    private static partial Regex VersionPattern();
-
-    [GeneratedRegex(@"\b([0-9a-fA-F]{64})\s+\*?(\S+)")]
-    private static partial Regex ChecksumLine();
+    // Built at start-up rather than generated, so the Windows 7 build (.NET 6) has them too.
+    private static readonly Regex VersionRegex = new(@"^\s*v?(\d+)(?:\.(\d+))?(?:\.(\d+))?", RegexOptions.IgnoreCase);
+    private static readonly Regex ChecksumRegex = new(@"\b([0-9a-fA-F]{64})\s+\*?(\S+)");
+    private static Regex VersionPattern() => VersionRegex;
+    private static Regex ChecksumLine() => ChecksumRegex;
 
     private static string Str(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
@@ -178,7 +184,8 @@ public static partial class Updater
     public static string Sha256Of(string path)
     {
         using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        using var sha = SHA256.Create();
+        return Convert.ToHexString(sha.ComputeHash(stream)).ToLowerInvariant();
     }
 
     /// <summary>
@@ -196,8 +203,12 @@ public static partial class Updater
             if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ZipFile.ExtractToDirectory(archive, work);
             else
             {
+#if NET7_0_OR_GREATER
                 using var gz = new GZipStream(File.OpenRead(archive), CompressionMode.Decompress);
                 TarFile.ExtractToDirectory(gz, work, overwriteFiles: true);
+#else
+                throw new PlatformNotSupportedException("The Windows 7 build only installs .zip updates.");
+#endif
             }
             var fresh = Directory.EnumerateFiles(work, name, SearchOption.AllDirectories).FirstOrDefault()
                         ?? throw new InvalidDataException($"The download doesn't contain {name}.");
@@ -207,8 +218,10 @@ public static partial class Updater
             try
             {
                 File.Copy(fresh, programPath);
+#if NET7_0_OR_GREATER
                 if (!OperatingSystem.IsWindows())
                     File.SetUnixFileMode(programPath, File.GetUnixFileMode(old) | UnixFileMode.UserExecute);
+#endif
             }
             catch
             {
