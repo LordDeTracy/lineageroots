@@ -8,6 +8,7 @@ using Lineage.Core.Editing;
 using Lineage.Core.Export;
 using Lineage.Core.Import.Aq;
 using Lineage.Core.Import.Gedcom;
+using Lineage.Core.Analysis;
 using Lineage.Core.Model;
 using Lineage.Core.Storage;
 using Lineage.App.Services;
@@ -367,6 +368,53 @@ public sealed partial class MainViewModel : ObservableObject
         ApplyFilter();
     }
 
+    // ---- people list filters (beyond the name search) ----
+
+    [ObservableProperty] private bool _showFilters;
+    [ObservableProperty] private string _filterPlace = "";
+    [ObservableProperty] private string _filterBornFrom = "";
+    [ObservableProperty] private string _filterBornTo = "";
+    [ObservableProperty] private string _filterDiedFrom = "";
+    [ObservableProperty] private string _filterDiedTo = "";
+    [ObservableProperty] private string _filterLivedFrom = "";
+    [ObservableProperty] private string _filterLivedTo = "";
+    [ObservableProperty] private int _filterSexIndex;
+    public static IReadOnlyList<string> FilterSexes { get; } = new[] { "Anyone", "Men", "Women" };
+
+    partial void OnFilterPlaceChanged(string value) => FiltersChanged();
+    partial void OnFilterBornFromChanged(string value) => FiltersChanged();
+    partial void OnFilterBornToChanged(string value) => FiltersChanged();
+    partial void OnFilterDiedFromChanged(string value) => FiltersChanged();
+    partial void OnFilterDiedToChanged(string value) => FiltersChanged();
+    partial void OnFilterLivedFromChanged(string value) => FiltersChanged();
+    partial void OnFilterLivedToChanged(string value) => FiltersChanged();
+    partial void OnFilterSexIndexChanged(int value) => FiltersChanged();
+
+    private static int Year(string text) => int.TryParse(text.Trim(), out var y) && y is > 0 and < 3000 ? y : 0;
+
+    public PersonFilter CurrentFilter => new(FilterPlace, Year(FilterBornFrom), Year(FilterBornTo), Year(FilterDiedFrom),
+        Year(FilterDiedTo), Year(FilterLivedFrom), Year(FilterLivedTo),
+        FilterSexIndex switch { 1 => Sex.Male, 2 => Sex.Female, _ => null });
+
+    public string FiltersText => CurrentFilter.Count is var n and > 0 ? $"Filters ({n})" : "Filters";
+    public bool HasActiveFilters => !CurrentFilter.IsEmpty;
+
+    private void FiltersChanged()
+    {
+        OnPropertyChanged(nameof(FiltersText));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        ApplyFilter();
+    }
+
+    [RelayCommand] private void ToggleFilters() => ShowFilters = !ShowFilters;
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        (FilterPlace, FilterBornFrom, FilterBornTo, FilterDiedFrom, FilterDiedTo, FilterLivedFrom, FilterLivedTo) = ("", "", "", "", "", "", "");
+        FilterSexIndex = 0;
+    }
+
     private void ApplyFilter()
     {
         var words = SearchText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -378,6 +426,8 @@ public sealed partial class MainViewModel : ObservableObject
             var byId = _allRows.ToDictionary(r => r.Id);
             rows = ranked.Where(byId.ContainsKey).Select(id => byId[id]);
         }
+        var filter = CurrentFilter;
+        if (!filter.IsEmpty) rows = rows.Where(r => _tree.Person(r.Id) is { } p && filter.Matches(_tree, p));
         People.Clear();
         foreach (var r in rows) People.Add(r);
         PeopleCountText = People.Count == _allRows.Count
@@ -464,7 +514,8 @@ public sealed partial class MainViewModel : ObservableObject
             var summary = Display.Join(
                 marr != null && !marr.Date.IsEmpty ? $"Married {Display.Date(marr.Date)}" : marr != null ? "Married" : "",
                 marr != null ? Display.FirstPart(marr.Place) : "",
-                f.Status switch { CoupleStatus.Divorced => "Divorced", CoupleStatus.Unmarried => "Not married", _ => "" });
+                f.Status switch { CoupleStatus.Divorced => "Divorced", CoupleStatus.Unmarried => "Not married", _ => "" },
+                f.Plural ? "Plural marriage" : "");
             Families.Add(new FamilyCard
             {
                 FamilyId = f.Id,

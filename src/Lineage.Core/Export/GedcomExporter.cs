@@ -144,6 +144,7 @@ public sealed class GedcomExporter
         foreach (var e in f.Events) WriteEvent(1, e);
         if (f.Status == CoupleStatus.Divorced) L(1, "DIV", "Y");
         if (f.NoChildren) L(1, "_NONE");
+        if (f.Plural) L(1, "_PLURAL", "Y");
         foreach (var c in f.Citations) WriteCitation(1, c);
         foreach (var rid in f.ResearchIds) L(1, "_TODO", $"@TODO{rid}@");
         foreach (var m in f.Media) WriteMedia(1, m);

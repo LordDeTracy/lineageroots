@@ -31,7 +31,7 @@ public class RoundTripTests
         mum.PrimaryName.Given = "Mary"; mum.PrimaryName.Surname = "Roe";
         var kid = t.AddPerson(new Person { Sex = Sex.Female });
         kid.PrimaryName.Given = "Ann"; kid.PrimaryName.Surname = "Doe";
-        var fam = t.AddFamily(new Family { Status = CoupleStatus.Married });
+        var fam = t.AddFamily(new Family { Status = CoupleStatus.Married, Plural = true });
         t.SetPartner(fam, dad, second: false);
         t.SetPartner(fam, mum, second: true);
         fam.Events.Add(Event.Of("MARR", GenDate.Parse("7 JUN 1928"), "Chapel"));
@@ -56,7 +56,7 @@ public class RoundTripTests
         }),
         Families = t.Families.Values.OrderBy(f => f.Id).Select(f => new
         {
-            f.Id, f.Partner1Id, f.Partner2Id, f.Status,
+            f.Id, f.Partner1Id, f.Partner2Id, f.Status, f.Plural,
             Children = f.Children.Select(c => $"{c.ChildId}:{c.ToFather}:{c.ToMother}").ToArray(),
             Events = f.Events.Select(e => $"{e.Tag}|{e.Date.ToGedcom()}|{e.Place}").ToArray(),
         }),
