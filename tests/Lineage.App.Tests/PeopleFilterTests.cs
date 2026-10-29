@@ -42,4 +42,21 @@ public class PeopleFilterTests
         Assert.Equal(all, vm.People.Count);
         Assert.False(vm.HasActiveFilters);
     }
+
+    [AvaloniaFact]
+    public async Task TheSearchAlsoFindsWordsInNotes()
+    {
+        var (vm, _) = await Demo.OpenAsync();
+        vm.Tree.People[4].Note = "Family story: she was lost at sea off Whitby in a great storm.";
+        vm.Tree.People[5].Events.First().Description = "Christened during the Great Storm";
+        vm.SearchText = "great storm";
+        await Task.Delay(400);   // the search waits for typing to pause
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal(new[] { "Hartley, Eliza", "Whitfield, Clara" }, vm.People.Select(r => r.Name).Order());
+
+        vm.SearchText = "Eliza";   // a name still comes first
+        await Task.Delay(400);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal("Hartley, Eliza", vm.People.First().Name);
+    }
 }

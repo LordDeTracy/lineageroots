@@ -113,9 +113,15 @@ public sealed class PersonCard
         IsMale = p.Sex == Sex.Male;
         IsFemale = p.Sex == Sex.Female;
         Role = role.ToUpperInvariant();
+        // Title and the latest occupation, to tell apart relatives with the same name ("Rev.  ·  Vicar").
+        var occupation = p.Events.Where(e => e.Tag == "OCCU" && (e.Value.Trim().Length > 0 || e.Description.Trim().Length > 0))
+            .OrderBy(e => e.Date.SortKey).LastOrDefault();
+        Calling = Display.Join(p.Title.Trim(), occupation == null ? "" : occupation.Value.Trim().Length > 0 ? occupation.Value.Trim() : occupation.Description.Trim());
     }
 
     public long Id { get; }
+    public string Calling { get; }
+    public bool HasCalling => Calling.Length > 0;
     public string Name { get; }
     public string Lifespan { get; }
     public string Detail { get; }

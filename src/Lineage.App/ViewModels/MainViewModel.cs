@@ -424,7 +424,11 @@ public sealed partial class MainViewModel : ObservableObject
             // Ranked: exact matches first, then (with "Sounds like") close spellings.
             var ranked = SearchIds(SearchText).ToList();
             var byId = _allRows.ToDictionary(r => r.Id);
-            rows = ranked.Where(byId.ContainsKey).Select(id => byId[id]);
+            // Then anyone whose notes or event descriptions contain the words typed.
+            var found = ranked.ToHashSet();
+            var mentioned = _allRows.Where(r => !found.Contains(r.Id) && _tree.Person(r.Id) is { } p
+                                                && PersonFilter.Mentions(_tree, p, SearchText)).Select(r => r.Id);
+            rows = ranked.Concat(mentioned).Where(byId.ContainsKey).Select(id => byId[id]);
         }
         var filter = CurrentFilter;
         if (!filter.IsEmpty) rows = rows.Where(r => _tree.Person(r.Id) is { } p && filter.Matches(_tree, p));
