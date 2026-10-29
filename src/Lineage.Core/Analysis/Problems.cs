@@ -139,6 +139,10 @@ public static class Problems
                 hi = Math.Max(hi, ehi);
             }
             if (d.DualYear > d.Year) hi += 366;   // "1691/92": the later, new-style year is the real one
+            // Before 1752 England and its colonies began the year on 25 March, so "10 Feb 1600" written then may
+            // well be February 1601 as we count now: such a date could be either year.
+            var oldStyle = d.DualYear == 0 && GenDate.MaybeOldStyle(d);
+            if (oldStyle) hi += 366;
             switch (d.Qualifier)
             {
                 case DateQualifier.About or DateQualifier.Estimated or DateQualifier.Calculated:
@@ -150,7 +154,7 @@ public static class Problems
             }
             // A christening or burial comes some time after the birth or death it stands in for.
             if (standIn) lo -= Days(1);
-            var rough = standIn || d.Qualifier != DateQualifier.None || d.Kind != DateKind.Simple;
+            var rough = standIn || oldStyle || d.DualYear > d.Year || d.Qualifier != DateQualifier.None || d.Kind != DateKind.Simple;
             return new When(lo, hi, rough, d);
         }
 
@@ -199,7 +203,7 @@ public static class Problems
         /// <summary>Whole years from one date to another, using month and day when both have them.</summary>
         private static int Age(GenDate from, GenDate to)
         {
-            var age = to.Year - from.Year;
+            var age = to.NewStyleYear - from.NewStyleYear;
             if (from.Month > 0 && to.Month > 0 &&
                 (to.Month < from.Month || (to.Month == from.Month && from.Day > 0 && to.Day > 0 && to.Day < from.Day)))
                 age--;

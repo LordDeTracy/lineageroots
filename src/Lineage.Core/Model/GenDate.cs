@@ -33,7 +33,17 @@ public sealed record GenDate
     [JsonIgnore] public bool IsEmpty => Kind == DateKind.Text ? Text.Length == 0 : Year == 0 && Month == 0 && Day == 0;
 
     /// <summary>Approximate sort key (year*10000 + month*100 + day); 0 when unknown.</summary>
-    [JsonIgnore] public int SortKey => Kind == DateKind.Text ? 0 : Year * 10000 + Month * 100 + Day;
+    [JsonIgnore] public int SortKey => Kind == DateKind.Text ? 0 : NewStyleYear * 10000 + Month * 100 + Day;
+
+    /// <summary>The year as counted today: 1692 for "10 FEB 1691/92" (the year then began on 25 March).</summary>
+    [JsonIgnore] public int NewStyleYear => DualYear > Year ? DualYear : Year;
+
+    /// <summary>
+    /// A date from 1 January to 24 March before 1752 written with one year: in England and its colonies the year then
+    /// began on 25 March, so it may be the old-style year (one less than today's count) — or already the new one.
+    /// </summary>
+    public static bool MaybeOldStyle(GenDate d) =>
+        d.Year is > 0 and < 1752 && (d.Month is 1 or 2 || (d.Month == 3 && d.Day is >= 0 and <= 24));
 
     public string ToGedcom()
     {
