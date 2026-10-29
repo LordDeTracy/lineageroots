@@ -471,6 +471,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var words = SearchText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         IEnumerable<PersonRow> rows = _allRows;
+        if (words.Length == 0) foreach (var r in _allRows) r.FoundInNotes = false;
         if (words.Length > 0)
         {
             // Ranked: exact matches first, then (with "Sounds like") close spellings.
@@ -479,7 +480,8 @@ public sealed partial class MainViewModel : ObservableObject
             // Then anyone whose notes or event descriptions contain the words typed.
             var found = ranked.ToHashSet();
             var mentioned = _allRows.Where(r => !found.Contains(r.Id) && _tree.Person(r.Id) is { } p
-                                                && PersonFilter.Mentions(_tree, p, SearchText)).Select(r => r.Id);
+                                                && PersonFilter.Mentions(_tree, p, SearchText)).Select(r => r.Id).ToHashSet();
+            foreach (var r in _allRows) r.FoundInNotes = mentioned.Contains(r.Id);
             rows = ranked.Concat(mentioned).Where(byId.ContainsKey).Select(id => byId[id]);
         }
         if (_listFilter is { } only) rows = rows.Where(r => only.Contains(r.Id));

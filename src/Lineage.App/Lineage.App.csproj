@@ -12,7 +12,7 @@
     <Product>Lineage Roots</Product>
     <AssemblyTitle>Lineage Roots</AssemblyTitle>
     <RootNamespace>Lineage.App</RootNamespace>
-    <Version>0.4.4</Version>
+    <Version>0.4.5</Version>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>

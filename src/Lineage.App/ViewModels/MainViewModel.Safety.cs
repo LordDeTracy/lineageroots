@@ -134,11 +134,26 @@ public sealed partial class MainViewModel
         try { _settings.Save(); } catch (Exception) { }
     }
 
-    /// <summary>At start-up, opens the tree that was open last time (nothing to find again).</summary>
+    /// <summary>At start-up, opens the tree that was open last time, where the user left off.</summary>
     public async Task OpenLastFileAsync()
     {
         if (HasTree || _settings.LastFile is not { Length: > 0 } last || !File.Exists(last)) return;
         await OpenPathAsync(last);
+        if (!string.Equals(FilePath, last, StringComparison.OrdinalIgnoreCase)) return;
+        if (_tree.Person(_settings.LastPersonId) != null) Show(_settings.LastPersonId, recordHistory: false);
+        if (Enum.TryParse<PersonView>(_settings.LastView, out var view)) View = view;
+        if (Enum.TryParse<AppSection>(_settings.LastSection, out var section)) Section = section;
+    }
+
+    /// <summary>Remembers where the user is, for next time (called when the program closes).</summary>
+    public void RememberPlace()
+    {
+        if (!HasTree || FilePath == null) return;
+        _settings.LastFile = FilePath;
+        _settings.LastPersonId = _current?.Id ?? 0;
+        _settings.LastSection = Section.ToString();
+        _settings.LastView = View.ToString();
+        try { _settings.Save(); } catch (Exception) { }
     }
 
     /// <summary>Writes a recovery copy now. Edits only happen on the UI thread, so a snapshot is taken first.</summary>

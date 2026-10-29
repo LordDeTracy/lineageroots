@@ -53,10 +53,12 @@ public class PeopleFilterTests
         await Task.Delay(400);   // the search waits for typing to pause
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Equal(new[] { "Hartley, Eliza", "Whitfield, Clara" }, vm.People.Select(r => r.Name).Order());
+        Assert.All(vm.People, r => Assert.True(r.FoundInNotes));
 
         vm.SearchText = "Eliza";   // a name still comes first
         await Task.Delay(400);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         Assert.Equal("Hartley, Eliza", vm.People.First().Name);
+        Assert.False(vm.People.First().FoundInNotes);   // found by name
     }
 }

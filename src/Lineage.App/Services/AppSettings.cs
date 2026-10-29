@@ -17,6 +17,10 @@ public sealed class AppSettings
     public bool SaveAutomatically { get; set; } = true;
     /// <summary>The tree last opened or saved; it opens again when the program starts.</summary>
     public string LastFile { get; set; } = "";
+    /// <summary>Where the user was in it when the program closed: who, which section and which view.</summary>
+    public long LastPersonId { get; set; }
+    public string LastSection { get; set; } = "";
+    public string LastView { get; set; } = "";
     /// <summary>For each AQ or GEDCOM file imported: the .lineage copy that holds the user's work on it.</summary>
     public Dictionary<string, string> ImportCopies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 

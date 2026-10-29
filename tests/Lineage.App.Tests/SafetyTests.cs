@@ -140,4 +140,24 @@ public class SafetyTests : IDisposable
         Assert.Equal("2 FEB 1843", again.Tree.People[1].Find("BIRT")!.Date.ToGedcom());
         File.Delete(source);
     }
+
+    [AvaloniaFact]
+    public async Task TheProgramReopensWhereItWasLeft()
+    {
+        var source = Path.Combine(Path.GetTempPath(), $"lineage-resume-{Guid.NewGuid():N}.ged");
+        await File.WriteAllTextAsync(source, Demo.Gedcom);
+        var vm = new MainViewModel(new FakeDialogs());
+        await vm.OpenPathAsync(source);   // saved as a copy, which becomes the last file
+        vm.NavigateCommand.Execute(5L);
+        vm.View = PersonView.Timeline;
+        vm.RememberPlace();
+        File.Delete(source);
+
+        var next = new MainViewModel(new FakeDialogs());   // the next time the program starts
+        await next.OpenLastFileAsync();
+        Assert.Equal(vm.FilePath, next.FilePath);
+        Assert.Equal(vm.Tree.People[5].DisplayName, next.CurrentName);
+        Assert.Equal(PersonView.Timeline, next.View);
+        Assert.Equal(AppSection.People, next.Section);
+    }
 }

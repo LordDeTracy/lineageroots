@@ -92,6 +92,8 @@ public sealed class PersonRow
     public bool IsFemale { get; }
     public string SortKey { get; }
     public bool HasSubtitle => Subtitle.Length > 0;
+    /// <summary>The search found them through their notes or event descriptions, not their name.</summary>
+    public bool FoundInNotes { get; set; }
     /// <summary>The person's colour-coding dot, if they have one.</summary>
     public Avalonia.Media.IBrush? ColourBrush { get; }
     public bool HasColour => ColourBrush != null;
