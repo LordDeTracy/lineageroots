@@ -248,6 +248,8 @@ public sealed class Family : Entity
     public long? Partner2Id { get; set; }   // GEDCOM WIFE slot
     public CoupleStatus Status { get; set; }
     public bool NoChildren { get; set; }
+    /// <summary>A plural (polygamous) marriage: one of several at the same time, so it isn't a mistake in the tree.</summary>
+    public bool Plural { get; set; }
     public string Note { get; set; } = "";
     public List<ChildLink> Children { get; } = new();
     public List<Event> Events { get; } = new();

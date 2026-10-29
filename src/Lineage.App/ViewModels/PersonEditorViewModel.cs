@@ -141,10 +141,15 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         _surname = n.Surname;
         _suffix = n.Suffix;
         _sexIndex = (int)person.Sex;
-        _birthDate = Display.Date(person.Find("BIRT")?.Date ?? GenDate.Empty);
-        _birthPlace = person.Find("BIRT")?.Place ?? "";
-        _deathDate = Display.Date(person.Find("DEAT")?.Date ?? GenDate.Empty);
-        _deathPlace = person.Find("DEAT")?.Place ?? "";
+        // With no birth recorded, the christening stands in for it (a foundling, say); with no death, the burial.
+        _birthKindIndex = person.Find("BIRT") == null && person.Find("CHR") != null ? 1 : 0;
+        _deathKindIndex = person.Find("DEAT") == null && person.Find("BURI") != null ? 1 : 0;
+        var birth = person.Find(BirthTag);
+        var death = person.Find(DeathTag);
+        _birthDate = Display.Date(birth?.Date ?? GenDate.Empty);
+        _birthPlace = birth?.Place ?? "";
+        _deathDate = Display.Date(death?.Date ?? GenDate.Empty);
+        _deathPlace = death?.Place ?? "";
         _note = person.Note;
         _personTitle = person.Title;
         _description = person.Description;
@@ -204,6 +209,14 @@ public sealed partial class PersonEditorViewModel : ObservableObject
     [ObservableProperty] private string _birthPlace;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(DeathDateHint), nameof(HasDeathDateHint))] private string _deathDate;
     [ObservableProperty] private string _deathPlace;
+    /// <summary>0: the first section is the birth; 1: the christening (baptism), when that's all there is.</summary>
+    [ObservableProperty] private int _birthKindIndex;
+    /// <summary>0: the second section is the death; 1: the burial, when that's all there is.</summary>
+    [ObservableProperty] private int _deathKindIndex;
+    public static IReadOnlyList<string> BirthKinds { get; } = new[] { "Birth", "Christening" };
+    public static IReadOnlyList<string> DeathKinds { get; } = new[] { "Death", "Burial" };
+    private string BirthTag => BirthKindIndex == 1 ? "CHR" : "BIRT";
+    private string DeathTag => DeathKindIndex == 1 ? "BURI" : "DEAT";
     [ObservableProperty] private string _note;
     [ObservableProperty] private string _personTitle;
     [ObservableProperty] private string _description;
@@ -253,8 +266,8 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         n.Surname = Surname.Trim();
         n.Suffix = Suffix.Trim();
         _person.Sex = (Sex)SexIndex;
-        SetEvent("BIRT", BirthDate, BirthPlace);
-        SetEvent("DEAT", DeathDate, DeathPlace);
+        SetEvent(BirthTag, BirthDate, BirthPlace);
+        SetEvent(DeathTag, DeathDate, DeathPlace);
         _person.Note = Note;
         _person.Title = PersonTitle.Trim();
         _person.Description = Description;
@@ -300,7 +313,7 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         if (e == null)
         {
             e = Event.Of(tag);
-            var insertAt = tag == "BIRT" ? 0 : _person.Events.Count;
+            var insertAt = tag is "BIRT" or "CHR" ? 0 : _person.Events.Count;
             _person.Events.Insert(insertAt, e);
         }
         e.Date = GenDate.Parse(date);

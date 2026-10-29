@@ -163,9 +163,15 @@ public sealed partial class EventEditorViewModel : ObservableObject
     }
 
     /// <summary>Lets the preview find other records of the same fact that disagree (the event's person or family).</summary>
+    /// <summary>For a marriage: one of several at the same time (polygamy).</summary>
+    [ObservableProperty] private bool _plural;
+    public bool IsMarriageOfFamily => _owner is Family;
+
     public void AttachOwner(Entity owner)
     {
         _owner = owner;
+        if (owner is Family f) Plural = f.Plural;
+        OnPropertyChanged(nameof(IsMarriageOfFamily));
         UpdateProof();
     }
 
@@ -338,6 +344,7 @@ public sealed partial class EventEditorViewModel : ObservableObject
     /// <summary>Writes the edits into <paramref name="e"/>. New sources named in citations are created in the tree.</summary>
     public void Apply(Event e)
     {
+        if (_owner is Family family) family.Plural = Plural;
         e.Tag = Type.Tag;
         e.TypeName = IsCustom ? CustomName.Trim() : "";
         e.Date = GenDate.Parse(Date);

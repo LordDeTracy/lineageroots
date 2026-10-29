@@ -297,6 +297,36 @@
                         HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
                         Foreground="{DynamicResource Faint}" />
           </Grid>
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8" IsVisible="{Binding IsPeopleSection}">
+            <Grid ColumnDefinitions="*,Auto">
+              <Button Classes="ghost accentText" Command="{Binding ToggleFiltersCommand}" Padding="6,2" HorizontalAlignment="Left"
+                      ToolTip.Tip="Narrow the list by place, dates, the years they lived, or sex">
+                <TextBlock Text="{Binding FiltersText}" Foreground="{DynamicResource Accent}" />
+              </Button>
+              <Button Grid.Column="1" Classes="ghost" Command="{Binding ClearFiltersCommand}" Padding="6,2"
+                      IsVisible="{Binding HasActiveFilters}" Content="Clear" />
+            </Grid>
+            <StackPanel Spacing="6" IsVisible="{Binding ShowFilters}">
+              <TextBox Text="{Binding FilterPlace}" Watermark="Place (any event or marriage)" AutomationProperties.Name="Place" />
+              <Grid ColumnDefinitions="64,*,8,*">
+                <TextBlock Classes="muted small" Text="Born" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding FilterBornFrom}" Watermark="from year" AutomationProperties.Name="Born from" />
+                <TextBox Grid.Column="3" Text="{Binding FilterBornTo}" Watermark="to year" AutomationProperties.Name="Born to" />
+              </Grid>
+              <Grid ColumnDefinitions="64,*,8,*">
+                <TextBlock Classes="muted small" Text="Died" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding FilterDiedFrom}" Watermark="from year" AutomationProperties.Name="Died from" />
+                <TextBox Grid.Column="3" Text="{Binding FilterDiedTo}" Watermark="to year" AutomationProperties.Name="Died to" />
+              </Grid>
+              <Grid ColumnDefinitions="64,*,8,*">
+                <TextBlock Classes="muted small" Text="Living" VerticalAlignment="Center" ToolTip.Tip="Alive at some time in these years" />
+                <TextBox Grid.Column="1" Text="{Binding FilterLivedFrom}" Watermark="from year" AutomationProperties.Name="Living from" />
+                <TextBox Grid.Column="3" Text="{Binding FilterLivedTo}" Watermark="to year" AutomationProperties.Name="Living to" />
+              </Grid>
+              <ComboBox ItemsSource="{x:Static vm:MainViewModel.FilterSexes}" SelectedIndex="{Binding FilterSexIndex}"
+                        HorizontalAlignment="Stretch" AutomationProperties.Name="Sex" />
+            </StackPanel>
+          </StackPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="6,0,0,6" IsVisible="{Binding IsPeopleSection}">
             <TextBlock Classes="section" Text="{Binding PeopleCountText}" VerticalAlignment="Center" />
             <ToggleButton Grid.Column="1" Classes="soundsLike" IsChecked="{Binding SoundsLike}" Padding="8,3"

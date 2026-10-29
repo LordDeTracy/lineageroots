@@ -241,6 +241,9 @@
                    VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
         </StackPanel>
 
+        <CheckBox IsChecked="{Binding Plural}" IsVisible="{Binding IsMarriageOfFamily}"
+                  Content="Plural marriage — one of several wives or husbands at the same time"
+                  ToolTip.Tip="Polygamy: the other marriages at the same time aren't flagged as mistakes" />
         <CheckBox IsChecked="{Binding Private}" Content="Private — leave this event out of printed reports" />
       </StackPanel>
     </ScrollViewer>

@@ -326,6 +326,7 @@ public sealed class GedcomImporter
                  : marr?.TypeName.Equals("Unmarried", StringComparison.OrdinalIgnoreCase) == true ? CoupleStatus.Unmarried
                  : marr != null ? CoupleStatus.Married : CoupleStatus.Unspecified;
         f.NoChildren = r.First("_NONE") != null || r.Text("NCHI") == "0";
+        f.Plural = r.Text("_PLURAL").StartsWith('Y');
         foreach (var s in r.All("SOUR")) f.Citations.Add(ReadCitation(s));
         foreach (var o in r.All("OBJE")) f.Media.Add(ReadMedia(o));
         foreach (var t in r.All("_TODO"))
