@@ -73,6 +73,9 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _title = "Lineage Roots";
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private string _currentName = "";
+    /// <summary>How the person showing is related to the home person ("Kay's 3rd great-grandfather").</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasCurrentRelation))] private string _currentRelation = "";
+    public bool HasCurrentRelation => CurrentRelation.Length > 0;
     [ObservableProperty] private string _currentDetail = "";
     [ObservableProperty] private string _currentNote = "";
     [ObservableProperty] private string _currentInitials = "";
@@ -388,6 +391,22 @@ public sealed partial class MainViewModel : ObservableObject
         ApplyFilter();
     }
 
+    /// <summary>
+    /// How someone is related to the home person, for the person page and family cards: "Kay's great-grandfather",
+    /// "Kay's wife's aunt", "Home person"; empty with no home person or no connection.
+    /// </summary>
+    private string RelationToHome(Person p)
+    {
+        if (_tree.Person(_tree.HomePersonId) is not { } home) return "";
+        if (home.Id == p.Id) return "Home person";
+        var r = Relationship.Describe(_tree, home, p);
+        if (!r.Related || r.Text.Length == 0) return "";
+        var first = home.PrimaryName.Given.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? home.DisplayName;
+        return $"{first}'s {r.Text}";
+    }
+
+    private PersonCard Card(Person p, string role = "") => new(p, role) { Relation = RelationToHome(p) };
+
     /// <summary>The running version, shown small in the corner ("Version 0.4.4").</summary>
     public string VersionText { get; } = $"Version {Lineage.App.Services.Updater.Current.ToString(3)}";
 
@@ -546,6 +565,7 @@ public sealed partial class MainViewModel : ObservableObject
         _current = p;
         HasCurrent = true;
         CurrentName = p.DisplayName.Length > 0 ? p.DisplayName : "(no name)";
+        CurrentRelation = RelationToHome(p);
         CurrentInitials = Display.Initials(p);
         CurrentIsMale = p.Sex == Sex.Male;
         CurrentIsFemale = p.Sex == Sex.Female;
@@ -576,7 +596,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (parentFamily != null)
             foreach (var pid in parentFamily.PartnerIds)
                 if (_tree.Person(pid) is { } parent)
-                    Parents.Add(new PersonCard(parent, parent.Sex switch { Sex.Male => "Father", Sex.Female => "Mother", _ => "Parent" }));
+                    Parents.Add(Card(parent, parent.Sex switch { Sex.Male => "Father", Sex.Female => "Mother", _ => "Parent" }));
         if (Parents.Count == 0) MissingParents.Add(new AddSlot("Add parents"));
 
         Families.Clear();
@@ -593,9 +613,9 @@ public sealed partial class MainViewModel : ObservableObject
             Families.Add(new FamilyCard
             {
                 FamilyId = f.Id,
-                Spouse = spouse != null ? new PersonCard(spouse, spouse.Sex switch { Sex.Male => "Husband", Sex.Female => "Wife", _ => "Spouse" }) : null,
+                Spouse = spouse != null ? Card(spouse, spouse.Sex switch { Sex.Male => "Husband", Sex.Female => "Wife", _ => "Spouse" }) : null,
                 Summary = summary.Length > 0 ? summary : "Add marriage details",
-                Children = _tree.ChildrenOf(f).Select(c => new PersonCard(c)).ToList(),
+                Children = _tree.ChildrenOf(f).Select(c => Card(c)).ToList(),
             });
         }
         HasFamilies = Families.Count > 0;

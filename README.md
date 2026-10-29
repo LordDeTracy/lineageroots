@@ -102,6 +102,8 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 - **Tree health lists**: on Home, "23 people have no birth date" lists all 23 so you can work through them, and Back
   returns to where you were
 - **Picks up where you left off**: the program reopens your tree at the person, section and view you were on
+- **Relationship indicators**: each person's page and family cards say how they're related to the home person
+  ("Kay's 3rd great-grandfather", "Kay's wife's aunt")
 - **Old Style dates** (before 1752, when the year began on 25 March): "10 Feb 1600" and "1600/01" don't raise false
   problems, and dual dates sort by the year as counted now
 - **Undo and redo** for every edit (Ctrl+Z / Ctrl+Y)

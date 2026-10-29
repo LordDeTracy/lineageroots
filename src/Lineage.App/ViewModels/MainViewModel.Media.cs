@@ -47,7 +47,7 @@ public sealed partial class MainViewModel
                 var edit = _history.Begin("set GPS location", families.Cast<Entity>().Prepend(p));
                 change();
                 edit.Commit();
-                IsDirty = true;
+                MarkChanged();
                 NotifyUndo();
                 RebuildTimeline(p);
                 if (IsMapView) RebuildPersonMap();

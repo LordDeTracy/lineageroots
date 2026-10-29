@@ -76,7 +76,7 @@ public sealed partial class MainViewModel
             {
                 // Stored with the tree so the pair isn't suggested again. A tree-level setting, so mark dirty.
                 _tree.NotDuplicates.Add(FamilyTree.PairKey(a.Id, b.Id));
-                IsDirty = true;
+                MarkChanged();
             });
         await _dialogs.ShowDuplicatesAsync(review);
         if (merged > 0) Status = $"Merged {merged} duplicate{(merged == 1 ? "" : "s")}. Ctrl+Z undoes the last merge.";

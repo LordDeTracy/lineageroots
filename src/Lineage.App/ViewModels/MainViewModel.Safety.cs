@@ -62,6 +62,13 @@ public sealed partial class MainViewModel
     /// <summary>The automatic save in progress, if any; tests await it.</summary>
     internal Task AutoSaveTask { get; private set; } = Task.CompletedTask;
 
+    /// <summary>For changes made outside the undo history (bookmarks, the home person…): unsaved, and saved soon.</summary>
+    private void MarkChanged()
+    {
+        IsDirty = true;
+        ScheduleAutoSave();
+    }
+
     /// <summary>Called after every change: saves the tree file a moment later (several quick changes, one save).</summary>
     private void ScheduleAutoSave()
     {
@@ -202,7 +209,7 @@ public sealed partial class MainViewModel
             var tree = await Task.Run(() => LineageStore.Load(entry.RecoveryFile));
             tree.Name = entry.TreeName;
             Load(tree, entry.OriginalPath, "Recovered", 0);
-            IsDirty = true;
+            MarkChanged();
             Status = $"Recovered unsaved changes from {entry.SavedAt:g}. Save to keep them.";
         }
         catch (Exception ex) { await _dialogs.ShowMessageAsync("Could not recover", ex.Message); }

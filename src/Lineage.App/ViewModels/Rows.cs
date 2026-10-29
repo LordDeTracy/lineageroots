@@ -122,6 +122,9 @@ public sealed class PersonCard
     }
 
     public long Id { get; }
+    /// <summary>How they're related to the home person ("Kay's great-grandfather"), filled in by the page.</summary>
+    public string Relation { get; set; } = "";
+    public bool HasRelation => Relation.Length > 0;
     public string Calling { get; }
     public bool HasCalling => Calling.Length > 0;
     public string Name { get; }
