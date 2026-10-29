@@ -6,7 +6,7 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.4.4, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.4.5, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -91,7 +91,7 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 - **Filters** on the people list: a place (any of their events or marriages), born or died between two years, alive
   at some time in a span of years, and men or women, on top of the name search
 - The search box also finds words in notes and event descriptions: search "killed in the mine" and anyone whose
-  story says so is listed, after the people whose names match
+  story says so is listed, marked "Found in notes", after the people whose names match
 - Person cards (parents, spouses, children) show the person's title and latest occupation, to tell relatives apart
 - **Christening and burial instead of birth and death** in the person editor, for when that's all there is (a
   foundling, say); they count as birth and death for dates, ages and filters
@@ -101,6 +101,9 @@ Finding GPS for places and finding faces in photos both happen inside the progra
   file again offers the copy with your changes. It can be turned off in Settings
 - **Tree health lists**: on Home, "23 people have no birth date" lists all 23 so you can work through them, and Back
   returns to where you were
+- **Picks up where you left off**: the program reopens your tree at the person, section and view you were on
+- **Old Style dates** (before 1752, when the year began on 25 March): "10 Feb 1600" and "1600/01" don't raise false
+  problems, and dual dates sort by the year as counted now
 - **Undo and redo** for every edit (Ctrl+Z / Ctrl+Y)
 
 **Charts and maps**

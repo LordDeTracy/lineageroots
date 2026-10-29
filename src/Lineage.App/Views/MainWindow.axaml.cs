@@ -72,6 +72,7 @@ public partial class MainWindow : Window
         if (_closeConfirmed || DataContext is not MainViewModel vm) return;
         e.Cancel = true;
         if (!await vm.CanCloseAsync()) return;
+        vm.RememberPlace();
         _closeConfirmed = true;
         Close();
     }

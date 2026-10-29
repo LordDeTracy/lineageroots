@@ -151,7 +151,7 @@
 
           <StackPanel>
             <TextBlock Classes="section" Text="NOTES" Margin="2,0,0,10" />
-            <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="120"
+            <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180" MaxHeight="460"
                      Watermark="Stories, research notes, anything worth remembering"
                      VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
           </StackPanel>

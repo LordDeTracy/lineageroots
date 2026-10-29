@@ -237,7 +237,7 @@
 
         <StackPanel>
           <TextBlock Classes="section" Text="NOTES" Margin="2,6,0,10" />
-          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="96"
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="360"
                    VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
         </StackPanel>
 

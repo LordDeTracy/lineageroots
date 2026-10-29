@@ -403,6 +403,8 @@
                       <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
                       <TextBlock Classes="muted small" Text="{Binding Subtitle}" IsVisible="{Binding HasSubtitle}"
                                  TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small" Text="Found in notes" IsVisible="{Binding FoundInNotes}"
+                                 Foreground="{DynamicResource Accent}" />
                     </StackPanel>
                     <Ellipse Grid.Column="2" Width="9" Height="9" Margin="6,0,2,0" VerticalAlignment="Center"
                              Fill="{Binding ColourBrush}" IsVisible="{Binding HasColour}" />
