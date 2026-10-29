@@ -37,6 +37,7 @@ public sealed partial class MainViewModel
     {
         // Undo replaces record objects, so everything is looked up again by id.
         IsDirty = true;
+        ScheduleAutoSave();
         RebuildRows();
         RebuildSources();
         RebuildResearch();
@@ -64,6 +65,7 @@ public sealed partial class MainViewModel
     private void AfterChange(long? showId = null)
     {
         IsDirty = true;
+        ScheduleAutoSave();
         RebuildRows();
         RebuildSources();
         RebuildResearch();
@@ -203,7 +205,7 @@ public sealed partial class MainViewModel
     {
         if (_current is not { } p) return;
         if (!await _dialogs.ConfirmAsync("Delete person", $"Delete {p.DisplayName} and all their links? You can undo this with Ctrl+Z.")) return;
-        var next = _back.Count > 0 ? _back.Pop() : (long?)null;
+        var next = _back.Count > 0 ? _back.Pop().PersonId : null;
         // Photos of other people that this person is tagged in lose the tag too.
         var tagged = Lineage.Core.Media.MediaLibrary.TaggedIn(_tree, p.Id).Select(r => r.Owner);
         Change($"delete {p.DisplayName}", _tree.Around(p).Concat(tagged), () =>

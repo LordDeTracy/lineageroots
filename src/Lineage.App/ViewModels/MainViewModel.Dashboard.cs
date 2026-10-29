@@ -5,7 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace Lineage.App.ViewModels;
 
 /// <summary>One line on the Home page: a short badge (date, count), text, detail, and who it's about.</summary>
-public sealed record HomeLine(string Badge, string Text, string Detail, long? PersonId)
+/// <param name="Ids">Everyone the line is about (a tree-health line), shown as a list to work through.</param>
+public sealed record HomeLine(string Badge, string Text, string Detail, long? PersonId, IReadOnlyList<long>? Ids = null)
 {
     public bool HasDetail => Detail.Length > 0;
     public bool HasPerson => PersonId != null;

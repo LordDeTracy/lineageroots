@@ -47,7 +47,7 @@ public sealed partial class MainViewModel
     public bool HasNoPlaces => _allPlaces.Count == 0;
     public bool HasPlaceCoordinatesError => PlaceCoordinatesError.Length > 0;
     public string PlaceMapUrl => GeoPoint.Parse(PlaceCoordinates) is { } at ? at.OpenStreetMapUrl
-        : "https://www.openstreetmap.org/search?query=" + Uri.EscapeDataString(PlaceTitle);
+        : Lineage.Core.Places.Gazetteer.MapUrl(PlaceTitle);
 
     partial void OnSelectedPlaceChanged(PlaceListRow? value) => ShowPlace();
     partial void OnPlaceCoordinatesErrorChanged(string value) => OnPropertyChanged(nameof(HasPlaceCoordinatesError));

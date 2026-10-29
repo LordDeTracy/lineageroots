@@ -123,6 +123,14 @@ public sealed class Gazetteer
     };
 
     /// <summary>Finds a place, or null when it can't be placed with reasonable confidence.</summary>
+    /// <summary>
+    /// A map link for a place without coordinates: straight to the built-in gazetteer's match when there is one
+    /// (OpenStreetMap's own search is rate-limited and can pick a same-named town in another country), else that search.
+    /// </summary>
+    public static string MapUrl(string place) =>
+        place.Trim().Length > 0 && Default.Locate(place) is { } match ? match.Point.OpenStreetMapUrl
+        : "https://www.openstreetmap.org/search?query=" + Uri.EscapeDataString(place.Trim());
+
     public GeoMatch? Locate(string place)
     {
         var parts = PlaceIndex.Parts(place);

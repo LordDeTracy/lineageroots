@@ -18,6 +18,7 @@ public static class TestApp
         MainViewModel.Launcher = opened => Opened.Add(opened); // never open real files or web pages from tests
         // Never read or change the user's own settings.
         Lineage.App.Services.AppSettings.FilePath = Path.Combine(Path.GetTempPath(), $"lineage-test-settings-{Guid.NewGuid():N}.json");
+        Lineage.App.Services.AppSettings.CopiesFolder = Path.Combine(Path.GetTempPath(), $"lineage-test-copies-{Guid.NewGuid():N}");
         return AppBuilder.Configure<App>().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
     }
 

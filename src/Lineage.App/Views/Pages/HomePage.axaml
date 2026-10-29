@@ -7,8 +7,8 @@
   <UserControl.Resources>
     <DataTemplate x:Key="HomeLineTemplate" x:DataType="vm:HomeLine">
       <Button Classes="eventRow" Margin="-8,0" Padding="8,7" IsEnabled="{Binding HasPerson}"
-              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPersonCommand}"
-              CommandParameter="{Binding PersonId}">
+              Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenHomeLineCommand}"
+              CommandParameter="{Binding}">
         <Grid ColumnDefinitions="Auto,*">
           <Border Classes="chip" MinWidth="64" VerticalAlignment="Top">
             <TextBlock Text="{Binding Badge}" HorizontalAlignment="Center" />

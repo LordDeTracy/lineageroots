@@ -36,7 +36,7 @@ public static class ResearchSuggestions
     {
         var now = currentYear ?? DateTime.Today.Year;
         var hints = new List<ResearchHint>();
-        var name = p.DisplayName;
+        var name = p.RecordName;   // what to search the records for, without "Pvt." or "Rev."
         var span = LifeTimeline.Span(tree, p);
         var birth = Vital(p, "BIRT", "CHR", "BAPM");
         var death = Vital(p, "DEAT", "BURI", "CREM");
@@ -73,7 +73,7 @@ public static class ResearchSuggestions
         {
             if (spouse == null || f.Events.Any(e => e.Tag == "MARR" && e.Date.Year > 0)) continue;
             var first = children.Select(c => Vital(c, "BIRT", "CHR", "BAPM")?.Date.Year ?? 0).Where(y => y > 0).DefaultIfEmpty(0).Min();
-            hints.Add(new ResearchHint($"marriage:{f.Id}", HintKind.Marriage, 2, $"Find the marriage of {name} and {spouse.DisplayName}",
+            hints.Add(new ResearchHint($"marriage:{f.Id}", HintKind.Marriage, 2, $"Find the marriage of {name} and {spouse.RecordName}",
                 first > 0 ? $"No marriage date is recorded; their first child was born in {first}, so probably by then." : "No marriage date is recorded.",
                 Records(homeRegion, first > 0 ? first - 1 : span.Born + 25, "marriage"), first > 0 ? first - 1 : 0));
         }

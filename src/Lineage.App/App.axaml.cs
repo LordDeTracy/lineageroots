@@ -33,6 +33,7 @@ public partial class App : Application
         var vm = new MainViewModel(new DialogService(window));
         window.DataContext = vm;
         if (file != null) window.Opened += async (_, _) => await vm.OpenPathAsync(file);
+        else window.Opened += async (_, _) => await vm.OpenLastFileAsync();
         window.Show();
         return window;
     }
@@ -68,6 +69,12 @@ public partial class App : Application
             var evidence = args.Remove("--evidence");
             var pdf = TakeOption(args, "--pdf");
 
+            if (screenshot != null || pdf != null)
+            {
+                // Developer runs never touch the user's own settings, last tree or saved copies.
+                Services.AppSettings.FilePath = Path.Combine(Path.GetTempPath(), $"lineage-dev-settings-{Guid.NewGuid():N}.json");
+                Services.AppSettings.CopiesFolder = Path.Combine(Path.GetTempPath(), "lineage-dev-copies");
+            }
             var window = new MainWindow();
             if (size?.Split('x') is [var w, var h]) { window.Width = double.Parse(w); window.Height = double.Parse(h); }
             var vm = new MainViewModel(new DialogService(window));
@@ -77,6 +84,7 @@ public partial class App : Application
             window.Opened += async (_, _) =>
             {
                 if (file != null) await vm.OpenPathAsync(file);
+                else if (screenshot == null && pdf == null) await vm.OpenLastFileAsync();
                 if (long.TryParse(person, out var pid)) vm.NavigateCommand.Execute(pid);
                 if (evidence) vm.ChartsShowEvidence = true;
                 if (pdf != null)

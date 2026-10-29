@@ -31,7 +31,7 @@ public sealed partial class MainViewModel
         HealthLines.Clear();
         void Line(int count, string what, IReadOnlyList<long> ids)
         {
-            if (count > 0) HealthLines.Add(new HomeLine(count.ToString("N0"), what, ids.Count > 0 && _tree.Person(ids[0]) is { } first ? $"For example {first.DisplayName}" : "", ids.FirstOrDefault()));
+            if (count > 0) HealthLines.Add(new HomeLine(count.ToString("N0"), what, ids.Count > 0 && _tree.Person(ids[0]) is { } first ? $"For example {first.DisplayName}" : "", ids.FirstOrDefault(), ids));
         }
         Line(missing.NoBirthDateCount, missing.NoBirthDateCount == 1 ? "person has no birth date" : "people have no birth date", missing.NoBirthDate);
         Line(missing.NoCitationsCount, missing.NoCitationsCount == 1 ? "person has no sources" : "people have no sources", missing.NoCitations);

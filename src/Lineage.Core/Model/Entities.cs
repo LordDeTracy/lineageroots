@@ -216,6 +216,9 @@ public sealed class Person : Entity
 
     /// <summary>The first name; created on demand so a new person always has one.</summary>
     [JsonIgnore] public Name PrimaryName { get { if (Names.Count == 0) Names.Add(new Name()); return Names[0]; } }
+    /// <summary>The name as records index it: given names and surname, without a title or rank ("Pvt.", "Rev.").</summary>
+    [JsonIgnore] public string RecordName =>
+        string.Join(' ', new[] { PrimaryName.Given, PrimaryName.Surname }.Where(s => s.Length > 0)) is { Length: > 0 } n ? n : DisplayName;
     [JsonIgnore] public string DisplayName => PrimaryName.Full.Length > 0 ? PrimaryName.Full : "(no name)";
     public Event? Find(string tag) => Events.FirstOrDefault(e => e.Tag == tag);
     [JsonIgnore] public Event? Birth => Find("BIRT") ?? Find("CHR");

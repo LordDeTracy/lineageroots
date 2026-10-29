@@ -37,7 +37,9 @@ public sealed partial class MainViewModel : ObservableObject
     private FamilyTree _tree = new();
     private UndoHistory _history;
     private List<PersonRow> _allRows = new();
-    private readonly Stack<long> _back = new(), _forward = new();
+    /// <summary>A place to go back to: a section (Home, Research…) and who was showing.</summary>
+    private readonly record struct Spot(AppSection Section, long? PersonId);
+    private readonly Stack<Spot> _back = new(), _forward = new();
     private readonly DispatcherTimer _searchTimer;
 
     public MainViewModel(IDialogService dialogs)
@@ -231,6 +233,9 @@ public sealed partial class MainViewModel : ObservableObject
         IsDirty = path == null;
         _back.Clear();
         _forward.Clear();
+        _listFilter = null;
+        ListFilterText = "";
+        OnPropertyChanged(nameof(HasListFilter));
         Section = AppSection.People;
         RebuildRows();
         RebuildSources();
@@ -250,6 +255,15 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var sw = Stopwatch.StartNew();
             var ext = Path.GetExtension(path).ToLowerInvariant();
+            // Importing the same AQ or GEDCOM file again would lose the work saved in its copy: offer the copy.
+            if (ext is ".aq" or ".ged" && _settings.ImportCopies.TryGetValue(Path.GetFullPath(path), out var copy) && File.Exists(copy))
+            {
+                var choice = await _dialogs.ChooseAsync("You've worked on this family before",
+                    $"Your changes are saved in {Path.GetFileName(copy)}. Open that, or import {Path.GetFileName(path)} again from the start (without your changes)?",
+                    "Open my saved copy", "Import again", "Cancel");
+                if (choice == 0) { await OpenPathAsync(copy); return; }
+                if (choice != 1) return;
+            }
             var tree = await Task.Run(() => ext switch
             {
                 ".aq" => AqImporter.Import(path),
@@ -257,7 +271,12 @@ public sealed partial class MainViewModel : ObservableObject
                 _ => LineageStore.Load(path),
             });
             Load(tree, ext is ".aq" or ".ged" ? null : path, ext is ".aq" or ".ged" ? "Imported" : "Opened", sw.ElapsedMilliseconds);
-            if (ext is not (".aq" or ".ged") && Backups.For(path) is { } pending) await OfferRecoveryAsync(pending);
+            if (ext is ".aq" or ".ged") await SaveImportedCopyAsync(path);
+            else
+            {
+                RememberLastFile(path);
+                if (Backups.For(path) is { } pending) await OfferRecoveryAsync(pending);
+            }
         }
         catch (Exception ex)
         {
@@ -325,6 +344,7 @@ public sealed partial class MainViewModel : ObservableObject
             Backups.ClearRecovery(path, tree.Name);
             FilePath = path;
             IsDirty = false;
+            RememberLastFile(path);
             Status = $"Saved {Path.GetFileName(path)} in {sw.ElapsedMilliseconds:N0} ms";
         }
         catch (Exception ex) { await _dialogs.ShowMessageAsync("Could not save", ex.Message); }
@@ -365,6 +385,38 @@ public sealed partial class MainViewModel : ObservableObject
     private void RebuildRows()
     {
         _allRows = _tree.People.Values.Select(p => new PersonRow(p)).OrderBy(r => r.SortKey).ToList();
+        ApplyFilter();
+    }
+
+    /// <summary>The running version, shown small in the corner ("Version 0.4.4").</summary>
+    public string VersionText { get; } = $"Version {Lineage.App.Services.Updater.Current.ToString(3)}";
+
+    // ---- a list to work through (a tree-health line from Home: everyone with no birth date…) ----
+
+    private HashSet<long>? _listFilter;
+    [ObservableProperty] private string _listFilterText = "";
+    public bool HasListFilter => _listFilter != null;
+
+    /// <summary>Opens a Home line: for a tree-health line, its people become the list, so each can be fixed in turn.</summary>
+    [RelayCommand]
+    private void OpenHomeLine(HomeLine line)
+    {
+        if (line.Ids is { Count: > 1 } ids)
+        {
+            _listFilter = ids.ToHashSet();
+            ListFilterText = $"{ids.Count:N0} {line.Text}";
+            OnPropertyChanged(nameof(HasListFilter));
+            ApplyFilter();
+        }
+        if (line.PersonId is { } id) OpenPerson(id);
+    }
+
+    [RelayCommand]
+    private void ClearListFilter()
+    {
+        _listFilter = null;
+        ListFilterText = "";
+        OnPropertyChanged(nameof(HasListFilter));
         ApplyFilter();
     }
 
@@ -430,6 +482,7 @@ public sealed partial class MainViewModel : ObservableObject
                                                 && PersonFilter.Mentions(_tree, p, SearchText)).Select(r => r.Id);
             rows = ranked.Concat(mentioned).Where(byId.ContainsKey).Select(id => byId[id]);
         }
+        if (_listFilter is { } only) rows = rows.Where(r => only.Contains(r.Id));
         var filter = CurrentFilter;
         if (!filter.IsEmpty) rows = rows.Where(r => _tree.Person(r.Id) is { } p && filter.Matches(_tree, p));
         People.Clear();
@@ -441,7 +494,12 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Navigate(long id) { Section = AppSection.People; Show(id, recordHistory: true); }
+    private void Navigate(long id)
+    {
+        var from = Section;   // so Back returns to Home or the list this was opened from
+        Section = AppSection.People;
+        Show(id, recordHistory: true, from);
+    }
 
     /// <summary>Opens a person's details page (double-click in a chart).</summary>
     [RelayCommand]
@@ -450,27 +508,37 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanGoBack))]
     private void Back()
     {
-        if (_current != null) _forward.Push(_current.Id);
-        Show(_back.Pop(), recordHistory: false);
+        _forward.Push(new Spot(Section, _current?.Id));
+        GoTo(_back.Pop());
     }
 
     [RelayCommand(CanExecute = nameof(CanGoForward))]
     private void Forward()
     {
-        if (_current != null) _back.Push(_current.Id);
-        Show(_forward.Pop(), recordHistory: false);
+        _back.Push(new Spot(Section, _current?.Id));
+        GoTo(_forward.Pop());
+    }
+
+    private void GoTo(Spot spot)
+    {
+        if (spot.PersonId is { } id) Show(id, recordHistory: false);
+        Section = spot.Section;
+        BackCommand.NotifyCanExecuteChanged();
+        ForwardCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanGoBack() => _back.Count > 0;
     private bool CanGoForward() => _forward.Count > 0;
 
-    private void Show(long id, bool recordHistory)
+    private void Show(long id, bool recordHistory, AppSection? from = null)
     {
         var p = _tree.Person(id);
         if (p == null) return;
-        if (recordHistory && _current != null && _current.Id != id)
+        var section = from ?? Section;
+        if (recordHistory && (_current != null || section != AppSection.People)
+            && (_current?.Id != id || section != AppSection.People))
         {
-            _back.Push(_current.Id);
+            _back.Push(new Spot(section, _current?.Id));
             _forward.Clear();
         }
         _current = p;
