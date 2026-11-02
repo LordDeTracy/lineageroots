@@ -211,13 +211,8 @@ public static class HtmlSite
             Timeline(sb, p);
             Relatives(sb, p);
 
-            var notes = Paragraphs(p.Note).ToList();
-            if (notes.Count > 0)
-            {
-                sb.Append("<section class=\"card\"><h2>Notes</h2>");
-                foreach (var para in notes) sb.Append($"<p>{para}</p>");
-                sb.Append("</section>");
-            }
+            var notes = NoteFormat.Html(p.Note);
+            if (notes.Length > 0) sb.Append($"<section class=\"card\"><h2>Notes</h2>{notes}</section>");
 
             Gallery(sb, p);
             if (_options.IncludeSources) Sources(sb, p);

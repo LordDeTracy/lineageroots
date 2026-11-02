@@ -33,7 +33,7 @@
   </UserControl.Styles>
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="32,14,32,0" Spacing="10">
-      <ListBox Classes="segmented" SelectedIndex="{Binding ViewIndex}" AutomationProperties.Name="View" HorizontalAlignment="Left">
+      <ListBox Classes="segmented" SelectedIndex="{Binding PersonTabIndex}" AutomationProperties.Name="View" IsVisible="{Binding IsPeopleSection}" HorizontalAlignment="Left">
         <ListBox.ItemsPanel>
           <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
         </ListBox.ItemsPanel>
@@ -46,6 +46,26 @@
             <TextBlock Text="Details" />
           </StackPanel>
         </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Where the family lived (Ctrl+6)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
+            <TextBlock Text="Map" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="Their life in order, with history and a census checklist (Ctrl+7)">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconTimeline}" Width="16" Height="16" />
+            <TextBlock Text="Timeline" />
+          </StackPanel>
+        </ListBoxItem>
+      </ListBox>
+      <ListBox Classes="segmented" SelectedIndex="{Binding ChartTabIndex}" AutomationProperties.Name="Chart" IsVisible="{Binding IsChartsSection}" HorizontalAlignment="Left">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem"><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="12,6" /></Style>
+        </ListBox.Styles>
         <ListBoxItem ToolTip.Tip="Ancestors as a tree (Ctrl+2)">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <c:LineIcon Data="{StaticResource IconTree}" Width="16" Height="16" />
@@ -70,16 +90,22 @@
             <TextBlock Text="Hourglass" />
           </StackPanel>
         </ListBoxItem>
-        <ListBoxItem ToolTip.Tip="Where the family lived (Ctrl+6)">
-          <StackPanel Orientation="Horizontal" Spacing="7">
-            <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
-            <TextBlock Text="Map" />
-          </StackPanel>
-        </ListBoxItem>
-        <ListBoxItem ToolTip.Tip="Their life in order, with history and a census checklist (Ctrl+7)">
+        <ListBoxItem ToolTip.Tip="The family's lives on a scale of years: who was alive together">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <c:LineIcon Data="{StaticResource IconTimeline}" Width="16" Height="16" />
-            <TextBlock Text="Timeline" />
+            <TextBlock Text="Lifelines" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="How the home person is related to them, step by step">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconLink}" Width="16" Height="16" />
+            <TextBlock Text="Relationship" />
+          </StackPanel>
+        </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="The whole tree in numbers: births, lifespans, surnames, places">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconList}" Width="16" Height="16" />
+            <TextBlock Text="Statistics" />
           </StackPanel>
         </ListBoxItem>
       </ListBox>
@@ -104,13 +130,13 @@
           </WrapPanel>
         </Panel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-          <ToggleButton Classes="soundsLike" IsChecked="{Binding ChartsShowEvidence}" VerticalAlignment="Center" Margin="0,0,6,0"
+          <ToggleButton Classes="soundsLike" IsChecked="{Binding ChartsShowEvidence}" IsVisible="{Binding !IsStatisticsView}" VerticalAlignment="Center" Margin="0,0,6,0"
                         ToolTip.Tip="Colour each person by how well their birth and death are proven by sources"
                         AutomationProperties.Name="Colour by evidence">
             <TextBlock Text="Colour by evidence" />
           </ToggleButton>
-          <TextBlock Classes="muted small" Text="Generations" VerticalAlignment="Center" />
-          <ComboBox ItemsSource="{x:Static vm:MainViewModel.GenerationChoices}" SelectedItem="{Binding ChartGenerationsShown}"
+          <TextBlock Classes="muted small" Text="Generations" VerticalAlignment="Center" IsVisible="{Binding HasGenerations}" />
+          <ComboBox ItemsSource="{x:Static vm:MainViewModel.GenerationChoices}" SelectedItem="{Binding ChartGenerationsShown}" IsVisible="{Binding HasGenerations}"
                     AutomationProperties.Name="Generations shown" MinWidth="64" />
           <Border Width="1" Height="20" Background="{DynamicResource Line}" Margin="6,0" />
           <Button Classes="ghost icon" Click="OnZoomOut" ToolTip.Tip="Zoom out" AutomationProperties.Name="Zoom out">
@@ -131,6 +157,7 @@
             <Button.Flyout>
               <MenuFlyout Placement="BottomEdgeAlignedRight">
                 <MenuItem Header="Picture (PNG)…" Click="OnSaveChartImage" />
+                <MenuItem Header="Wall chart designer…" Click="OnWallChartDesigner" />
                 <MenuItem Header="Wall chart — one large poster (PDF)…" Click="OnWallChartPoster" />
                 <MenuItem Header="Wall chart — pages to tape together (PDF)…" Click="OnWallChartTiled" />
               </MenuFlyout>
@@ -179,7 +206,20 @@
                           NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                           HorizontalAlignment="Center" Margin="8,4,8,8" />
       </c:ZoomHost>
-      <Border IsVisible="{Binding IsMapView}" Margin="32,12,32,24" CornerRadius="14" ClipToBounds="True"
+      <c:ZoomHost Name="LifelinesHost" IsVisible="{Binding IsLifelinesView}">
+        <c:LifelinesChart Name="Lifelines" Data="{Binding Chart}" ShowEvidence="{Binding ChartsShowEvidence}"
+                          NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                          HorizontalAlignment="Left" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <c:ZoomHost Name="RelationshipHost" IsVisible="{Binding IsRelationshipView}">
+        <c:RelationshipChart Name="RelationshipPath" Data="{Binding Chart}" ShowEvidence="{Binding ChartsShowEvidence}"
+                             NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                             HorizontalAlignment="Left" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <c:ZoomHost Name="StatisticsHost" IsVisible="{Binding IsStatisticsView}">
+        <c:StatisticsChart Name="Statistics" Data="{Binding Chart}" HorizontalAlignment="Left" Margin="8,4,8,8" />
+      </c:ZoomHost>
+      <Border IsVisible="{Binding IsMapView}" Margin="32,12,32,24" CornerRadius="10" ClipToBounds="True"
               BorderBrush="{DynamicResource Line}" BorderThickness="1">
         <c:MapView Name="PersonMap" Pins="{Binding PersonPins}" Lines="{Binding PersonLines}"
                    PinClickCommand="{Binding OpenPersonCommand}" AutoFit="{Binding MapAutoFit}" />
@@ -320,14 +360,14 @@
                     Classes.male="{Binding CurrentIsMale}" Classes.female="{Binding CurrentIsFemale}">
               <TextBlock Text="{Binding CurrentInitials}" />
             </Border>
-            <Border Width="84" Height="84" CornerRadius="42" ClipToBounds="True" IsVisible="{Binding HasProfilePhoto}"
+            <Border Width="84" Height="84" CornerRadius="12" ClipToBounds="True" IsVisible="{Binding HasProfilePhoto}"
                     BorderBrush="{DynamicResource Line}" BorderThickness="1">
               <Image Source="{Binding ProfilePhoto}" Stretch="UniformToFill" />
             </Border>
           </Panel>
           <StackPanel Grid.Column="1" Margin="20,2,16,0" Spacing="6">
             <SelectableTextBlock Classes="display" Text="{Binding CurrentName}" TextWrapping="Wrap"
-                                 FontSize="28" FontWeight="SemiBold" />
+                                 FontSize="34" FontWeight="Light" />
             <TextBlock Classes="small" Text="{Binding CurrentRelation}" IsVisible="{Binding HasCurrentRelation}"
                        Foreground="{DynamicResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Classes="muted" FontSize="14.5" Text="{Binding CurrentDetail}" TextWrapping="Wrap" />
@@ -373,6 +413,7 @@
                   <MenuItem Header="Add event…" Command="{Binding AddEventCommand}" />
                   <MenuItem Header="Add research task…" Command="{Binding AddResearchForPersonCommand}" />
                   <MenuItem Header="Enter a census household…" Command="{Binding EnterCensusHouseholdCommand}" />
+                  <MenuItem Header="Transcribe a record (baptism, marriage, burial, will, deed)…" Command="{Binding TranscribeRecordCommand}" />
                   <MenuItem Header="Make this the home person" Command="{Binding SetHomePersonCommand}" />
                   <MenuItem Header="How is this person related to…" Command="{Binding FindRelationshipCommand}" />
                   <MenuItem Header="DNA matches…" Command="{Binding ShowDnaMatchesCommand}" />
@@ -430,7 +471,7 @@
                     <ContentControl Content="{Binding Spouse}" ContentTemplate="{StaticResource PersonCardTemplate}"
                                     IsVisible="{Binding HasSpouse}" />
                     <Border Classes="addCard" Padding="12,10" IsVisible="{Binding !HasSpouse}"
-                            BorderBrush="{DynamicResource Line}" BorderThickness="1.5" CornerRadius="12"
+                            BorderBrush="{DynamicResource Line}" BorderThickness="1.5" CornerRadius="10"
                             Width="250" MinHeight="58" Margin="0,0,12,12">
                       <TextBlock Classes="muted" Text="Spouse not recorded" HorizontalAlignment="Center"
                                  VerticalAlignment="Center" />
@@ -710,7 +751,7 @@
       <Border Classes="card" Padding="26,22" IsVisible="{Binding HasNote}">
         <StackPanel Spacing="12">
           <TextBlock Classes="section" Text="NOTES" />
-          <SelectableTextBlock Text="{Binding CurrentNote}" TextWrapping="Wrap" LineHeight="22" />
+          <c:NoteView Note="{Binding CurrentNote}" />
         </StackPanel>
       </Border>
     </StackPanel>

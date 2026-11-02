@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
@@ -26,6 +27,7 @@ public interface IDialogService
     Task<bool> ReviewChangesAsync(ReviewChangesViewModel review);
     Task<bool> FindGpsAsync(FindGpsViewModel review);
     Task<bool> EnterCensusAsync(CensusEntryViewModel form);
+    Task<bool> TranscribeAsync(TranscribeViewModel form);
     Task<bool> EditSettingsAsync(SettingsViewModel settings);
     Task<bool> ExportOptionsAsync(ExportOptionsViewModel options);
     /// <summary>Shows a tree comparison; true when the user asked to copy the ticked people in.</summary>
@@ -36,14 +38,26 @@ public interface IDialogService
     Task<bool> ShowPhotosAsync(PhotoViewerViewModel viewer);
     /// <summary>Asks for one line of text, with suggestions; null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial, IReadOnlyList<string> suggestions);
+    /// <summary>Asks for a locked file's password (showing its hint); null when cancelled.</summary>
+    Task<string?> AskPasswordAsync(string treeName, string hint, bool wrong);
+    /// <summary>Asks for a new password (typed twice), an optional hint, and that the user understands it can't be recovered.</summary>
+    Task<PasswordChoice?> ChoosePasswordAsync(bool changing);
+    Task ShowHistoryAsync(HistoryViewModel history);
+    /// <summary>The clean-up wizard; true when the user pressed Clean up.</summary>
+    Task<bool> CleanupAsync(CleanupViewModel wizard);
     /// <summary>Opens the problem finder beside the main window (not modal, so the user can fix things).</summary>
     void ShowProblems(ProblemsViewModel problems);
+    void ShowLocalShare(LocalShareViewModel share);
+    Task ShowTutorialAsync(TutorialViewModel tutorial);
     void ShowRelationship(RelationshipViewModel relationship);
     Task ShowDuplicatesAsync(DuplicatesViewModel duplicates);
     Task<bool> FamilySearchSettingsAsync(FamilySearchSettingsViewModel settings);
     Task<FsPerson?> FamilySearchSearchAsync(FamilySearchSearchViewModel search);
     Task<bool> FamilySearchCompareAsync(FamilySearchCompareViewModel compare);
 }
+
+/// <summary>A password the user chose, with the reminder to show when it's asked for.</summary>
+public sealed record PasswordChoice(string Password, string Hint);
 
 public sealed class DialogService(Window owner) : IDialogService
 {
@@ -153,6 +167,9 @@ public sealed class DialogService(Window owner) : IDialogService
     public Task<EditorResult> EditResearchAsync(ResearchEditorViewModel editor) =>
         new ResearchEditorWindow { DataContext = editor }.ShowDialog<EditorResult>(owner);
 
+    public Task<bool> TranscribeAsync(TranscribeViewModel form) =>
+        new TranscribeWindow { DataContext = form }.ShowDialog<bool>(owner);
+
     public Task<bool> EnterCensusAsync(CensusEntryViewModel form) =>
         new CensusEntryWindow { DataContext = form }.ShowDialog<bool>(owner);
 
@@ -228,8 +245,124 @@ public sealed class DialogService(Window owner) : IDialogService
         return result;
     }
 
+    public async Task<string?> AskPasswordAsync(string treeName, string hint, bool wrong)
+    {
+        var box = new TextBox { PasswordChar = '\u25CF', Watermark = "Password" };
+        AutomationProperties.SetName(box, "Password");
+        var lines = new List<Control>();
+        if (wrong) lines.Add(Line("That password isn't right. Passwords are case-sensitive: check Caps Lock.", "Danger"));
+        if (hint.Length > 0) lines.Add(Line($"Hint: {hint}", null));
+        lines.Add(box);
+        string? result = null;
+        await Form($"\"{treeName}\" is password-protected", "Type the password to open it.", "Open", lines,
+                   () => box.Text?.Length > 0, () => result = box.Text, box);
+        return result;
+    }
+
+    public async Task<PasswordChoice?> ChoosePasswordAsync(bool changing)
+    {
+        var first = new TextBox { PasswordChar = '\u25CF', Watermark = "New password" };
+        var second = new TextBox { PasswordChar = '\u25CF', Watermark = "Type it again" };
+        var hint = new TextBox { Watermark = "Hint (optional) — something only you would understand" };
+        var understood = new CheckBox
+        {
+            Content = new TextBlock
+            {
+                Text = "I understand that if I forget this password, nobody can open this tree — not me, not Lineage Roots, not anyone. I'll keep a copy of the password somewhere safe.",
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            },
+        };
+        AutomationProperties.SetName(first, "New password");
+        AutomationProperties.SetName(second, "Repeat the password");
+        AutomationProperties.SetName(hint, "Password hint");
+        var mismatch = Line("The two passwords don't match.", "Danger");
+        mismatch.IsVisible = false;
+        second.TextChanged += (_, _) => mismatch.IsVisible = second.Text?.Length > 0 && second.Text != first.Text;
+        PasswordChoice? result = null;
+        await Form(changing ? "Change the password" : "Protect this tree with a password",
+            "The whole tree is encrypted (AES-256) when it's saved, and its backups too. Without the password the file can't be read. " +
+            "The hint is stored unencrypted, so don't put the password in it.",
+            changing ? "Change password" : "Set password",
+            new List<Control> { first, second, mismatch, hint, understood },
+            () => first.Text?.Length > 0 && first.Text == second.Text && understood.IsChecked == true
+                  && !(hint.Text ?? "").Contains(first.Text!, StringComparison.OrdinalIgnoreCase),
+            () => result = new PasswordChoice(first.Text!, hint.Text?.Trim() ?? ""), first);
+        return result;
+    }
+
+    private static TextBlock Line(string text, string? brush)
+    {
+        var t = new TextBlock { Text = text, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        if (brush != null) t[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(brush);
+        else t.Classes.Add("muted");
+        return t;
+    }
+
+    /// <summary>
+    /// A small form in the app's dialog style: heading, explanation, the given controls, then Cancel and an OK
+    /// button that is enabled while <paramref name="valid"/> holds (checked as the boxes are typed in or ticked).
+    /// </summary>
+    private async Task Form(string title, string message, string okText, List<Control> controls, Func<bool> valid, Action accept, Control focus)
+    {
+        var dialog = new Window
+        {
+            Title = title, Width = 520, SizeToContent = SizeToContent.Height, CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            [!Window.BackgroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("Bg"),
+        };
+        dialog.Classes.Add("editor");
+        var ok = new Button { Content = new TextBlock { Text = okText }, IsDefault = true, MinWidth = 96, HorizontalContentAlignment = HorizontalAlignment.Center };
+        ok.Classes.Add("primary");
+        ((TextBlock)ok.Content)[!TextBlock.ForegroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("OnAccent");
+        ok.Click += (_, _) => { if (!valid()) return; accept(); dialog.Close(); };
+        void Check() => ok.IsEnabled = valid();
+        foreach (var c in controls)
+        {
+            if (c is TextBox t) t.TextChanged += (_, _) => Check();
+            if (c is CheckBox b) b.IsCheckedChanged += (_, _) => Check();
+        }
+        Check();
+        var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 96, HorizontalContentAlignment = HorizontalAlignment.Center };
+        cancel.Classes.Add("outline");
+        cancel.Click += (_, _) => dialog.Close();
+        var heading = new TextBlock { Text = title, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        heading.Classes.Add("title");
+        var footer = new Border
+        {
+            Padding = new Avalonia.Thickness(24, 14), BorderThickness = new Avalonia.Thickness(0, 1, 0, 0),
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { cancel, ok } },
+            [!Border.BackgroundProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("Surface"),
+            [!Border.BorderBrushProperty] = new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("Line"),
+        };
+        var body = new StackPanel { Margin = new Avalonia.Thickness(26, 22), Spacing = 12, Children = { heading, Line(message, null) } };
+        foreach (var c in controls) body.Children.Add(c);
+        var content = new DockPanel();
+        DockPanel.SetDock(footer, Dock.Bottom);
+        content.Children.Add(footer);
+        content.Children.Add(body);
+        dialog.Content = content;
+        dialog.Opened += (_, _) => focus.Focus();
+        await dialog.ShowDialog(owner);
+    }
+
+    public Task ShowHistoryAsync(HistoryViewModel history) =>
+        new HistoryWindow { DataContext = history }.ShowDialog(owner);
+
+    public Task<bool> CleanupAsync(CleanupViewModel wizard) =>
+        new CleanupWindow { DataContext = wizard }.ShowDialog<bool>(owner);
+
     private ProblemsWindow? _problems;
     private RelationshipWindow? _relationship;
+
+    public Task ShowTutorialAsync(TutorialViewModel tutorial) =>
+        new TutorialWindow { DataContext = tutorial }.ShowDialog(owner);
+
+    public void ShowLocalShare(LocalShareViewModel share)
+    {
+        var window = new LocalShareWindow { DataContext = share };
+        window.Closed += (_, _) => share.Dispose();   // closing the window stops sharing
+        window.Show(owner);
+    }
 
     public void ShowProblems(ProblemsViewModel problems)
     {

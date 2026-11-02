@@ -178,7 +178,7 @@ public static class Evidence
     }
 
     /// <summary>Places agree when one is a fuller form of the other ("Leeds" and "Leeds, Yorkshire, England").</summary>
-    private static bool SamePlace(string a, string b)
+    internal static bool SamePlace(string a, string b)
     {
         var x = PlaceIndex.Normalize(a);
         var y = PlaceIndex.Normalize(b);

@@ -20,7 +20,16 @@ public sealed class FamilyBookOptions
     /// <summary>Numbered source notes and a bibliography.</summary>
     public bool IncludeSources { get; set; } = true;
     public bool IncludeIndex { get; set; } = true;
+    /// <summary>Each person's profile photo beside their entry; needs <see cref="FindMedia"/>.</summary>
+    public bool IncludePhotos { get; set; } = true;
+    /// <summary>Turns a photo's stored file name into a full path on this computer, or null when it can't be found.</summary>
+    public Func<string, string?>? FindMedia { get; set; }
+    /// <summary>Chapters the compiler writes (family stories, memories, a history of the farm), after the introduction.</summary>
+    public List<BookChapter> Chapters { get; } = new();
 }
+
+/// <summary>A chapter written by hand for a family book; blank lines in the text separate paragraphs.</summary>
+public sealed record BookChapter(string Title, string Text);
 
 /// <summary>
 /// Reports written as prose and lists rather than charts: the register (descendants) report,
@@ -53,7 +62,7 @@ public static class Narrative
     }
 
     private static void WriteRegister(ReportDocument doc, StoryWriter w, FamilyTree tree, Person root, int generations,
-                                      string prefix, string labelPrefix, int headingLevel)
+                                      string prefix, string labelPrefix, int headingLevel, Func<Person, Block?>? photo = null)
     {
         // Numbers first, generation by generation, so each list of children can point forward.
         var numbers = new Dictionary<long, int> { [root.Id] = 1 };
@@ -92,7 +101,8 @@ public static class Narrative
                 var runs = new List<Run> { Run.B($"{n}. ") };
                 runs.AddRange(w.Story(person));
                 doc.Add(new Paragraph(StoryWriter.Compact(runs), entry.Anchor));
-                foreach (var para in StoryWriter.NoteParagraphs(person.Note)) doc.Add(new Paragraph(para));
+                if (photo?.Invoke(person) is { } picture) doc.Add(picture);
+                foreach (var block in NoteFormat.Blocks(person.Note)) doc.Add(block);
 
                 foreach (var (_, spouse, children) in tree.FamiliesOf(person))
                 {
@@ -239,14 +249,14 @@ public static class Narrative
                 doc.Add(new BulletList(children.Select((c, i) =>
                     new ListItem(new[] { Run.B(c.DisplayName), new Run(Life(c)) }, ReportText.Roman(i + 1) + ".")).ToList()));
             }
-            foreach (var para in StoryWriter.NoteParagraphs(family.Note)) doc.Add(new Paragraph(para));
+            foreach (var block in NoteFormat.Blocks(family.Note)) doc.Add(block);
         }
 
-        var personNotes = StoryWriter.NoteParagraphs(p.Note).ToList();
+        var personNotes = NoteFormat.Blocks(p.Note).ToList();
         if (personNotes.Count > 0)
         {
             doc.Add(new Heading(1, "Notes", "notes-text"));
-            foreach (var para in personNotes) doc.Add(new Paragraph(para));
+            foreach (var block in personNotes) doc.Add(block);
         }
         return doc;
     }
@@ -309,6 +319,56 @@ public static class Narrative
             sorted.Select(x => (IReadOnlyList<Cell>)new Cell[] { x.Name, Num(x.Events), Num(x.People.Count), ReportText.Years(x.From, x.To) }).ToList(),
             new[] { 4f, 1f, 1f, 1.4f }));
         return doc;
+    }
+
+    /// <summary>
+    /// The research log, for printing or handing to a client: open tasks, then searches made (including those that found
+    /// nothing), then finished tasks — each with who it's about, where it stands and the notes.
+    /// </summary>
+    public static ReportDocument ResearchLog(FamilyTree tree)
+    {
+        var about = new Dictionary<long, List<string>>();
+        foreach (var p in tree.People.Values)
+            foreach (var id in p.ResearchIds)
+                (about.TryGetValue(id, out var names) ? names : about[id] = new()).Add(p.DisplayName);
+        string Who(ResearchItem r) => about.TryGetValue(r.Id, out var n) ? string.Join(", ", n) : "";
+        var doc = new ReportDocument { Title = "Research log", Subtitle = Join(" · ", tree.Name, DateTime.Today.ToString("d MMMM yyyy")) };
+        void Section(string title, IEnumerable<ResearchItem> items, Func<ResearchItem, string> status)
+        {
+            var list = items.ToList();
+            doc.Add(new Heading(1, $"{title} ({list.Count})", title.ToLowerInvariant().Replace(' ', '-')));
+            if (list.Count == 0) { doc.Add(new Paragraph("None.", ParagraphStyle.Muted)); return; }
+            doc.Add(new Table(new[] { "Task or search", "About", "Status", "Date", "Notes" },
+                list.Select(r => (IReadOnlyList<Cell>)new Cell[]
+                    { r.Description, Who(r), status(r), ReportText.Date(r.Date), r.Note.Trim() }).ToList(),
+                new[] { 3f, 2f, 1.3f, 1.2f, 3f }));
+        }
+        var research = tree.Research.Values.ToList();
+        Section("Open tasks", research.Where(r => r.Result == SearchResult.None && !r.Done)
+                    .OrderBy(r => r.Priority == 0 ? 9 : r.Priority).ThenBy(r => r.Description),
+                r => r.Priority switch { 1 => "High priority", 2 => "Medium priority", 3 => "Low priority", _ => "To do" });
+        Section("Searches made", research.Where(r => r.Result != SearchResult.None).OrderByDescending(r => r.Date.SortKey),
+                r => r.Result switch { SearchResult.Found => "Found", SearchResult.NotFound => "Not found", _ => "Unclear" });
+        Section("Finished tasks", research.Where(r => r.Result == SearchResult.None && r.Done).OrderBy(r => r.Description), _ => "Done");
+        return doc;
+    }
+
+    /// <summary>The research log as CSV rows (header first), for a spreadsheet.</summary>
+    public static IEnumerable<string[]> ResearchCsv(FamilyTree tree)
+    {
+        var about = new Dictionary<long, List<string>>();
+        foreach (var p in tree.People.Values)
+            foreach (var id in p.ResearchIds)
+                (about.TryGetValue(id, out var names) ? names : about[id] = new()).Add(p.DisplayName);
+        yield return new[] { "Task or search", "About", "Category", "Priority", "Done", "Result", "Date", "Notes" };
+        foreach (var r in tree.Research.Values.OrderBy(r => r.Done).ThenBy(r => r.Description))
+            yield return new[]
+            {
+                r.Description, about.TryGetValue(r.Id, out var n) ? string.Join("; ", n) : "", r.Category,
+                r.Priority switch { 1 => "High", 2 => "Medium", 3 => "Low", _ => "" }, r.Done ? "Yes" : "No",
+                r.Result switch { SearchResult.Found => "Found", SearchResult.NotFound => "Not found", SearchResult.Inconclusive => "Unclear", _ => "" },
+                ReportText.Date(r.Date), r.Note.Trim(),
+            };
     }
 
     /// <summary>Each surname with how many people carry it and the earliest and latest year recorded for them.</summary>
@@ -389,12 +449,19 @@ public static class Narrative
         var intro = StoryWriter.NoteParagraphs(options.Introduction ?? "").ToList();
         if (intro.Count == 0) intro.Add(FamilyBookOptions.PlaceholderIntroduction);
         foreach (var para in intro) doc.Add(new Paragraph(para));
+        foreach (var (chapter, i) in options.Chapters.Where(c => c.Title.Trim().Length > 0 || c.Text.Trim().Length > 0).Select((c, i) => (c, i)))
+        {
+            doc.Add(new PageBreak());
+            doc.Add(new Heading(1, chapter.Title.Trim().Length > 0 ? chapter.Title.Trim() : $"Chapter {i + 1}", $"chapter-{i + 1}"));
+            foreach (var block in NoteFormat.Blocks(chapter.Text)) doc.Add(block);
+        }
+        Block? Photo(Person p) => options.IncludePhotos && options.FindMedia is { } find ? PortraitOf(p, find) : null;
 
         // Ancestors, numbered the Ahnentafel way.
-        var ancestorGenerations = Math.Clamp(options.AncestorGenerations, 1, 30);
-        doc.Add(new PageBreak());
-        doc.Add(new Heading(1, $"Ancestors of {root.DisplayName}", "ancestors"));
-        doc.Add(new Paragraph("Each ancestor has a number: a person’s father is twice their number and their mother twice their number plus one.", ParagraphStyle.Muted));
+        var ancestorGenerations = Math.Clamp(options.AncestorGenerations, 0, 30);
+        if (ancestorGenerations > 0) doc.Add(new PageBreak());
+        if (ancestorGenerations > 0) doc.Add(new Heading(1, $"Ancestors of {root.DisplayName}", "ancestors"));
+        if (ancestorGenerations > 0) doc.Add(new Paragraph("Each ancestor has a number: a person’s father is twice their number and their mother twice their number plus one.", ParagraphStyle.Muted));
         var people = tree.Ancestors(root, ancestorGenerations);
         var first = new Dictionary<long, int>();
         foreach (var (n, p) in people.OrderBy(kv => kv.Key)) first.TryAdd(p.Id, n);
@@ -428,18 +495,22 @@ public static class Narrative
                 var runs = new List<Run> { Run.B($"{n}. ") };
                 runs.AddRange(w.Story(p));
                 doc.Add(new Paragraph(StoryWriter.Compact(runs), $"a-{n}"));
-                foreach (var para in StoryWriter.NoteParagraphs(p.Note)) doc.Add(new Paragraph(para));
+                if (Photo(p) is { } photo) doc.Add(photo);
+                foreach (var block in NoteFormat.Blocks(p.Note)) doc.Add(block);
             }
         }
         w.Current = null;
 
         // Descendants, as a register.
-        doc.Add(new PageBreak());
-        doc.Add(new Heading(1, $"Descendants of {root.DisplayName}", "descendants"));
-        doc.Add(new Paragraph(
-            "Everyone with a family of their own has a numbered entry. In the lists of children, a plus sign (+) and a number " +
-            "mean that child’s own family is described later under that number.", ParagraphStyle.Muted));
-        WriteRegister(doc, new StoryWriter(tree, notes, index), tree, root, Math.Clamp(options.DescendantGenerations, 1, 50), "d", "D", headingLevel: 2);
+        if (options.DescendantGenerations > 0)
+        {
+            doc.Add(new PageBreak());
+            doc.Add(new Heading(1, $"Descendants of {root.DisplayName}", "descendants"));
+            doc.Add(new Paragraph(
+                "Everyone with a family of their own has a numbered entry. In the lists of children, a plus sign (+) and a number " +
+                "mean that child’s own family is described later under that number.", ParagraphStyle.Muted));
+            WriteRegister(doc, new StoryWriter(tree, notes, index), tree, root, Math.Clamp(options.DescendantGenerations, 1, 50), "d", "D", headingLevel: 2, Photo);
+        }
 
         if (notes != null && notes.SourceIds.Count > 0)
         {
@@ -452,6 +523,20 @@ public static class Narrative
         }
         if (index != null) doc.Index.AddRange(index.Entries());
         return doc;
+    }
+
+    private static readonly string[] PictureTypes = { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp" };
+
+    /// <summary>The person's profile photo (or else their first picture) as a captioned picture, if its file can be found.</summary>
+    private static Picture? PortraitOf(Person p, Func<string, string?> find)
+    {
+        foreach (var m in p.Media.Where(m => m.Primary).Concat(p.Media))
+        {
+            if (!PictureTypes.Contains(Path.GetExtension(m.File).ToLowerInvariant())) continue;
+            if (find(m.File) is { } path && File.Exists(path))
+                return new Picture(path, m.Title.Trim().Length > 0 ? m.Title.Trim() : p.DisplayName);
+        }
+        return null;
     }
 
     /// <summary>One person's life as a single plain paragraph, without source notes — for web pages and tooltips.</summary>

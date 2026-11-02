@@ -8,7 +8,7 @@
     <StackPanel MaxWidth="980" Margin="32,28,32,40" Spacing="20">
 
       <StackPanel IsVisible="{Binding HasNoPlaces}" HorizontalAlignment="Center" Margin="0,100,0,0" Spacing="8" MaxWidth="400">
-        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
           <c:LineIcon Data="{StaticResource IconGlobe}" Width="28" Height="28" />
         </Border>
         <TextBlock Classes="title" Text="No places yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
@@ -17,7 +17,7 @@
       </StackPanel>
 
       <!-- Map of every place with GPS -->
-      <Border Height="380" CornerRadius="14" ClipToBounds="True" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+      <Border Height="380" CornerRadius="10" ClipToBounds="True" BorderBrush="{DynamicResource Line}" BorderThickness="1"
               IsVisible="{Binding HasPlacePins}">
         <c:MapView Name="PlacesMap" Pins="{Binding PlacePins}" />
       </Border>
@@ -74,7 +74,7 @@
       <Border Classes="card" Padding="26,24" IsVisible="{Binding HasSelectedPlace}">
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="Auto,*,Auto">
-            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" VerticalAlignment="Top">
+            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" VerticalAlignment="Top">
               <c:LineIcon Data="{StaticResource IconPin}" Width="26" Height="26" />
             </Border>
             <StackPanel Grid.Column="1" Margin="18,2,16,0" Spacing="4">

@@ -33,6 +33,47 @@ public class DocumentRenderTests
         yield return ("surnames", Narrative.SurnameList(t));
         yield return ("calendar", Narrative.BirthdayCalendar(t));
         yield return ("book", Narrative.FamilyBook(t, t.People[5], new FamilyBookOptions { Author = "A. Cousin" }));
+        yield return ("book with photos", BookWithPhoto(t));
+    }
+
+    /// <summary>A small portrait on disk, made the way a camera's JPEG would be read.</summary>
+    private static readonly Lazy<string> Portrait = new(() =>
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lineage-portrait-{Guid.NewGuid():N}.png");
+        using var bmp = new SkiaSharp.SKBitmap(60, 80);
+        bmp.Erase(new SkiaSharp.SKColor(120, 90, 60));
+        using var data = SkiaSharp.SKImage.FromBitmap(bmp).Encode(SkiaSharp.SKEncodedImageFormat.Png, 90);
+        File.WriteAllBytes(path, data.ToArray());
+        return path;
+    });
+
+    private static ReportDocument BookWithPhoto(FamilyTree t)
+    {
+        t.People[1].Media.Add(new MediaLink { File = Portrait.Value, Title = "Thomas in 1900", MediaType = "PHOTO", Primary = true });
+        var options = new FamilyBookOptions { Author = "A. Cousin", FindMedia = f => f, AncestorGenerations = 0 };
+        options.Chapters.Add(new BookChapter("Stories from the farm", "Grandmother kept bees.\n\nThe barn burned in 1902."));
+        return Narrative.FamilyBook(t, t.People[1], options);
+    }
+
+    [AvaloniaFact]
+    public void ABookCarriesPhotosAndChaptersYouWrite()
+    {
+        var doc = BookWithPhoto(Tree());
+        Assert.Contains(doc.Blocks.OfType<Heading>(), h => h.Text == "Stories from the farm");
+        Assert.Contains(doc.Blocks.OfType<Paragraph>(), p => p.Text == "Grandmother kept bees.");
+        Assert.DoesNotContain(doc.Blocks.OfType<Heading>(), h => h.Text.StartsWith("Ancestors of"));   // left out
+        Assert.Contains(doc.Blocks.OfType<Picture>(), p => p.Caption == "Thomas in 1900");
+
+        var path = Path.Combine(Path.GetTempPath(), $"lineage-photo-{Guid.NewGuid():N}.docx");
+        try
+        {
+            DocumentDocx.Save(doc, path);
+            using var word = WordprocessingDocument.Open(path, false);
+            Assert.Single(word.MainDocumentPart!.ImageParts);
+            Assert.True(DocumentPdf.Generate(doc).Length > DocumentPdf.Generate(Narrative.FamilyBook(Tree(), Tree().People[1],
+                new FamilyBookOptions { AncestorGenerations = 0, IncludePhotos = false })).Length);
+        }
+        finally { File.Delete(path); }
     }
 
     [AvaloniaFact]

@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         }
         if (e.Key == Key.F && e.KeyModifiers == KeyModifiers.Control)
         {
+            if (DataContext is MainViewModel { HasTree: true, IsPeopleList: false } vm) vm.Section = AppSection.People;
             SearchBox.Focus();
             SearchBox.SelectAll();
             e.Handled = true;
@@ -122,9 +123,9 @@ public partial class MainWindow : Window
         await Task.Delay(delayMs);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var scale = window.RenderScaling;
-            var size = new PixelSize((int)(window.Bounds.Width * scale), (int)(window.Bounds.Height * scale));
-            using var bmp = new RenderTargetBitmap(size, new Vector(96 * scale, 96 * scale));
+            // At 100%: the off-screen renderer misplaces shadows and pictures when it scales.
+            var size = new PixelSize((int)window.Bounds.Width, (int)window.Bounds.Height);
+            using var bmp = new RenderTargetBitmap(size, new Vector(96, 96));
             bmp.Render(window);
             bmp.Save(path);
             if (window is MainWindow main) main.CloseWithoutAsking(); else window.Close();

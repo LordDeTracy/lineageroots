@@ -72,6 +72,7 @@ public sealed partial class MainViewModel
         if (IsHomeSection) RebuildHome();
         if (IsPlacesSection) RebuildPlaceList();
         if (IsDnaSection) RebuildDna();
+        if (IsEvidenceAnalysis && !_savingConclusion) RebuildEvidence();
         var id = showId ?? _current?.Id;
         if (id is { } i && _tree.Person(i) != null) Show(i, recordHistory: showId != null && showId != _current?.Id);
         else if (_tree.People.Count > 0) Show(_tree.People.Keys.Min(), recordHistory: false);
@@ -100,6 +101,7 @@ public sealed partial class MainViewModel
         RegisterReportCommand.NotifyCanExecuteChanged();
         IndividualSummaryCommand.NotifyCanExecuteChanged();
         FamilyBookCommand.NotifyCanExecuteChanged();
+        ClientReportCommand.NotifyCanExecuteChanged();
         OpenOnFamilySearchCommand.NotifyCanExecuteChanged();
         FamilySearchFindCommand.NotifyCanExecuteChanged();
         FamilySearchCompareCommand.NotifyCanExecuteChanged();

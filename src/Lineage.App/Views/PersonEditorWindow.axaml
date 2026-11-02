@@ -150,8 +150,20 @@
           </StackPanel>
 
           <StackPanel>
-            <TextBlock Classes="section" Text="NOTES" Margin="2,0,0,10" />
-            <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180" MaxHeight="460"
+            <Grid ColumnDefinitions="*,Auto" Margin="2,0,0,8">
+              <TextBlock Classes="section" Text="NOTES" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                <Button Classes="ghost" Click="OnNoteBold" ToolTip.Tip="Bold (Ctrl+B): **like this**" MinWidth="34">
+                  <TextBlock Text="B" FontWeight="Bold" />
+                </Button>
+                <Button Classes="ghost" Click="OnNoteItalic" ToolTip.Tip="Italic (Ctrl+I): *like this*" MinWidth="34">
+                  <TextBlock Text="I" FontStyle="Italic" FontFamily="Georgia, serif" />
+                </Button>
+                <Button Classes="ghost" Click="OnNoteBullet" ToolTip.Tip="Bullet point: a line starting with -" MinWidth="34" Content="•" />
+                <Button Classes="ghost" Click="OnNoteHeading" ToolTip.Tip="Small heading: a line starting with ##" MinWidth="34" Content="H" />
+              </StackPanel>
+            </Grid>
+            <TextBox Name="NoteBox" Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180" MaxHeight="460"
                      Watermark="Stories, research notes, anything worth remembering"
                      VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
           </StackPanel>

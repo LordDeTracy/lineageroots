@@ -49,18 +49,43 @@
         <Grid ColumnDefinitions="*,14,*">
           <StackPanel>
             <TextBlock Classes="label" Text="Generations of ancestors" />
-            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding AncestorGenerations}" HorizontalAlignment="Stretch"
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedIndex="{Binding AncestorIndex}" HorizontalAlignment="Stretch"
                       AutomationProperties.Name="Generations of ancestors" />
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Classes="label" Text="Generations of descendants" />
-            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding DescendantGenerations}" HorizontalAlignment="Stretch"
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedIndex="{Binding DescendantIndex}" HorizontalAlignment="Stretch"
                       AutomationProperties.Name="Generations of descendants" />
           </StackPanel>
         </Grid>
         <StackPanel Spacing="6">
           <CheckBox IsChecked="{Binding IncludeSources}" Content="Source notes and a list of sources" />
           <CheckBox IsChecked="{Binding IncludeIndex}" Content="An index of names" />
+          <CheckBox IsChecked="{Binding IncludePhotos}" Content="Each person's profile photo beside their story" />
+        </StackPanel>
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="YOUR OWN CHAPTERS" />
+          <TextBlock Classes="muted small" TextWrapping="Wrap"
+                     Text="Family stories, memories, the history of a farm or a village: each chapter follows the introduction." />
+          <ItemsControl ItemsSource="{Binding Chapters}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ChapterRow">
+                <Border Classes="card" Padding="12" Margin="0,0,0,8">
+                  <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBox Text="{Binding Title}" Watermark="Chapter title" AutomationProperties.Name="Chapter title" />
+                      <Button Grid.Column="1" Classes="ghost" Margin="6,0,0,0" Command="{Binding RemoveCommand}"
+                              ToolTip.Tip="Remove this chapter" Content="✕" />
+                    </Grid>
+                    <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" Height="110"
+                             VerticalContentAlignment="Top" Watermark="Write the chapter here. A blank line starts a new paragraph."
+                             AutomationProperties.Name="Chapter text" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Classes="outline" Command="{Binding AddChapterCommand}" HorizontalAlignment="Left" Content="Add a chapter" />
         </StackPanel>
         <StackPanel Spacing="8">
           <TextBlock Classes="section" Text="FORMAT" />

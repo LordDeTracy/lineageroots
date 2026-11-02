@@ -19,6 +19,7 @@ public sealed partial class MainViewModel
     public ObservableCollection<HomeLine> Anniversaries { get; } = new();
     public ObservableCollection<HomeLine> HealthLines { get; } = new();
     public ObservableCollection<string> TopSurnames { get; } = new();
+    public ObservableCollection<KeyFigure> KeyFigures { get; } = new();
 
     [ObservableProperty] private string _homeStatsText = "";
     [ObservableProperty] private bool _hasHomeResearch;

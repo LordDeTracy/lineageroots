@@ -32,7 +32,7 @@ public partial class PersonPage : UserControl
         };
     }
 
-    private ZoomHost[] Hosts => new[] { PedigreeHost, FanHost, DescendantHost, HourglassHost };
+    private ZoomHost[] Hosts => new[] { PedigreeHost, FanHost, DescendantHost, HourglassHost, LifelinesHost, RelationshipHost, StatisticsHost };
 
     public void ScrollPageTo(double y) =>
         Dispatcher.UIThread.Post(() => PageScroller.Offset = new Vector(0, y), DispatcherPriority.Background);
@@ -44,6 +44,9 @@ public partial class PersonPage : UserControl
         PersonView.FanChart => FanHost,
         PersonView.Descendants => DescendantHost,
         PersonView.Hourglass => HourglassHost,
+        PersonView.Lifelines => LifelinesHost,
+        PersonView.Relationship => RelationshipHost,
+        PersonView.Statistics => StatisticsHost,
         _ => null,
     } : null;
 
@@ -60,6 +63,9 @@ public partial class PersonPage : UserControl
         PersonView.FanChart => "Fan chart",
         PersonView.Descendants => "Descendants",
         PersonView.Hourglass => "Hourglass",
+        PersonView.Lifelines => "Lifelines",
+        PersonView.Relationship => "Relationship",
+        PersonView.Statistics => "Statistics",
         _ => "Pedigree",
     };
 
@@ -87,6 +93,24 @@ public partial class PersonPage : UserControl
             vm.Status = $"Saved {Path.GetFileName(path)}";
         }
         catch (Exception ex) { vm.Status = $"Couldn't save the image: {ex.Message}"; }
+    }
+
+    /// <summary>Opens the designer on the chart showing (or a pedigree), for the person showing.</summary>
+    private async void OnWallChartDesigner(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || vm.Current is not { } person || TopLevel.GetTopLevel(this) is not Window owner) return;
+        var kind = vm.View switch
+        {
+            PersonView.FanChart => WallChartKind.Fan,
+            PersonView.Descendants => WallChartKind.Descendants,
+            PersonView.Hourglass => WallChartKind.Hourglass,
+            _ => WallChartKind.Pedigree,
+        };
+        var designer = new WallChartDesignerViewModel(vm.Tree, person, vm.TreeName, kind, vm.ChartsShowEvidence);
+        var path = await new WallChartDesignerWindow { DataContext = designer }.ShowDialog<string?>(owner);
+        if (path == null) return;
+        vm.Status = $"Saved {Path.GetFileName(path)}: {designer.PlanText}.";
+        MainViewModel.OpenExternal(path);
     }
 
     private void OnWallChartPoster(object? sender, RoutedEventArgs e) => _ = SaveWallChartAsync(WallChartMode.SinglePoster);

@@ -175,6 +175,23 @@ public sealed partial class MainViewModel
         Status = $"Recorded the {census.Name} for {lines.Count(l => l.PersonId != null || l.AddAsNew)} people";
     }
 
+    /// <summary>Transcribes a parish register entry, will or deed into facts and citations, starting with the person showing.</summary>
+    [RelayCommand]
+    private async Task TranscribeRecordAsync()
+    {
+        if (!HasTree) return;
+        var form = new TranscribeViewModel(_tree, _current);
+        if (!await _dialogs.TranscribeAsync(form)) return;
+        var t = form.ToTranscription();
+        var touched = new List<Entity>();
+        foreach (var p in t.Lines.Select(l => _tree.Person(l.PersonId)).OfType<Person>())
+            touched.AddRange(_tree.Around(p));
+        List<Person> recorded = new();
+        Change($"transcribe a {RecordTranscription.Label(t.Kind).ToLowerInvariant()}", touched.Distinct(),
+            () => recorded = RecordTranscription.Save(_tree, t));
+        Status = $"Recorded the {RecordTranscription.Label(t.Kind).ToLowerInvariant()} for {recorded.Count} {(recorded.Count == 1 ? "person" : "people")}";
+    }
+
     [RelayCommand]
     private void AddCensusTask(CensusRow row)
     {

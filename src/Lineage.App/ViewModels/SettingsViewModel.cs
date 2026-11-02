@@ -18,6 +18,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _onlineMaps = s.OnlineMaps;
         _saveAutomatically = s.SaveAutomatically;
         _checkForUpdates = s.CheckForUpdates;
+        _languageIndex = Math.Max(0, Translator.Languages.ToList().FindIndex(l => l.Code == s.Language));
     }
 
     public string[] AutoSaveOptions { get; } = { "Off", "Every 2 minutes", "Every 5 minutes", "Every 10 minutes", "Every 15 minutes" };
@@ -31,7 +32,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _onlineMaps;
     [ObservableProperty] private bool _saveAutomatically;
     [ObservableProperty] private bool _checkForUpdates;
-    public string VersionText => $"You have version {Updater.Current}.";
+    [ObservableProperty] private int _languageIndex;
+    public IReadOnlyList<string> LanguageOptions { get; } = Translator.Languages.Select(l => l.Name).ToList();
+    public string VersionText => $"You have version {Updater.Current}. Copyright © 2026 Dellingr Dynamics.";
 
     public void Apply(AppSettings s)
     {
@@ -41,5 +44,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         s.OnlineMaps = OnlineMaps;
         s.SaveAutomatically = SaveAutomatically;
         s.CheckForUpdates = CheckForUpdates;
+        s.Language = Translator.Languages[Math.Clamp(LanguageIndex, 0, Translator.Languages.Count - 1)].Code;
     }
 }

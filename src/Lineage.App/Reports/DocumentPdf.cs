@@ -28,6 +28,7 @@ public static class DocumentPdf
 
     private static Document Create(ReportDocument doc)
     {
+        doc = Services.Translator.Translate(doc);
         // Links only to anchors that exist: a dangling link would point nowhere.
         var anchors = new HashSet<string>(StringComparer.Ordinal);
         foreach (var b in doc.Blocks)
@@ -125,7 +126,18 @@ public static class DocumentPdf
                 case BulletList l: List(col, l); break;
                 case Table t: Table(col, t); break;
                 case PageBreak: col.Item().PageBreak(); break;
+                case Picture pic: Picture(col, pic); break;
             }
+        }
+
+        private static void Picture(ColumnDescriptor col, Picture pic)
+        {
+            if (PictureData.Load(pic.File) is not { } data) return;
+            col.Item().PaddingTop(6).PaddingBottom(4).Width(pic.Width).Column(c =>
+            {
+                c.Item().Image(data.Jpeg).FitWidth();
+                if (pic.Caption.Length > 0) c.Item().PaddingTop(3).Text(Clean(pic.Caption)).FontSize(8).FontColor(Muted);
+            });
         }
 
         private void Heading(ColumnDescriptor col, int level, string text, string? anchor)

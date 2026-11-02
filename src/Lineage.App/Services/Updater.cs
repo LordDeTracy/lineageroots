@@ -212,8 +212,10 @@ public static partial class Updater
             }
             var fresh = Directory.EnumerateFiles(work, name, SearchOption.AllDirectories).FirstOrDefault()
                         ?? throw new InvalidDataException($"The download doesn't contain {name}.");
+            // A copy left by the last update may be locked or read-only (OneDrive holds files it's uploading): then set
+            // this one aside under another name rather than fail.
             var old = programPath + ".old";
-            if (File.Exists(old)) File.Delete(old);
+            if (File.Exists(old) && !TryDelete(old)) old = $"{programPath}.{DateTime.Now:yyyyMMddHHmmss}.old";
             File.Move(programPath, old);
             try
             {
@@ -237,11 +239,35 @@ public static partial class Updater
         }
     }
 
-    /// <summary>Deletes the previous program file left by an update. Called at start-up.</summary>
+    /// <summary>Deletes the previous program files left by updates. Called at start-up.</summary>
     public static void CleanUpAfterUpdate()
     {
         if (Environment.ProcessPath is not { } path) return;
-        try { if (File.Exists(path + ".old")) File.Delete(path + ".old"); } catch { /* still in use; next time */ }
+        CleanUp(path);
+    }
+
+    /// <summary>Removes every copy set aside next to the program ("….old", "….20261101120000.old"), where it can.</summary>
+    internal static void CleanUp(string programPath)
+    {
+        try
+        {
+            var folder = Path.GetDirectoryName(programPath)!;
+            var name = Path.GetFileName(programPath);
+            foreach (var file in Directory.EnumerateFiles(folder, name + ".*old"))
+                TryDelete(file);   // still in use or locked: next time
+        }
+        catch (Exception) { /* the folder can't be read; nothing to tidy */ }
+    }
+
+    private static bool TryDelete(string file)
+    {
+        try
+        {
+            File.SetAttributes(file, FileAttributes.Normal);   // OneDrive and others can leave it read-only
+            File.Delete(file);
+            return true;
+        }
+        catch (Exception) { return false; }
     }
 
     /// <summary>Starts the (new) program again.</summary>

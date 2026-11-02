@@ -12,7 +12,9 @@ public class ReportsWiringTests
         {
             vm.RegisterReportCommand, vm.IndividualSummaryCommand, vm.PlaceListReportCommand,
             vm.SurnameListReportCommand, vm.BirthdayCalendarCommand, vm.FamilyBookCommand,
+            vm.ClientReportCommand, vm.PrintResearchCommand,
         };
+        dialogs.PromptAnswer = "Example";   // the client report's questions
         foreach (var command in commands)
             foreach (var ext in new[] { ".pdf", ".docx" })
             {
@@ -46,5 +48,58 @@ public class ReportsWiringTests
         Assert.Contains("Thomas Edward", all);
         Assert.DoesNotContain("Young", all);
         Directory.Delete(folder, recursive: true);
+    }
+
+    [AvaloniaFact]
+    public async Task AClientReportLaysOutTheResearch()
+    {
+        var (vm, dialogs) = await Demo.OpenAsync();
+        var thomas = vm.Tree.People[1];
+        var birth = thomas.Find("BIRT")!;
+        birth.Conclusion = Lineage.Core.Model.FactConclusion.Proven;
+        birth.Reasoning = "The baptism register entry was made at the time.";
+        thomas.ResearchIds.Add(vm.Tree.AddResearch(new Lineage.Core.Model.ResearchItem
+        {
+            Description = "Searched the 1851 census for Thomas", Result = Lineage.Core.Model.SearchResult.NotFound,
+            Note = "FamilySearch index",
+        }).Id);
+
+        var doc = Lineage.Core.Reports.ClientReport.Build(vm.Tree, thomas,
+            new Lineage.Core.Reports.ClientReportOptions("The Gray family", "A. Researcher", "Who were Thomas's parents?"));
+        Assert.Equal("Research report: Thomas Edward Whitfield", doc.Title);
+        Assert.StartsWith("Prepared for The Gray family · by A. Researcher", doc.Subtitle);
+        var headings = doc.Blocks.OfType<Lineage.Core.Reports.Heading>().Select(h => h.Text).ToList();
+        Assert.Equal(new[] { "Research objective", "Summary of findings", "Conclusions", "Evidence", "Searches made",
+                             "Recommendations for further research", "Sources consulted" },
+                     headings.Where((_, i) => doc.Blocks.OfType<Lineage.Core.Reports.Heading>().ElementAt(i).Level == 1));
+        Assert.Contains(headings, h => h.StartsWith("Birth") && h.EndsWith("proven"));
+        Assert.Contains(headings, h => h == "When and where was Thomas born?");
+        var searches = doc.Blocks.OfType<Lineage.Core.Reports.Table>().Single(t => t.Headers[0] == "Search");
+        Assert.Equal("Not found", searches.Rows.Single()[3].Text);
+
+        // Saved for a look when asked for (LINEAGE_SAMPLE_REPORT=path.pdf).
+        if (Environment.GetEnvironmentVariable("LINEAGE_SAMPLE_REPORT") is { Length: > 0 } sample)
+        {
+            dialogs.SavePath = sample;
+            dialogs.PromptAnswer = "The Gray family";
+            await vm.ClientReportCommand.ExecuteAsync(null);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task ThePhoneViewerIsOneFileWithTheTreeInIt()
+    {
+        var (vm, dialogs) = await Demo.OpenAsync();
+        var path = Path.Combine(Path.GetTempPath(), $"lineage-phone-{Guid.NewGuid():N}.html");
+        try
+        {
+            dialogs.SavePath = path;
+            await vm.ExportPhoneViewerCommand.ExecuteAsync(null);
+            var html = File.ReadAllText(path);
+            Assert.StartsWith("<!doctype html>", html);
+            Assert.Contains("Thomas Edward Whitfield", html);
+            Assert.Contains(dialogs.Messages, m => m.Contains("web browser"));
+        }
+        finally { File.Delete(path); }
     }
 }

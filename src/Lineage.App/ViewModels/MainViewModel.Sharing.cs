@@ -55,9 +55,11 @@ public sealed partial class MainViewModel
         FamilyTree theirs;
         try
         {
-            theirs = await Task.Run(() => Path.GetExtension(path).Equals(".ged", StringComparison.OrdinalIgnoreCase)
-                ? Lineage.Core.Import.Gedcom.GedcomImporter.ImportFile(path)
-                : LineageStore.Load(path));
+            var loaded = Path.GetExtension(path).Equals(".ged", StringComparison.OrdinalIgnoreCase)
+                ? await Task.Run(() => Lineage.Core.Import.Gedcom.GedcomImporter.ImportFile(path))
+                : await LoadLineageAsync(path);
+            if (loaded == null) return;
+            theirs = loaded;
         }
         catch (Exception ex)
         {

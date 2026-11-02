@@ -51,6 +51,8 @@ public sealed partial class MainViewModel
         snapshot.NotDuplicates.UnionWith(_tree.NotDuplicates);
         snapshot.Shares.AddRange(_tree.Shares.Select(LineageStore.Copy));
         snapshot.SharedFrom = _tree.SharedFrom is { } from ? LineageStore.Copy(from) : null;
+        snapshot.History.AddRange(_tree.History);   // entries are never changed in place, so sharing them is safe
+        snapshot.Lock = _tree.Lock;
         return snapshot;
     }
 
@@ -141,6 +143,23 @@ public sealed partial class MainViewModel
         try { _settings.Save(); } catch (Exception) { }
     }
 
+    /// <summary>The getting-started tour (F1). "Don't show this again" is kept for next start-up.</summary>
+    [RelayCommand]
+    private async Task ShowTutorialAsync()
+    {
+        var tour = new TutorialViewModel(_settings.ShowTutorial);
+        await _dialogs.ShowTutorialAsync(tour);
+        if (_settings.ShowTutorial == !tour.DontShowAgain) return;
+        _settings.ShowTutorial = !tour.DontShowAgain;
+        try { _settings.Save(); } catch (Exception) { }
+    }
+
+    /// <summary>At start-up, the tour, unless it was turned off.</summary>
+    public async Task ShowTutorialAtStartAsync()
+    {
+        if (_settings.ShowTutorial) await ShowTutorialAsync();
+    }
+
     /// <summary>At start-up, opens the tree that was open last time, where the user left off.</summary>
     public async Task OpenLastFileAsync()
     {
@@ -206,7 +225,7 @@ public sealed partial class MainViewModel
     {
         try
         {
-            var tree = await Task.Run(() => LineageStore.Load(entry.RecoveryFile));
+            if (await LoadLineageAsync(entry.RecoveryFile) is not { } tree) return;
             tree.Name = entry.TreeName;
             Load(tree, entry.OriginalPath, "Recovered", 0);
             MarkChanged();

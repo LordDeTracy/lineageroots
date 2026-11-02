@@ -1,0 +1,120 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.TranscribeWindow"
+        x:DataType="vm:TranscribeViewModel"
+        x:Name="Root"
+        Title="{Binding Title}" Width="980" Height="820" MinWidth="660" MinHeight="460" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <Window.Styles>
+    <Style Selector="TextBox.cell">
+      <Setter Property="Width" Value="140" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+      <Setter Property="UseFloatingWatermark" Value="True" />
+    </Style>
+    <Style Selector="TextBox.short"><Setter Property="Width" Value="64" /></Style>
+    <Style Selector="TextBox.wide"><Setter Property="Width" Value="240" /></Style>
+  </Window.Styles>
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <CheckBox IsChecked="{Binding AddDetails}" Content="Also add occupations and residences as facts" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="140" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save record" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="28,24,28,24" Spacing="14">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
+        <ListBox Classes="segmented" ItemsSource="{x:Static vm:TranscribeViewModel.Kinds}" SelectedIndex="{Binding KindIndex}"
+                 HorizontalAlignment="Left" AutomationProperties.Name="Kind of record">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        </ListBox>
+
+        <Grid ColumnDefinitions="3*,14,2*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Source" />
+            <AutoCompleteBox Text="{Binding SourceTitle}" ItemsSource="{Binding SourceTitles}" FilterMode="Contains"
+                             Watermark="e.g. St Peter's, Leeds: baptisms 1840–1850" AutomationProperties.Name="Source" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Reference" />
+            <TextBox Text="{Binding Reference}" Watermark="Page, entry, folio, book and page" AutomationProperties.Name="Reference" />
+          </StackPanel>
+        </Grid>
+        <Grid ColumnDefinitions="*,14,*,14,2*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{Binding DateLabel}" />
+            <TextBox Text="{Binding Date}" Watermark="e.g. 3 Mar 1844" AutomationProperties.Name="{Binding DateLabel}" />
+            <TextBlock Classes="small" Foreground="{DynamicResource Accent}" Text="{Binding DateHint}" IsVisible="{Binding HasDateHint}" Margin="2,4,0,0" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" IsVisible="{Binding HasSecondDate}">
+            <TextBlock Classes="label" Text="{Binding SecondDateLabel}" />
+            <TextBox Text="{Binding SecondDate}" AutomationProperties.Name="{Binding SecondDateLabel}" />
+          </StackPanel>
+          <StackPanel Grid.Column="4">
+            <TextBlock Classes="label" Text="Place" />
+            <TextBox Text="{Binding Place}" Watermark="Church or court, town, county, country" AutomationProperties.Name="Place" />
+          </StackPanel>
+        </Grid>
+
+        <TextBlock Classes="section" Text="PEOPLE NAMED IN THE RECORD" Margin="2,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecordLineRow">
+              <Border Classes="card" Padding="14,10,6,4">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <WrapPanel>
+                    <ComboBox ItemsSource="{Binding Form.Roles}" SelectedItem="{Binding Role}" Width="150" Margin="0,0,8,8"
+                              AutomationProperties.Name="Role" ToolTip.Tip="Their part in the record" />
+                    <TextBox Classes="cell wide" Text="{Binding Name}" Watermark="Name as written" AutomationProperties.Name="Name" />
+                    <ComboBox ItemsSource="{Binding Form.People}" SelectedItem="{Binding Person}" Width="260" Margin="0,0,8,8"
+                              AutomationProperties.Name="Person in the tree" ToolTip.Tip="Who this is in the tree" />
+                  </WrapPanel>
+                  <Button Grid.Column="1" Classes="ghost icon" Width="32" Height="32" Padding="7" VerticalAlignment="Top"
+                          Command="{Binding #Root.((vm:TranscribeViewModel)DataContext).RemoveLineCommand}" CommandParameter="{Binding}"
+                          ToolTip.Tip="Remove this person" AutomationProperties.Name="Remove person">
+                    <c:LineIcon Data="{StaticResource IconX}" Width="16" Height="16" />
+                  </Button>
+                  <WrapPanel Grid.Row="1" Grid.ColumnSpan="2">
+                    <TextBox Classes="cell short" Text="{Binding Sex}" Watermark="Sex" AutomationProperties.Name="Sex" />
+                    <TextBox Classes="cell short" Text="{Binding Age}" Watermark="Age" AutomationProperties.Name="Age" />
+                    <TextBox Classes="cell" Text="{Binding Residence}" Watermark="Of (residence)" AutomationProperties.Name="Residence" />
+                    <TextBox Classes="cell" Text="{Binding Occupation}" Watermark="Occupation" AutomationProperties.Name="Occupation" />
+                    <TextBox Classes="cell wide" Text="{Binding Note}" Watermark="Anything else (bequest, land…)" AutomationProperties.Name="Note" />
+                  </WrapPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Classes="ghost accentText" Command="{Binding AddLineCommand}" HorizontalAlignment="Left" Margin="-10,0,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+            <TextBlock Text="Add a person named in the record" Foreground="{DynamicResource Accent}" />
+          </StackPanel>
+        </Button>
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="The record, word for word (optional)" />
+          <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120" MaxHeight="360"
+                   VerticalContentAlignment="Top" AutomationProperties.Name="Transcript"
+                   Watermark="Type the entry as written. Left empty, a summary is made from the people above." />
+        </StackPanel>
+        <TextBlock Classes="muted small" TextWrapping="Wrap"
+                   Text="Saving adds the record's facts with a citation (the christening, marriage, burial, will and probate, or deed), links a baptised child to the parents named, and gives everyone else in the tree an event showing where they appear." />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

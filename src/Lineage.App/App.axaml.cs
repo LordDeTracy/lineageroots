@@ -30,6 +30,7 @@ public partial class App : Application
     public static MainWindow OpenWindow(string? file)
     {
         var window = new MainWindow();
+        window.WindowState = WindowState.Maximized;
         var vm = new MainViewModel(new DialogService(window));
         window.DataContext = vm;
         if (file != null) window.Opened += async (_, _) => await vm.OpenPathAsync(file);
@@ -45,6 +46,8 @@ public partial class App : Application
             Updater.CleanUpAfterUpdate();
             desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
             var settings = AppSettings.Load();
+            Translator.Use(settings.Language);
+            Translator.Install();
             Lineage.App.Controls.MapView.AllowOnlineTiles = settings.OnlineMaps;
             RequestedThemeVariant = settings.Theme switch
             {
@@ -68,6 +71,7 @@ public partial class App : Application
             var person = TakeOption(args, "--person");
             var evidence = args.Remove("--evidence");
             var pdf = TakeOption(args, "--pdf");
+            if (TakeOption(args, "--lang") is { } lang) Translator.Use(lang);
 
             if (screenshot != null || pdf != null)
             {
@@ -77,6 +81,7 @@ public partial class App : Application
             }
             var window = new MainWindow();
             if (size?.Split('x') is [var w, var h]) { window.Width = double.Parse(w); window.Height = double.Parse(h); }
+            else window.WindowState = WindowState.Maximized;   // opens filling the screen
             var vm = new MainViewModel(new DialogService(window));
             window.DataContext = vm;
             desktop.MainWindow = window;
@@ -85,6 +90,7 @@ public partial class App : Application
             {
                 if (file != null) await vm.OpenPathAsync(file);
                 else if (screenshot == null && pdf == null) await vm.OpenLastFileAsync();
+                if (screenshot == null && pdf == null) await vm.ShowTutorialAtStartAsync();
                 if (long.TryParse(person, out var pid)) vm.NavigateCommand.Execute(pid);
                 if (evidence) vm.ChartsShowEvidence = true;
                 if (pdf != null)
@@ -102,6 +108,9 @@ public partial class App : Application
                 switch (view)
                 {
                     case "pedigree": vm.View = PersonView.Pedigree; break;
+                    case "lifelines": vm.View = PersonView.Lifelines; break;
+                    case "relationship": vm.View = PersonView.Relationship; break;
+                    case "statistics": vm.View = PersonView.Statistics; break;
                     case "fan": vm.View = PersonView.FanChart; break;
                     case "descendants": vm.View = PersonView.Descendants; break;
                     case "hourglass": vm.View = PersonView.Hourglass; break;
@@ -112,6 +121,13 @@ public partial class App : Application
                     case "home": vm.Section = AppSection.Home; break;
                     case "places": vm.Section = AppSection.Places; break;
                     case "research": vm.Section = AppSection.Research; break;
+                    case "reports": vm.Section = AppSection.Reports; break;
+                    case "evidence":
+                        vm.Section = AppSection.Sources;
+                        vm.EvidenceModeIndex = 1;
+                        await vm.EvidenceTask;
+                        vm.SelectedEvidence = vm.EvidenceRows.FirstOrDefault();
+                        break;
                     case "dna": vm.Section = AppSection.Dna; break;
                     case "suggested": vm.Section = AppSection.Research; vm.ResearchFilterIndex = 3; break;
                     case "quick": vm.OpenQuickSearchCommand.Execute(null); vm.QuickSearchText = "whit"; break;
@@ -141,9 +157,17 @@ public partial class App : Application
                         "research" => vm.NewResearchCommand.ExecuteAsync(null),
                         "review" => DemoReview(vm),
                         "census" => vm.EnterCensusHouseholdCommand.ExecuteAsync(null),
+                        "transcribe" => vm.TranscribeRecordCommand.ExecuteAsync(null),
+                        "tutorial" => vm.ShowTutorialCommand.ExecuteAsync(null),
+                        "wallchart" => new Views.WallChartDesignerWindow
+                        {
+                            DataContext = new WallChartDesignerViewModel(vm.Tree, vm.Current!, vm.TreeName, WallChartKind.Pedigree, false) { Note = "Made for the family reunion" },
+                        }.ShowDialog<string?>(window),
+                        "bookdialog" => DemoBook(vm, window),
                         "photo" => vm.OpenPhotoCommand.ExecuteAsync(vm.Photos.First()),
                         "dnamatch" => vm.EditDnaMatchCommand.ExecuteAsync(vm.DnaMatchRows.Skip(2).First()),
                         "problems" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindProblemsCommand.Execute(null))),
+                        "share" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.ShareOnNetworkCommand.Execute(null))),
                         "relationship" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindRelationshipCommand.Execute(null))),
                         _ => vm.EditPersonCommand.ExecuteAsync(null),
                     };
@@ -163,6 +187,16 @@ public partial class App : Application
     }
 
     /// <summary>For screenshots: a copy of the open tree with a few made-up edits, shown in the review window.</summary>
+    /// <summary>The book dialog with a chapter filled in, for screenshots.</summary>
+    private static Task DemoBook(MainViewModel vm, Window owner)
+    {
+        var options = new BookOptionsViewModel(vm.CurrentName, "A. Cousin") { DescendantGenerations = 0 };
+        options.AddChapterCommand.Execute(null);
+        options.Chapters[0].Title = "Stories from the farm";
+        options.Chapters[0].Text = "Grandmother kept bees behind the barn.";
+        return new Views.BookOptionsWindow { DataContext = options }.ShowDialog<bool>(owner);
+    }
+
     private static Task DemoReview(MainViewModel vm)
     {
         var (copy, share) = Lineage.Core.Sharing.ShareReview.CreateCopy(vm.Tree, "Cousin Ada", new Lineage.Core.Export.PrivacyOptions());

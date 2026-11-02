@@ -1,0 +1,60 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.HistoryWindow"
+        x:DataType="vm:HistoryViewModel"
+        x:Name="Root"
+        Title="Change history" Width="760" Height="640" MinHeight="400" MinWidth="520"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <DockPanel>
+        <Button Classes="outline" Command="{Binding ClearCommand}" IsVisible="{Binding !IsEmpty}"
+                ToolTip.Tip="Forget the history (the tree itself doesn't change)">
+          <TextBlock Text="Clear history…" />
+        </Button>
+        <Button Classes="primary" Click="OnClose" IsCancel="True" IsDefault="True" HorizontalAlignment="Right" MinWidth="96">
+          <TextBlock Text="Close" Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" />
+        </Button>
+      </DockPanel>
+    </Border>
+    <StackPanel DockPanel.Dock="Top" Margin="28,24,28,12" Spacing="10">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconUndo}" /></Border>
+        <TextBlock Classes="title" FontSize="20" Text="Change history" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+    </StackPanel>
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Rows}" Margin="28,0,28,20">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:HistoryRow">
+            <Border Classes="card" Padding="16,12" Margin="0,0,0,8">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding What}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Classes="small muted" TextWrapping="Wrap">
+                    <Run Text="{Binding When}" /><Run Text=" · " /><Run Text="{Binding Who}" />
+                  </TextBlock>
+                  <TextBlock Classes="small faint" Text="{Binding Records}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="ghost" VerticalAlignment="Center" Margin="12,0,0,0"
+                        IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoTip}"
+                        Command="{Binding #Root.((vm:HistoryViewModel)DataContext).UndoFromCommand}" CommandParameter="{Binding}"
+                        AutomationProperties.Name="Undo from here">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <c:LineIcon Data="{StaticResource IconUndo}" Width="14" Height="14" />
+                    <TextBlock Text="Undo from here" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

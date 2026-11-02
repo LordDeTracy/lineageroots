@@ -8,57 +8,111 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
-        <!-- Light: warm paper, ink text, deep evergreen accent -->
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="Bg" Color="#F6F3EE" />
-          <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="SurfaceAlt" Color="#FBF9F6" />
-          <SolidColorBrush x:Key="Sidebar" Color="#EFEBE4" />
-          <SolidColorBrush x:Key="Line" Color="#E4DED5" />
-          <SolidColorBrush x:Key="LineStrong" Color="#D3CBBE" />
-          <SolidColorBrush x:Key="Ink" Color="#22252A" />
-          <SolidColorBrush x:Key="Muted" Color="#6F7378" />
-          <SolidColorBrush x:Key="Faint" Color="#9A9DA2" />
-          <SolidColorBrush x:Key="Accent" Color="#2E6B58" />
-          <SolidColorBrush x:Key="AccentHover" Color="#255A4A" />
-          <SolidColorBrush x:Key="AccentSoft" Color="#E2EEE9" />
+          <!-- Aurora, light: parchment and tan, espresso ink, moss green; surfaces lift off the page with soft relief -->
+          <LinearGradientBrush x:Key="Backdrop" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#F2ECE2" /><GradientStop Offset="1" Color="#E3D9C8" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="Rail" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#33261A" /><GradientStop Offset="1" Color="#1F2C1C" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="RailInk" Color="#E4D7C1" />
+          <LinearGradientBrush x:Key="RailSelected" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#6A8E48" /><GradientStop Offset="1" Color="#45652F" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AccentFill" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#5D8044" /><GradientStop Offset="1" Color="#3F602F" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="Chrome" Color="#B8F4EFE6" />
+          <SolidColorBrush x:Key="Pane" Color="#73E6DECF" />
+          <SolidColorBrush x:Key="Glass" Color="#80FFFCF6" />
+          <SolidColorBrush x:Key="GlassHover" Color="#C0FFFCF6" />
+          <SolidColorBrush x:Key="GlassStroke" Color="#38402A12" />
+          <SolidColorBrush x:Key="GlassEdge" Color="#E6FFFFFF" />
+          <SolidColorBrush x:Key="CardEdge" Color="#B3FFFCF6" />
+          <BoxShadows x:Key="Raised">0 1 2 0 #0F402A12, 0 10 26 -10 #26402A12</BoxShadows>
+          <BoxShadows x:Key="RaisedSmall">0 1 2 0 #14402A12</BoxShadows>
+          <BoxShadows x:Key="Glow">0 4 14 -6 #804A6B35</BoxShadows>
+          <BoxShadows x:Key="Inset">inset 0 1 2 0 #12402A12</BoxShadows>
+          <LinearGradientBrush x:Key="Silk" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#FAF7F2" /><GradientStop Offset="1" Color="#F2ECE2" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="Bg" Color="#EDE6DA" />
+          <SolidColorBrush x:Key="Surface" Color="#F4EFE6" />
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#F8F4EE" />
+          <SolidColorBrush x:Key="Sidebar" Color="#E6DECF" />
+          <SolidColorBrush x:Key="Line" Color="#DACFBE" />
+          <SolidColorBrush x:Key="LineStrong" Color="#C3B59E" />
+          <SolidColorBrush x:Key="Ink" Color="#231C14" />
+          <SolidColorBrush x:Key="Muted" Color="#584C3D" />
+          <SolidColorBrush x:Key="Faint" Color="#786A57" />
+          <SolidColorBrush x:Key="Accent" Color="#4A6B35" />
+          <SolidColorBrush x:Key="AccentHover" Color="#3C5A2B" />
+          <SolidColorBrush x:Key="AccentSoft" Color="#E1E8D5" />
           <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="Hover" Color="#0C000000" />
-          <SolidColorBrush x:Key="Selected" Color="#DCE9E3" />
-          <SolidColorBrush x:Key="MaleBg" Color="#DCE7F3" />
-          <SolidColorBrush x:Key="MaleInk" Color="#2D5784" />
-          <SolidColorBrush x:Key="FemaleBg" Color="#F5E0E5" />
-          <SolidColorBrush x:Key="FemaleInk" Color="#93405A" />
-          <SolidColorBrush x:Key="OtherBg" Color="#EAE6DF" />
-          <SolidColorBrush x:Key="OtherInk" Color="#6A645B" />
+          <SolidColorBrush x:Key="Hover" Color="#14402A12" />
+          <SolidColorBrush x:Key="Selected" Color="#D8E2C8" />
+          <SolidColorBrush x:Key="MaleBg" Color="#DCE4D1" />
+          <SolidColorBrush x:Key="MaleInk" Color="#3D5A2E" />
+          <SolidColorBrush x:Key="FemaleBg" Color="#EFDDCE" />
+          <SolidColorBrush x:Key="FemaleInk" Color="#8A4B2E" />
+          <SolidColorBrush x:Key="OtherBg" Color="#E5DDD0" />
+          <SolidColorBrush x:Key="OtherInk" Color="#584C3D" />
           <SolidColorBrush x:Key="Danger" Color="#B4413A" />
           <SolidColorBrush x:Key="WarnBg" Color="#F5E9CF" />
           <SolidColorBrush x:Key="WarnInk" Color="#87590A" />
           <SolidColorBrush x:Key="DangerBg" Color="#F6DEDB" />
         </ResourceDictionary>
-        <!-- Dark: charcoal, soft ivory text, sage accent -->
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="Bg" Color="#16181A" />
-          <SolidColorBrush x:Key="Surface" Color="#1F2225" />
-          <SolidColorBrush x:Key="SurfaceAlt" Color="#24272B" />
-          <SolidColorBrush x:Key="Sidebar" Color="#1B1D20" />
-          <SolidColorBrush x:Key="Line" Color="#2E3236" />
-          <SolidColorBrush x:Key="LineStrong" Color="#3B4045" />
-          <SolidColorBrush x:Key="Ink" Color="#ECE9E4" />
-          <SolidColorBrush x:Key="Muted" Color="#A3A7AC" />
-          <SolidColorBrush x:Key="Faint" Color="#7C8085" />
-          <SolidColorBrush x:Key="Accent" Color="#7FC4AC" />
-          <SolidColorBrush x:Key="AccentHover" Color="#93D1BB" />
-          <SolidColorBrush x:Key="AccentSoft" Color="#22352F" />
-          <SolidColorBrush x:Key="OnAccent" Color="#10241D" />
-          <SolidColorBrush x:Key="Hover" Color="#12FFFFFF" />
-          <SolidColorBrush x:Key="Selected" Color="#253A33" />
-          <SolidColorBrush x:Key="MaleBg" Color="#22334A" />
-          <SolidColorBrush x:Key="MaleInk" Color="#9EC3EC" />
-          <SolidColorBrush x:Key="FemaleBg" Color="#43262F" />
-          <SolidColorBrush x:Key="FemaleInk" Color="#EBA9BC" />
-          <SolidColorBrush x:Key="OtherBg" Color="#2E2C29" />
-          <SolidColorBrush x:Key="OtherInk" Color="#C2BBB0" />
+          <!-- Aurora, dark: a forest floor at night, warm browns under a faint amber glow, sage green light -->
+          <RadialGradientBrush x:Key="Backdrop" Center="50%,0%" GradientOrigin="50%,0%" RadiusX="90%" RadiusY="70%">
+            <GradientStop Offset="0" Color="#2A2316" /><GradientStop Offset="1" Color="#13110D" />
+          </RadialGradientBrush>
+          <LinearGradientBrush x:Key="Rail" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#0F0C08" /><GradientStop Offset="1" Color="#1C2614" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="RailInk" Color="#CFC1A8" />
+          <LinearGradientBrush x:Key="RailSelected" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#5E7E3D" /><GradientStop Offset="1" Color="#3C5528" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AccentFill" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#B6D190" /><GradientStop Offset="1" Color="#8EAF63" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="Chrome" Color="#A613110D" />
+          <SolidColorBrush x:Key="Pane" Color="#6B16130F" />
+          <SolidColorBrush x:Key="Glass" Color="#0DF5EBDC" />
+          <SolidColorBrush x:Key="GlassHover" Color="#1FF5EBDC" />
+          <SolidColorBrush x:Key="GlassStroke" Color="#2EF5EBDC" />
+          <SolidColorBrush x:Key="GlassEdge" Color="#40FFF8EC" />
+          <SolidColorBrush x:Key="CardEdge" Color="#1AFFF5E6" />
+          <BoxShadows x:Key="Raised">0 1 2 0 #4D000000, 0 12 30 -12 #A6000000</BoxShadows>
+          <BoxShadows x:Key="RaisedSmall">0 1 3 0 #59000000</BoxShadows>
+          <BoxShadows x:Key="Glow">0 4 16 -6 #8CA6C47C</BoxShadows>
+          <BoxShadows x:Key="Inset">inset 0 1 3 0 #4D000000</BoxShadows>
+          <LinearGradientBrush x:Key="Silk" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#221E18" /><GradientStop Offset="1" Color="#1A1712" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="Bg" Color="#13110D" />
+          <SolidColorBrush x:Key="Surface" Color="#1B1813" />
+          <SolidColorBrush x:Key="SurfaceAlt" Color="#211D17" />
+          <SolidColorBrush x:Key="Sidebar" Color="#16130F" />
+          <SolidColorBrush x:Key="Line" Color="#2E2920" />
+          <SolidColorBrush x:Key="LineStrong" Color="#3F382C" />
+          <SolidColorBrush x:Key="Ink" Color="#F1EADF" />
+          <SolidColorBrush x:Key="Muted" Color="#C4B69F" />
+          <SolidColorBrush x:Key="Faint" Color="#8E806B" />
+          <SolidColorBrush x:Key="Accent" Color="#A6C47C" />
+          <SolidColorBrush x:Key="AccentHover" Color="#B7D290" />
+          <SolidColorBrush x:Key="AccentSoft" Color="#24301B" />
+          <SolidColorBrush x:Key="OnAccent" Color="#151A0E" />
+          <SolidColorBrush x:Key="Hover" Color="#14FFF5E6" />
+          <SolidColorBrush x:Key="Selected" Color="#2C3A21" />
+          <SolidColorBrush x:Key="MaleBg" Color="#22301C" />
+          <SolidColorBrush x:Key="MaleInk" Color="#B4CF95" />
+          <SolidColorBrush x:Key="FemaleBg" Color="#3A271C" />
+          <SolidColorBrush x:Key="FemaleInk" Color="#E8B590" />
+          <SolidColorBrush x:Key="OtherBg" Color="#221E18" />
+          <SolidColorBrush x:Key="OtherInk" Color="#CDBFA6" />
           <SolidColorBrush x:Key="Danger" Color="#E37C74" />
           <SolidColorBrush x:Key="WarnBg" Color="#3B3221" />
           <SolidColorBrush x:Key="WarnInk" Color="#E2B765" />
@@ -187,20 +241,23 @@
   <Application.Styles>
     <FluentTheme>
       <FluentTheme.Palettes>
-        <ColorPaletteResources x:Key="Light" Accent="#2E6B58" RegionColor="#F6F3EE" />
-        <ColorPaletteResources x:Key="Dark" Accent="#7FC4AC" RegionColor="#16181A" />
+        <ColorPaletteResources x:Key="Light" Accent="#4A6B35" RegionColor="#EDE6DA" />
+        <ColorPaletteResources x:Key="Dark" Accent="#A6C47C" RegionColor="#13110D" />
       </FluentTheme.Palettes>
     </FluentTheme>
 
-    <!-- Type -->
+    <!-- Type: Segoe UI on Windows, light large headings in the Windows 8.1 manner -->
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="Segoe UI, avares://Avalonia.Fonts.Inter/Assets#Inter, sans-serif" />
+    </Style>
     <Style Selector="TextBlock.display">
-      <Setter Property="FontSize" Value="28" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="LetterSpacing" Value="-0.4" />
+      <Setter Property="FontSize" Value="32" />
+      <Setter Property="FontWeight" Value="Light" />
+      <Setter Property="LetterSpacing" Value="-0.2" />
     </Style>
     <Style Selector="TextBlock.title">
-      <Setter Property="FontSize" Value="17" />
-      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="SemiLight" />
     </Style>
     <Style Selector="TextBlock.section">
       <Setter Property="FontSize" Value="11.5" />
@@ -223,7 +280,7 @@
       <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="10" />
     </Style>
 
     <!-- Avatars: initials in a tinted circle -->
@@ -231,7 +288,7 @@
       <Setter Property="Background" Value="{DynamicResource OtherBg}" />
       <Setter Property="Width" Value="36" />
       <Setter Property="Height" Value="36" />
-      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="CornerRadius" Value="12" />
     </Style>
     <Style Selector="Border.avatar TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource OtherInk}" />
@@ -247,13 +304,13 @@
     <Style Selector="Border.avatar.large">
       <Setter Property="Width" Value="68" />
       <Setter Property="Height" Value="68" />
-      <Setter Property="CornerRadius" Value="34" />
+      <Setter Property="CornerRadius" Value="12" />
     </Style>
     <Style Selector="Border.avatar.large TextBlock"><Setter Property="FontSize" Value="24" /></Style>
 
     <!-- Buttons -->
     <Style Selector="Button">
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="12,7" />
       <Setter Property="FontWeight" Value="Medium" />
     </Style>
@@ -301,7 +358,7 @@
       <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="12,10" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Width" Value="250" />
@@ -316,7 +373,7 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="{DynamicResource LineStrong}" />
       <Setter Property="BorderThickness" Value="1.5" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="12,10" />
       <Setter Property="Width" Value="250" />
       <Setter Property="MinHeight" Value="58" />
@@ -333,7 +390,7 @@
     <!-- Chips -->
     <!-- How well proven a fact is -->
     <Style Selector="Border.proof">
-      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="7,1" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Background" Value="{DynamicResource OtherBg}" />
@@ -365,7 +422,7 @@
 
     <!-- Inputs -->
     <Style Selector="TextBox">
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
     </Style>
     <Style Selector="TextBox.search">
       <Setter Property="Background" Value="{DynamicResource Surface}" />
@@ -381,7 +438,7 @@
     <Style Selector="ListBox.people ListBoxItem">
       <Setter Property="Padding" Value="10,7" />
       <Setter Property="Margin" Value="0,1" />
-      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="CornerRadius" Value="10" />
     </Style>
     <Style Selector="ListBox.people ListBoxItem:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource Hover}" />
@@ -394,7 +451,7 @@
       <Setter Property="Background" Value="{DynamicResource Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="18,16" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -407,7 +464,7 @@
     <Style Selector="Border.iconTile">
       <Setter Property="Width" Value="44" />
       <Setter Property="Height" Value="44" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
     </Style>
     <Style Selector="Border.iconTile c|LineIcon">
@@ -479,7 +536,7 @@
     </Style>
 
     <Style Selector="AutoCompleteBox /template/ TextBox">
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
     </Style>
 
     <!-- Bookmark star -->
@@ -489,7 +546,7 @@
       <Setter Property="Padding" Value="8" />
       <Setter Property="Width" Value="38" />
       <Setter Property="Height" Value="38" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Foreground" Value="{DynamicResource Muted}" />
     </Style>
     <Style Selector="ToggleButton.star:pointerover /template/ ContentPresenter">
@@ -530,7 +587,7 @@
     <Style Selector="ListBox.swatches ListBoxItem">
       <Setter Property="Padding" Value="10,6" />
       <Setter Property="Margin" Value="0,0,8,8" />
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
       <Setter Property="Background" Value="{DynamicResource Surface}" />
@@ -543,30 +600,30 @@
       <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
     </Style>
 
-    <!-- Navigation rail -->
+    <!-- Navigation rail: white on a deep band, the selected section a solid accent tile -->
     <Style Selector="ListBox.rail">
       <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Padding" Value="8,10" />
+      <Setter Property="Padding" Value="0,6" />
     </Style>
     <Style Selector="ListBox.rail ListBoxItem">
-      <Setter Property="Padding" Value="0,9" />
-      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="Padding" Value="0,12" />
+      <Setter Property="Margin" Value="0" />
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+      <Setter Property="Foreground" Value="{DynamicResource RailInk}" />
     </Style>
     <Style Selector="ListBox.rail ListBoxItem:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource Hover}" />
+      <Setter Property="Background" Value="#1AFFFFFF" />
     </Style>
     <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+      <Setter Property="Background" Value="{DynamicResource RailSelected}" />
     </Style>
     <Style Selector="ListBox.rail ListBoxItem:selected">
-      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Foreground" Value="White" />
     </Style>
     <Style Selector="ListBox.rail ListBoxItem TextBlock">
       <Setter Property="FontSize" Value="11" />
-      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="FontWeight" Value="Normal" />
       <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
@@ -588,13 +645,13 @@
     <!-- Segmented control for sex -->
     <Style Selector="ListBox.segmented">
       <Setter Property="Background" Value="{DynamicResource Sidebar}" />
-      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="3" />
       <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
     <Style Selector="ListBox.segmented ListBoxItem">
       <Setter Property="Padding" Value="16,6" />
-      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="CornerRadius" Value="10" />
       <Setter Property="MinWidth" Value="92" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
@@ -615,6 +672,119 @@
     </Style>
     <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
       <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+
+    <!-- ===== Aurora finish: embossed surfaces and glass controls (last, so it wins) ===== -->
+
+    <!-- Headings: light, large and tightly set (Windows 8.1 type, Stellar's editorial scale) -->
+    <Style Selector="TextBlock.display">
+      <Setter Property="FontWeight" Value="Light" />
+      <Setter Property="LetterSpacing" Value="-0.6" />
+    </Style>
+    <Style Selector="TextBlock.section">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="LetterSpacing" Value="1.8" />
+    </Style>
+    <!-- An italic serif for a word or two of emphasis, the way Stellar sets "find home" -->
+    <Style Selector="TextBlock.serif">
+      <Setter Property="FontFamily" Value="Georgia, Cambria, serif" />
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+
+    <!-- Cards: a silky sheen (lighter at the top), a fine bright rim and one soft, low shadow -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource Silk}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardEdge}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BoxShadow" Value="{DynamicResource Raised}" />
+    </Style>
+
+    <!-- Buttons are glass: a translucent fill, a hairline stroke, a bright top edge and a whisper of shadow -->
+    <Style Selector="Button">
+      <Setter Property="Background" Value="{DynamicResource Glass}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassStroke}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Panel>
+            <Border Name="PART_Relief" CornerRadius="{TemplateBinding CornerRadius}" BoxShadow="{DynamicResource RaisedSmall}" />
+            <ContentPresenter Name="PART_ContentPresenter"
+                              Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                              BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                              Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Padding="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" IsHitTestVisible="False"
+                    BorderThickness="0,1,0,0" BorderBrush="{DynamicResource GlassEdge}" Margin="1,1,1,0" />
+          </Panel>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource GlassHover}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassStroke}" />
+    </Style>
+    <Style Selector="Button:pressed /template/ Border#PART_Relief">
+      <Setter Property="BoxShadow" Value="{DynamicResource Inset}" />
+    </Style>
+    <Style Selector="Button.outline">
+      <Setter Property="Background" Value="{DynamicResource Glass}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassStroke}" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.primary /template/ Border#PART_Relief">
+      <Setter Property="BoxShadow" Value="{DynamicResource Glow}" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+      <Setter Property="Opacity" Value="0.92" />
+    </Style>
+    <!-- Quiet buttons (toolbars, links, icons) stay flat until touched -->
+    <Style Selector="Button.ghost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.ghost /template/ Border#PART_Relief, Button.ghost /template/ Border#PART_Sheen">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Hover}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.personCard">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardEdge}" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+    <Style Selector="Button.personCard /template/ Border#PART_Relief">
+      <Setter Property="BoxShadow" Value="{DynamicResource RaisedSmall}" />
+    </Style>
+
+    <!-- Text boxes are pressed into the surface -->
+    <Style Selector="TextBox /template/ Border#PART_BorderElement">
+      <Setter Property="BoxShadow" Value="{DynamicResource Inset}" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <!-- The navigation strip: selected section a glowing tile -->
+    <Style Selector="ListBox.rail ListBoxItem">
+      <Setter Property="Margin" Value="8,3" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RailSelected}" />
     </Style>
   </Application.Styles>
 </Application>

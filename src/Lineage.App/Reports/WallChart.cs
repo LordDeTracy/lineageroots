@@ -32,6 +32,10 @@ public sealed record WallChartOptions
     public int Dpi { get; init; } = 200;
     /// <summary>Print in the light theme whatever the app is showing: it reads better on paper and saves ink.</summary>
     public bool LightTheme { get; init; } = true;
+    /// <summary>A line at the foot of the poster, e.g. "Compiled by A. Cousin for the 2026 reunion".</summary>
+    public string Note { get; init; } = "";
+    /// <summary>A thin frame around the chart on a poster.</summary>
+    public bool Frame { get; init; }
 }
 
 /// <summary>What an export will produce (or produced): page grid, finished size and resolution.</summary>
@@ -87,6 +91,27 @@ public static class WallChart
         var document = Prepare(chart, options, out var plan);
         await Task.Run(() => document.GeneratePdf(path));
         return plan;
+    }
+
+    /// <summary>A small picture of the chart as it will print (same colours and drawing as the PDF), for a preview.</summary>
+    public static Bitmap Preview(ChartBase chart, WallChartOptions options, double maxPixels)
+    {
+        var theme = options.LightTheme || chart.ActualThemeVariant == ThemeVariant.Default ? ThemeVariant.Light : chart.ActualThemeVariant;
+        var pinned = PinTheme(chart, theme);
+        try
+        {
+            var size = MeasureChart(chart, attached: false);
+            if (size.Width < 1 || size.Height < 1) throw new InvalidOperationException("There is nothing to print: the chart is empty.");
+            var pxPerDip = Math.Min(2, maxPixels / Math.Max(size.Width, size.Height));
+            var background = chart.Resources.TryGetValue("Bg", out var bg) && bg is IBrush b ? b : Brushes.White;
+            using var png = new MemoryStream(RenderRegion(chart, new Rect(size), size, pxPerDip, background));
+            // Read back at 96 dpi: a picture tagged with the print resolution draws at the wrong size in some renderers.
+            return Bitmap.DecodeToWidth(png, Math.Max(1, (int)Math.Ceiling(size.Width * pxPerDip - 1e-6)));
+        }
+        finally
+        {
+            foreach (var key in pinned) chart.Resources.Remove(key);
+        }
     }
 
     // ---- planning ---------------------------------------------------------------------------------
@@ -249,8 +274,9 @@ public static class WallChart
         }
 
         var title = o.Title.Trim().Length > 0 ? o.Title.Trim() : "Family tree";
-        var pageW = (float)(wPt + 2 * PosterMargin);
-        var pageH = (float)(hPt + 2 * PosterMargin + text.Header + text.FooterBand) + 2;
+        var frame = o.Frame ? 2 * (Math.Max(0.75f, text.Title / 30) + text.Title * 0.4f) : 0;
+        var pageW = (float)(wPt + 2 * PosterMargin) + frame;
+        var pageH = (float)(hPt + 2 * PosterMargin + text.Header + text.FooterBand) + 2 + frame;
         return Document.Create(doc => doc.Page(page =>
         {
             page.Size(new PageSize(pageW, pageH));
@@ -264,14 +290,16 @@ public static class WallChart
                     col.Item().Text(t => { t.ClampLines(1); t.Span(o.Subtitle).FontSize(text.Subtitle).FontColor(c.Muted); });
                 col.Item().PaddingTop(text.Title * 0.25f).LineHorizontal(Math.Max(0.75f, text.Title / 40)).LineColor(c.Line);
             });
-            page.Content().Column(col =>
+            var content = o.Frame ? page.Content().Border(Math.Max(0.75f, text.Title / 30)).BorderColor(c.Accent).Padding(text.Title * 0.4f) : page.Content();
+            content.Column(col =>
             {
                 foreach (var (png, h) in strips)
                     col.Item().Height(h).Image(png).UseOriginalImage().FitUnproportionally();
             });
             page.Footer().Height(text.FooterBand).AlignBottom().Row(row =>
             {
-                row.RelativeItem().Text(DateTime.Now.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)).FontSize(text.Footer).FontColor(c.Faint);
+                var date = DateTime.Now.ToString("d MMMM yyyy", CultureInfo.CurrentCulture);
+                row.RelativeItem().Text(o.Note.Trim().Length > 0 ? $"{o.Note.Trim()}  ·  {date}" : date).FontSize(text.Footer).FontColor(c.Faint);
                 row.AutoItem().Text("Made with Lineage Roots").FontSize(text.Footer).FontColor(c.Faint);
             });
         }));

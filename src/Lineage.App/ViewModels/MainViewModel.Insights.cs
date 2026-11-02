@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lineage.Core.Analysis;
 using Lineage.Core.Model;
@@ -43,6 +44,13 @@ public sealed partial class MainViewModel
         HomeStatsText = Display.Join($"{stats.People:N0} people", $"{stats.Families:N0} families", $"{_tree.Sources.Count:N0} sources",
             $"{stats.Surnames:N0} surnames", stats.EarliestBirthYear is { } y ? $"back to {y}" : "",
             stats.AverageLifespan is { } life ? $"average lifespan {life:0} years" : "");
+        KeyFigures.Clear();
+        KeyFigures.Add(new KeyFigure($"{stats.People:N0}", stats.People == 1 ? "person" : "people"));
+        KeyFigures.Add(new KeyFigure($"{stats.Families:N0}", stats.Families == 1 ? "family" : "families"));
+        KeyFigures.Add(new KeyFigure($"{_tree.Sources.Count:N0}", _tree.Sources.Count == 1 ? "source" : "sources"));
+        KeyFigures.Add(new KeyFigure($"{stats.Surnames:N0}", stats.Surnames == 1 ? "surname" : "surnames"));
+        if (stats.EarliestBirthYear is { } first) KeyFigures.Add(new KeyFigure(first.ToString(), "earliest birth"));
+        if (stats.AverageLifespan is { } years) KeyFigures.Add(new KeyFigure($"{years:0}", "average lifespan"));
         TopSurnames.Clear();
         foreach (var s in stats.TopSurnames) TopSurnames.Add($"{s.Surname}  {s.Count:N0}");
         HasTopSurnames = TopSurnames.Count > 0;
@@ -60,6 +68,22 @@ public sealed partial class MainViewModel
     {
         if (!HasTree) return;
         _dialogs.ShowRelationship(new RelationshipViewModel(_tree, _current?.Id, id => OpenPerson(id)));
+    }
+
+    /// <summary>How many problems the finder sees, shown at the top of the Research tab.</summary>
+    [ObservableProperty] private string _problemsSummary = "";
+
+    private async void RefreshProblemsSummary()
+    {
+        var tree = _tree;
+        ProblemsSummary = "Checking…";
+        var found = await Task.Run(() => Problems.Find(tree));
+        if (!ReferenceEquals(tree, _tree)) return;
+        var errors = found.Count(p => p.Severity == ProblemSeverity.Error);
+        var warnings = found.Count(p => p.Severity == ProblemSeverity.Warning);
+        ProblemsSummary = errors + warnings == 0
+            ? "No impossible or unlikely dates or relationships found."
+            : $"{errors:N0} impossible · {warnings:N0} unlikely. Open the finder to go through them.";
     }
 
     /// <summary>The people list search: plain matching, or "sounds like" when the toggle is on.</summary>

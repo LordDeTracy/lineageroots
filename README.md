@@ -6,7 +6,7 @@ A free, cross-platform family history program, with its source code published fo
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
 **GEDCOM 5.5.1**, so it works with every other genealogy program.
 
-> Status: **0.4.5, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.5.0, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -69,6 +69,37 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 | Pedigree coloured by how well each person is proven | DNA match clusters |
 | ![Family map through time](docs/screenshots/map-timeline-light.png) | ![Reviewing a relative's changes](docs/screenshots/review-light.png) |
 | The family map, played through the years | Reviewing a relative's changes |
+
+**New in 0.5**
+- **A new look**: earthy browns, tans and greens, rounded silky cards, translucent glass buttons, large light headings
+  and a dark walnut-to-forest navigation strip, in light and dark. The program opens maximised
+- **Left-hand tabs**: Home, People, Evidence (was Sources), Places, Research, DNA, Charts and Reports
+- **Evidence analysis** (Evidence → Analysis): every birth, marriage and death with how well it's proven, all the
+  records side by side (census ages turned into birth years), a Genealogical Proof Standard checklist, and your
+  conclusion with the reasoning behind it
+- **Transcribe a record**: baptisms, marriages, burials, wills and probate, and deeds, typed in once and turned into
+  facts and citations for everyone named
+- **Client research report**: findings, conclusions, the evidence weighed, searches made and next steps
+- **Family history book**: profile photos beside each person, chapters you write yourself (stories, memories), and
+  either the ancestors or the descendants part can be left out
+- **Charts tab**: pedigree, fan, descendants and hourglass, plus new lifelines, relationship path and statistics
+  charts, and a **wall-chart designer** (chart, generations, title, footnote, poster or pages, paper, size, colours,
+  frame) with a live preview
+- **Research tab**: the problem finder at the top, and the research log can be printed (PDF/Word) or exported (CSV)
+- **Share on this network** for genealogy nights: no internet needed; others nearby join with a PIN and your say-so,
+  laptops get a privacy-filtered copy, phones see a family website
+- **Phone viewer**: the whole family in one web page to open on a phone with no internet or app (Reports tab)
+- **Password protection**: a tree can be encrypted (AES-256) with a password, backups included
+- **Change history** saved in the file: who changed what and when, and undo from any point, even after closing
+- **Clean-up wizard**: names in CAPITALS, dates the program can't read, and places written different ways, every
+  change shown before it's made
+- **Formatting in notes**: bold, italic, bullet points and small headings (buttons in the editor, Ctrl+B / Ctrl+I),
+  shown on the person page and in reports, books, the website and the phone viewer
+- **Relationships in the people list**: with a home person set, each name says how they're related
+- **Seven languages**: Svenska, Deutsch, Español, Italiano, Français, Русский and Português, chosen in Settings;
+  reports and books are translated too (headings and set phrases)
+- **Keyboard shortcuts** (Alt+1–8 for the tabs, Ctrl+T transcribe, Ctrl+P reports, F1 tour) and a short tour at start-up
+- Fixed: updates now install when the program sits on a OneDrive folder
 
 **Your tree**
 - Import AQ 16 (`.aq`) and GEDCOM 5.5 / 5.5.1 (`.ged`), including AQ's custom tags; export GEDCOM 5.5.1
@@ -275,6 +306,8 @@ GEDCOM first.
 - Code-signed Windows builds, and a macOS build
 
 ## License
+
+Copyright © 2026 Dellingr Dynamics.
 
 [PolyForm Noncommercial 1.0.0](LICENSE). You may use, copy, change and share Lineage Roots for any
 noncommercial purpose: personal and family history research, hobbies, study, teaching, and use by

@@ -101,6 +101,39 @@ public class UpdaterTests
     }
 
     [Fact]
+    public void ALockedLeftoverFromTheLastUpdateDoesNotStopTheNext()
+    {
+        var dir = TempDir();
+        try
+        {
+            var program = Path.Combine(dir, "LineageRoots.exe");
+            File.WriteAllText(program, "old version");
+            File.WriteAllText(program + ".old", "older version");
+            File.SetAttributes(program + ".old", FileAttributes.ReadOnly);
+            var staging = Path.Combine(dir, "staging", "LineageRoots-9.9.9-win-x64");
+            Directory.CreateDirectory(staging);
+            File.WriteAllText(Path.Combine(staging, "LineageRoots.exe"), "new version");
+            var zip = Path.Combine(dir, "update.zip");
+            ZipFile.CreateFromDirectory(Path.Combine(dir, "staging"), zip);
+
+            // OneDrive (or a virus scanner) holds the previous copy open.
+            using (new FileStream(program + ".old", FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Updater.Install(zip, program);
+                Assert.Equal("new version", File.ReadAllText(program));
+                Assert.Single(Directory.GetFiles(dir, "LineageRoots.exe.*.old"));   // this one set aside under its own name
+            }
+            Updater.CleanUp(program);   // next start, with the lock gone
+            Assert.Empty(Directory.GetFiles(dir, "LineageRoots.exe.*old"));
+        }
+        finally
+        {
+            foreach (var f in Directory.GetFiles(dir, "*", SearchOption.AllDirectories)) File.SetAttributes(f, FileAttributes.Normal);
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ABadDownloadLeavesTheProgramAlone()
     {
         var dir = TempDir();

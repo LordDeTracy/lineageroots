@@ -5,6 +5,8 @@
     <!-- The Windows 7 SP1 / 8.1 build: publish with -p:Legacy=true. .NET 6 is the last .NET that runs there. -->
     <TargetFramework Condition="'$(Legacy)' == 'true'">net6.0</TargetFramework>
     <LangVersion>12</LangVersion>
+    <Company>Dellingr Dynamics</Company>
+    <Copyright>Copyright © 2026 Dellingr Dynamics</Copyright>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

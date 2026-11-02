@@ -50,7 +50,7 @@
 
       <Grid>
         <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="360">
-          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
             <c:LineIcon Data="{StaticResource IconUsers}" Width="28" Height="28" />
           </Border>
           <TextBlock Classes="title" Text="No duplicates to review" HorizontalAlignment="Center" />

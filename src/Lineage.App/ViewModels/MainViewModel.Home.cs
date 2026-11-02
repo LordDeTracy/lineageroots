@@ -47,6 +47,8 @@ public sealed partial class MainViewModel
         Status = $"{p.DisplayName} is now the home person — the tree opens on them.";
         CurrentRelation = RelationToHome(p);
         Show(p.Id, recordHistory: false);   // the family cards say how each is related to the new home person
+        foreach (var row in _allRows) row.Relation = "";
+        FillRelations(_allRows);            // and so does the people list
     }
 
     [RelayCommand]

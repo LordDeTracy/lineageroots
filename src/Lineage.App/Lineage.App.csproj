@@ -6,13 +6,15 @@
     <!-- The Windows 7 SP1 / 8.1 build: publish with -p:Legacy=true. .NET 6 is the last .NET that runs there. -->
     <TargetFramework Condition="'$(Legacy)' == 'true'">net6.0</TargetFramework>
     <LangVersion>12</LangVersion>
+    <Company>Dellingr Dynamics</Company>
+    <Copyright>Copyright © 2026 Dellingr Dynamics</Copyright>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>LineageRoots</AssemblyName>
     <Product>Lineage Roots</Product>
     <AssemblyTitle>Lineage Roots</AssemblyTitle>
     <RootNamespace>Lineage.App</RootNamespace>
-    <Version>0.4.5</Version>
+    <Version>0.5.0</Version>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>

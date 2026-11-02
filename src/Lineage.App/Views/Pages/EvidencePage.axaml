@@ -1,0 +1,138 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.EvidencePage"
+             x:DataType="vm:MainViewModel">
+  <!-- Evidence analysis: a worklist on the left; for the fact picked, every record side by side, the proof standard,
+       and the conclusion with its reasoning. -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.met"><Setter Property="Foreground" Value="{DynamicResource Accent}" /></Style>
+    <Style Selector="TextBlock.unmet"><Setter Property="Foreground" Value="{DynamicResource Faint}" /></Style>
+    <Style Selector="Border.disagrees"><Setter Property="BorderBrush" Value="{DynamicResource Danger}" /></Style>
+  </UserControl.Styles>
+  <DockPanel Margin="32,18,32,0">
+    <StackPanel DockPanel.Dock="Top" Spacing="10">
+      <ListBox Classes="segmented" ItemsSource="{x:Static vm:MainViewModel.EvidenceModes}"
+               SelectedIndex="{Binding EvidenceModeIndex}" HorizontalAlignment="Left" AutomationProperties.Name="Evidence view">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      </ListBox>
+      <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="display" Text="Evidence analysis" />
+          <TextBlock Classes="muted" Text="{Binding EvidenceSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="outline" Command="{Binding TranscribeRecordCommand}" VerticalAlignment="Center"
+                ToolTip.Tip="A baptism, marriage, burial, will or deed, turned into facts and citations">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconNote}" />
+            <TextBlock Text="Transcribe a record" />
+          </StackPanel>
+        </Button>
+      </Grid>
+      <ListBox Classes="segmented" SelectedIndex="{Binding EvidenceFilterIndex}" HorizontalAlignment="Left"
+               AutomationProperties.Name="Show facts">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBoxItem Content="Needs work" ToolTip.Tip="Conflicts, no source, or weak evidence" />
+        <ListBoxItem Content="Conflicts" />
+        <ListBoxItem Content="No source" />
+        <ListBoxItem Content="Weak" />
+        <ListBoxItem Content="Ready to decide" ToolTip.Tip="Good or strong evidence, not yet marked proven" />
+        <ListBoxItem Content="Concluded" />
+      </ListBox>
+    </StackPanel>
+
+    <Grid ColumnDefinitions="380,24,*" Margin="0,14,0,0">
+      <ListBox Classes="people" ItemsSource="{Binding EvidenceRows}" SelectedItem="{Binding SelectedEvidence}"
+               AutomationProperties.Name="Facts">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:EvidenceWorkRow">
+            <Grid ColumnDefinitions="*,Auto" Margin="2,4">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Who}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="muted small" Text="{Binding What}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="2" Margin="8,0,0,0" VerticalAlignment="Center">
+                <Border Classes="chip" Classes.high="{Binding IsConflict}" HorizontalAlignment="Right">
+                  <TextBlock Text="{Binding Level}" />
+                </Border>
+                <TextBlock Classes="faint small" Text="{Binding Gps, StringFormat='Proof steps {0}'}" HorizontalAlignment="Right"
+                           ToolTip.Tip="Parts of the Genealogical Proof Standard met" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <ScrollViewer Name="Detail" Grid.Column="2" Padding="0,0,16,0">
+        <Panel Margin="0,0,0,32">
+          <TextBlock Classes="muted" IsVisible="{Binding !HasSelectedEvidence}" TextWrapping="Wrap" Margin="0,12,0,0"
+                     Text="Pick a fact to see every record that speaks to it, check it against the Genealogical Proof Standard, and write down your conclusion." />
+          <StackPanel Spacing="16" IsVisible="{Binding HasSelectedEvidence}">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="title" FontSize="20" Text="{Binding EvidenceQuestion}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{Binding SelectedEvidence.What}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="outline" Command="{Binding OpenEvidencePersonCommand}" VerticalAlignment="Top"
+                      Content="Open their page" ToolTip.Tip="Edit the fact and its sources there" />
+            </Grid>
+
+            <TextBlock Classes="section" Text="WHAT THE RECORDS SAY" />
+            <ItemsControl ItemsSource="{Binding EvidenceClaims}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ClaimRow">
+                  <Border Classes="card" Classes.disagrees="{Binding Disagrees}" Padding="16,10" Margin="0,0,0,8">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Source}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Says}" TextWrapping="Wrap" />
+                        <TextBlock Classes="faint small" Text="{Binding Rating}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0" HorizontalAlignment="Right">
+                        <TextBlock Classes="faint small" Text="{Binding Basis}" HorizontalAlignment="Right" />
+                        <Border Classes="chip high" IsVisible="{Binding Disagrees}" HorizontalAlignment="Right">
+                          <TextBlock Text="Disagrees" />
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Classes="section" Text="GENEALOGICAL PROOF STANDARD" />
+            <Border Classes="card" Padding="16,12">
+              <ItemsControl ItemsSource="{Binding EvidenceGps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProofCheckRow">
+                    <Grid ColumnDefinitions="28,*" Margin="0,4">
+                      <TextBlock Text="{Binding Mark}" FontSize="16" FontWeight="Bold"
+                                 Classes.met="{Binding Met}" Classes.unmet="{Binding !Met}" />
+                      <StackPanel Grid.Column="1" Spacing="1">
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                        <TextBlock Classes="muted small" Text="{Binding Detail}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+
+            <TextBlock Classes="section" Text="YOUR CONCLUSION" />
+            <ListBox Classes="segmented" ItemsSource="{x:Static vm:MainViewModel.Conclusions}"
+                     SelectedIndex="{Binding EvidenceConclusionIndex}" HorizontalAlignment="Left" AutomationProperties.Name="Conclusion">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            </ListBox>
+            <TextBox Text="{Binding EvidenceReasoning}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140" MaxHeight="400"
+                     VerticalContentAlignment="Top" AutomationProperties.Name="Proof argument"
+                     Watermark="Your proof argument: which records you trust and why, and how you settled any disagreements." />
+            <Button Classes="primary" Command="{Binding SaveConclusionCommand}" HorizontalAlignment="Left">
+              <TextBlock Text="Save conclusion" Foreground="{DynamicResource OnAccent}" />
+            </Button>
+          </StackPanel>
+        </Panel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

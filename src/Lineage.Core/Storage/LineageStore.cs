@@ -9,7 +9,8 @@ namespace Lineage.Core.Storage;
 /// The native .lineage file: a SQLite database. Each record type has its own table with
 /// indexed columns for what people search and sort on (names, years); nested detail (events,
 /// names, citations, media) is stored as JSON in the row. SQLite gives transactional saves,
-/// so there is no "check/repair" step like AQ's linked-list file needs.
+/// so there is no "check/repair" step like AQ's linked-list file needs. A password-protected file
+/// holds the same rows encrypted as one block instead (see <see cref="FileLock"/>).
 /// </summary>
 public static class LineageStore
 {
@@ -49,6 +50,7 @@ public static class LineageStore
         CREATE TABLE IF NOT EXISTS source (id INTEGER PRIMARY KEY, uid TEXT NOT NULL, title TEXT, data TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS repository (id INTEGER PRIMARY KEY, uid TEXT NOT NULL, name TEXT, data TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS research (id INTEGER PRIMARY KEY, uid TEXT NOT NULL, data TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS change (id INTEGER PRIMARY KEY, data TEXT NOT NULL);
         """;
 
     /// <summary>One record as the JSON stored in its row (also used for undo snapshots).</summary>
@@ -62,16 +64,13 @@ public static class LineageStore
     {
         var tmp = path + ".saving";
         if (File.Exists(tmp)) Retry(() => File.Delete(tmp));
-        using (var db = Open(tmp))
+        if (tree.Lock is { } fileLock) File.WriteAllBytes(tmp, fileLock.Seal(Pack(tree)));
+        else
         {
+            using var db = Open(tmp);
             using var tx = db.BeginTransaction();
-            Exec(db, tx, "INSERT INTO meta VALUES ('format', $v), ('name', $n), ('not_duplicates', $nd), ('home', $h), ('bookmarks', $b), ('shares', $sh), ('shared_from', $sf)",
-                 ("$v", FormatVersion.ToString()), ("$n", tree.Name),
-                 ("$nd", JsonSerializer.Serialize(tree.NotDuplicates.OrderBy(x => x).ToArray())),
-                 ("$h", tree.HomePersonId?.ToString() ?? ""),
-                 ("$b", JsonSerializer.Serialize(tree.Bookmarks)),
-                 ("$sh", JsonSerializer.Serialize(tree.Shares)),
-                 ("$sf", tree.SharedFrom is { } origin ? JsonSerializer.Serialize(origin) : ""));
+            foreach (var (key, value) in Meta(tree))
+                Exec(db, tx, "INSERT INTO meta VALUES ($k, $v)", ("$k", key), ("$v", value));
             Bulk(db, tx, "INSERT INTO person VALUES ($id,$uid,$s,$g,$sex,$by,$dy,$d)", tree.People.Values, p => new object?[]
             {
                 p.Id, p.Uid.ToString(), p.PrimaryName.Surname, p.PrimaryName.Given, p.Sex.ToString(),
@@ -86,6 +85,8 @@ public static class LineageStore
                 { r.Id, r.Uid.ToString(), r.Name, JsonSerializer.Serialize(r, Json) });
             Bulk(db, tx, "INSERT INTO research VALUES ($id,$uid,$d)", tree.Research.Values, r => new object?[]
                 { r.Id, r.Uid.ToString(), JsonSerializer.Serialize(r, Json) });
+            Bulk(db, tx, "INSERT INTO change (data) VALUES ($d)", tree.History, c => new object?[]
+                { JsonSerializer.Serialize(c, Json) });
             tx.Commit();
             Exec(db, null, "PRAGMA journal_mode = DELETE");
         }
@@ -93,6 +94,48 @@ public static class LineageStore
         // Never leaves a half-written file behind. A virus scanner or backup tool may hold the new file
         // for a moment right after it is written, so try a few times before giving up.
         Retry(() => File.Move(tmp, path, overwrite: true));
+    }
+
+    /// <summary>The tree-wide settings kept beside the records (the meta table).</summary>
+    private static IEnumerable<(string Key, string Value)> Meta(FamilyTree tree)
+    {
+        yield return ("format", FormatVersion.ToString());
+        yield return ("name", tree.Name);
+        yield return ("not_duplicates", JsonSerializer.Serialize(tree.NotDuplicates.OrderBy(x => x).ToArray()));
+        yield return ("home", tree.HomePersonId?.ToString() ?? "");
+        yield return ("bookmarks", JsonSerializer.Serialize(tree.Bookmarks));
+        yield return ("shares", JsonSerializer.Serialize(tree.Shares));
+        yield return ("shared_from", tree.SharedFrom is { } origin ? JsonSerializer.Serialize(origin) : "");
+    }
+
+    /// <summary>What a locked file encrypts: the same rows as the database, as compressed JSON.</summary>
+    private sealed class Packed
+    {
+        public Dictionary<string, string> Meta { get; set; } = new();
+        public List<string> Person { get; set; } = new();
+        public List<string> Family { get; set; } = new();
+        public List<string> Source { get; set; } = new();
+        public List<string> Repository { get; set; } = new();
+        public List<string> Research { get; set; } = new();
+        public List<string> Change { get; set; } = new();
+    }
+
+    private static byte[] Pack(FamilyTree tree)
+    {
+        var packed = new Packed
+        {
+            Meta = Meta(tree).ToDictionary(m => m.Key, m => m.Value),
+            Person = tree.People.Values.Select(p => JsonSerializer.Serialize(p, Json)).ToList(),
+            Family = tree.Families.Values.Select(f => JsonSerializer.Serialize(f, Json)).ToList(),
+            Source = tree.Sources.Values.Select(s => JsonSerializer.Serialize(s, Json)).ToList(),
+            Repository = tree.Repositories.Values.Select(r => JsonSerializer.Serialize(r, Json)).ToList(),
+            Research = tree.Research.Values.Select(r => JsonSerializer.Serialize(r, Json)).ToList(),
+            Change = tree.History.Select(c => JsonSerializer.Serialize(c, Json)).ToList(),
+        };
+        using var output = new MemoryStream();
+        using (var gzip = new System.IO.Compression.GZipStream(output, System.IO.Compression.CompressionLevel.Fastest))
+            JsonSerializer.Serialize(gzip, packed);
+        return output.ToArray();
     }
 
     private static void Retry(Action action)
@@ -107,30 +150,64 @@ public static class LineageStore
         }
     }
 
-    public static FamilyTree Load(string path)
+    /// <summary>
+    /// Reads a .lineage file. A password-protected one needs <paramref name="password"/>
+    /// (<see cref="PasswordNeededException"/> without it, <see cref="WrongPasswordException"/> when it's wrong);
+    /// the tree then keeps the lock, so saving it keeps the password.
+    /// </summary>
+    public static FamilyTree Load(string path, string? password = null)
     {
         if (!File.Exists(path)) throw new FileNotFoundException("No such Lineage Roots file", path);
+        if (FileLock.IsLocked(path))
+        {
+            if (password == null) throw new PasswordNeededException();
+            var (fileLock, plain) = FileLock.Open(File.ReadAllBytes(path), password);
+            using var input = new System.IO.Compression.GZipStream(new MemoryStream(plain), System.IO.Compression.CompressionMode.Decompress);
+            var packed = JsonSerializer.Deserialize<Packed>(input) ?? throw new InvalidDataException($"{path} is damaged.");
+            var locked = Build(path, k => packed.Meta.TryGetValue(k, out var v) ? v : null,
+                               packed.Person, packed.Family, packed.Source, packed.Repository, packed.Research, packed.Change);
+            locked.Lock = fileLock;
+            return locked;
+        }
         using var db = Open(path, readOnly: true);
+        return Build(path, k => Scalar(db, $"SELECT value FROM meta WHERE key='{k}'"),
+                     Rows(db, "person"), Rows(db, "family"), Rows(db, "source"), Rows(db, "repository"), Rows(db, "research"),
+                     HasTable(db, "change") ? Rows(db, "change") : Enumerable.Empty<string>());
+    }
+
+    private static FamilyTree Build(string path, Func<string, string?> meta, IEnumerable<string> people, IEnumerable<string> families,
+                                    IEnumerable<string> sources, IEnumerable<string> repositories, IEnumerable<string> research,
+                                    IEnumerable<string> changes)
+    {
         var tree = new FamilyTree();
-        var format = Scalar(db, "SELECT value FROM meta WHERE key='format'");
+        var format = meta("format");
         if (format is null || int.Parse(format) > FormatVersion)
             throw new InvalidDataException($"{path} is not a Lineage Roots file this version can read (format {format}).");
-        tree.Name = Scalar(db, "SELECT value FROM meta WHERE key='name'") ?? tree.Name;
-        if (Scalar(db, "SELECT value FROM meta WHERE key='not_duplicates'") is { } nd)
+        tree.Name = meta("name") ?? tree.Name;
+        if (meta("not_duplicates") is { Length: > 0 } nd)
             tree.NotDuplicates.UnionWith(JsonSerializer.Deserialize<string[]>(nd) ?? Array.Empty<string>());
-        if (long.TryParse(Scalar(db, "SELECT value FROM meta WHERE key='home'"), out var home)) tree.HomePersonId = home;
-        if (Scalar(db, "SELECT value FROM meta WHERE key='bookmarks'") is { Length: > 0 } bm)
+        if (long.TryParse(meta("home"), out var home)) tree.HomePersonId = home;
+        if (meta("bookmarks") is { Length: > 0 } bm)
             tree.Bookmarks.AddRange(JsonSerializer.Deserialize<long[]>(bm) ?? Array.Empty<long>());
-        if (Scalar(db, "SELECT value FROM meta WHERE key='shares'") is { Length: > 0 } sh)
+        if (meta("shares") is { Length: > 0 } sh)
             tree.Shares.AddRange(JsonSerializer.Deserialize<List<ShareRecord>>(sh) ?? new());
-        if (Scalar(db, "SELECT value FROM meta WHERE key='shared_from'") is { Length: > 0 } sf)
+        if (meta("shared_from") is { Length: > 0 } sf)
             tree.SharedFrom = JsonSerializer.Deserialize<ShareOrigin>(sf);
-        foreach (var p in Rows<Person>(db, "person")) tree.AddPerson(p);
-        foreach (var f in Rows<Family>(db, "family")) tree.AddFamily(f);
-        foreach (var s in Rows<Source>(db, "source")) tree.AddSource(s);
-        foreach (var r in Rows<Repository>(db, "repository")) tree.AddRepository(r);
-        foreach (var r in Rows<ResearchItem>(db, "research")) tree.AddResearch(r);
+        foreach (var j in people) tree.AddPerson(JsonSerializer.Deserialize<Person>(j, Json)!);
+        foreach (var j in families) tree.AddFamily(JsonSerializer.Deserialize<Family>(j, Json)!);
+        foreach (var j in sources) tree.AddSource(JsonSerializer.Deserialize<Source>(j, Json)!);
+        foreach (var j in repositories) tree.AddRepository(JsonSerializer.Deserialize<Repository>(j, Json)!);
+        foreach (var j in research) tree.AddResearch(JsonSerializer.Deserialize<ResearchItem>(j, Json)!);
+        foreach (var j in changes) tree.History.Add(JsonSerializer.Deserialize<ChangeRecord>(j, Json)!);
         return tree;
+    }
+
+    private static bool HasTable(SqliteConnection db, string table)
+    {
+        using var cmd = db.CreateCommand();
+        cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name=$n";
+        cmd.Parameters.AddWithValue("$n", table);
+        return cmd.ExecuteScalar() != null;
     }
 
     private static SqliteConnection Open(string path, bool readOnly = false)
@@ -147,13 +224,12 @@ public static class LineageStore
         return db;
     }
 
-    private static IEnumerable<T> Rows<T>(SqliteConnection db, string table)
+    private static IEnumerable<string> Rows(SqliteConnection db, string table)
     {
         using var cmd = db.CreateCommand();
         cmd.CommandText = $"SELECT data FROM {table} ORDER BY id";
         using var r = cmd.ExecuteReader();
-        while (r.Read())
-            yield return JsonSerializer.Deserialize<T>(r.GetString(0), Json)!;
+        while (r.Read()) yield return r.GetString(0);
     }
 
     private static void Bulk<T>(SqliteConnection db, SqliteTransaction tx, string sql, IEnumerable<T> items,

@@ -1,0 +1,102 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:sh="using:Lineage.Core.Sharing"
+        x:Class="Lineage.App.Views.LocalShareWindow"
+        x:DataType="vm:LocalShareViewModel"
+        Title="Share on this network" Width="900" Height="700" MinWidth="620" MinHeight="420" CanResize="True"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Text="Works without the internet, between devices on the same Wi-Fi. Closing this window stops sharing." />
+        <Button Grid.Column="1" Classes="primary" Click="OnClose" MinWidth="110" HorizontalContentAlignment="Center" IsCancel="True">
+          <TextBlock Text="Close" Foreground="{DynamicResource OnAccent}" />
+        </Button>
+      </Grid>
+    </Border>
+    <ScrollViewer>
+      <Grid ColumnDefinitions="*,24,*" Margin="28,24">
+        <!-- Share my tree -->
+        <StackPanel Spacing="12" IsVisible="{Binding HasTree}">
+          <TextBlock Classes="title" FontSize="20" Text="Share my tree" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Others on this network can look at your tree, or copy people into theirs. Living people and private events are left out, as in an export." />
+          <Button Classes="primary" Command="{Binding StartSharingCommand}" IsVisible="{Binding !IsHosting}" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding TreeName, StringFormat='Share {0}'}" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+          <Border Classes="card" Padding="18,14" IsVisible="{Binding IsHosting}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="PIN to give people" />
+              <SelectableTextBlock Text="{Binding Pin}" FontSize="40" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+              <TextBlock Classes="label" Text="On a phone, open" Margin="0,6,0,0" />
+              <SelectableTextBlock Text="{Binding PhoneAddress}" TextWrapping="Wrap" FontWeight="SemiBold" />
+              <Button Classes="outline" Command="{Binding StopSharingCommand}" Content="Stop sharing" HorizontalAlignment="Left" Margin="0,6,0,0" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="muted small" Text="{Binding HostStatus}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Devices}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShareDeviceRow">
+                <Border Classes="card" Padding="14,10" Margin="0,0,0,8">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Classes="muted small" Text="{Binding State}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsWaiting}">
+                      <Button Classes="primary" Command="{Binding $parent[Window].((vm:LocalShareViewModel)DataContext).AllowCommand}"
+                              CommandParameter="{Binding}">
+                        <TextBlock Text="Allow" Foreground="{DynamicResource OnAccent}" />
+                      </Button>
+                      <Button Classes="outline" Content="Refuse"
+                              Command="{Binding $parent[Window].((vm:LocalShareViewModel)DataContext).RefuseCommand}"
+                              CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- Join -->
+        <StackPanel Grid.Column="2" Spacing="12">
+          <TextBlock Classes="title" FontSize="20" Text="Join" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Get a copy of a tree someone is sharing here. With your own tree open you pick who to copy in; otherwise it opens as a tree of its own." />
+          <Button Classes="outline" Command="{Binding FindTreesCommand}" IsVisible="{Binding !IsSearching}" Content="Look for shared trees"
+                  HorizontalAlignment="Left" />
+          <ListBox ItemsSource="{Binding Found}" SelectedItem="{Binding SelectedTree}" MaxHeight="220" IsVisible="{Binding IsSearching}"
+                   AutomationProperties.Name="Shared trees">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="sh:SharedTree">
+                <StackPanel Spacing="1" Margin="2,4">
+                  <TextBlock Text="{Binding Tree}" FontWeight="SemiBold" />
+                  <TextBlock Classes="muted small" Text="{Binding Host, StringFormat='Shared by {0}'}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Grid ColumnDefinitions="*,12,120" IsVisible="{Binding IsSearching}">
+            <StackPanel>
+              <TextBlock Classes="label" Text="Your name (the host sees it)" />
+              <TextBox Text="{Binding YourName}" AutomationProperties.Name="Your name" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="PIN" />
+              <TextBox Text="{Binding JoinPin}" AutomationProperties.Name="PIN" />
+            </StackPanel>
+          </Grid>
+          <Button Classes="primary" Command="{Binding GetTreeCommand}" IsVisible="{Binding IsSearching}" HorizontalAlignment="Left">
+            <TextBlock Text="Get this tree" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+          <TextBlock Classes="muted small" Text="{Binding JoinStatus}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

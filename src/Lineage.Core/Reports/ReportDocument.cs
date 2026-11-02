@@ -25,6 +25,46 @@ public sealed class ReportDocument
 
     public ReportDocument Add(Block block) { Blocks.Add(block); return this; }
 
+    /// <summary>
+    /// A copy with every heading, sentence, label and note passed through <paramref name="translate"/> (the program's
+    /// language). A paragraph written as one piece is translated whole; one made of several runs, run by run.
+    /// </summary>
+    public ReportDocument Translated(Func<string, string> translate)
+    {
+        IReadOnlyList<Run> Runs(IReadOnlyList<Run> runs) =>
+            runs.Select(r => r.NoteNumber != null || r.Text.Trim().Length == 0 ? r : r with { Text = Keep(r.Text, translate) }).ToList();
+        var copy = new ReportDocument
+        {
+            Title = translate(Title), Subtitle = translate(Subtitle), Author = Author, IsBook = IsBook,
+            NotesHeading = translate(NotesHeading), IndexHeading = translate(IndexHeading), IndexNote = translate(IndexNote),
+        };
+        foreach (var block in Blocks)
+            copy.Blocks.Add(block switch
+            {
+                Heading h => h with { Text = translate(h.Text) },
+                Picture pic => pic with { Caption = translate(pic.Caption) },
+                Paragraph p => p with { Runs = Runs(p.Runs) },
+                BulletList l => new BulletList(l.Items.Select(i => i with { Runs = Runs(i.Runs) }).ToList()),
+                Table t => t with
+                {
+                    Headers = t.Headers.Select(translate).ToList(),
+                    Rows = t.Rows.Select(r => (IReadOnlyList<Cell>)r.Select(c => new Cell(Runs(c.Runs))).ToList()).ToList(),
+                },
+                _ => block,
+            });
+        copy.Notes.AddRange(Notes.Select(n => n with { Text = translate(n.Text) }));
+        copy.Index.AddRange(Index);
+        return copy;
+    }
+
+    /// <summary>Translates the words of a run but keeps the spaces around it, which join it to its neighbours.</summary>
+    private static string Keep(string text, Func<string, string> translate)
+    {
+        var start = text.Length - text.TrimStart().Length;
+        var end = text.Length - text.TrimEnd().Length;
+        return text[..start] + translate(text.Trim()) + text[(text.Length - end)..];
+    }
+
     /// <summary>Headings a table of contents should list (levels 1 and 2 that carry an anchor).</summary>
     public IEnumerable<Heading> Contents => Blocks.OfType<Heading>().Where(h => h.Anchor is { Length: > 0 } && h.Level <= 2);
 
@@ -87,6 +127,9 @@ public sealed record Cell(IReadOnlyList<Run> Runs)
 
 /// <summary>Starts a new page in paged formats.</summary>
 public sealed record PageBreak : Block;
+
+/// <summary>A picture from a file on this computer (a portrait, say), with an optional caption; width in points.</summary>
+public sealed record Picture(string File, string Caption = "", float Width = 130) : Block;
 
 /// <summary>
 /// A stretch of text. <see cref="Link"/> points at an anchor elsewhere in the document;

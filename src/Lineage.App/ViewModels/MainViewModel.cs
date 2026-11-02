@@ -17,10 +17,11 @@ using Lineage.App.Views;
 namespace Lineage.App.ViewModels;
 
 /// <summary>The sections on the navigation rail, top to bottom.</summary>
-public enum AppSection { Home, People, Sources, Places, Research, Dna }
+/// <summary>The sections on the left-hand rail. "Sources" is shown as Evidence.</summary>
+public enum AppSection { Home, People, Sources, Places, Research, Dna, Charts, Reports }
 
 /// <summary>Which picture of the current person the main area shows.</summary>
-public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map, Timeline }
+public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map, Timeline, Lifelines, Relationship, Statistics }
 
 /// <summary>Ancestors of the person at the centre of a chart, by Ahnentafel number.</summary>
 public sealed record ChartData(FamilyTree Tree, long RootId, IReadOnlyDictionary<int, Person> Ancestors);
@@ -131,7 +132,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDetailsView), nameof(IsPedigreeView), nameof(IsFanView), nameof(IsDescendantsView),
-                              nameof(IsHourglassView), nameof(IsMapView), nameof(IsTimelineView), nameof(IsChartView), nameof(ViewIndex), nameof(ChartGenerationsShown))]
+                              nameof(IsHourglassView), nameof(IsMapView), nameof(IsTimelineView), nameof(IsChartView), nameof(ViewIndex), nameof(ChartGenerationsShown),
+                              nameof(PersonTabIndex), nameof(ChartTabIndex),
+                              nameof(IsLifelinesView), nameof(IsRelationshipView), nameof(IsStatisticsView), nameof(HasGenerations))]
     private PersonView _view = PersonView.Details;
     public bool IsDetailsView => View == PersonView.Details;
     public bool IsPedigreeView => View == PersonView.Pedigree;
@@ -140,10 +143,21 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsHourglassView => View == PersonView.Hourglass;
     public bool IsMapView => View == PersonView.Map;
     public bool IsTimelineView => View == PersonView.Timeline;
+    public bool IsLifelinesView => View == PersonView.Lifelines;
+    public bool IsRelationshipView => View == PersonView.Relationship;
+    public bool IsStatisticsView => View == PersonView.Statistics;
+    /// <summary>Only the family-tree charts have a number of generations to choose.</summary>
+    public bool HasGenerations => View is PersonView.Pedigree or PersonView.FanChart or PersonView.Descendants or PersonView.Hourglass;
     /// <summary>A chart is showing (so the generations, zoom and save-image controls apply).</summary>
     public bool IsChartView => View is not (PersonView.Details or PersonView.Map or PersonView.Timeline);
     partial void OnViewChanged(PersonView value)
     {
+        if (IsChart(value))
+        {
+            _lastChart = value;
+            if (Section == AppSection.People) Section = AppSection.Charts;
+        }
+        else if (Section == AppSection.Charts) Section = AppSection.People;
         if (value == PersonView.Map) RebuildPersonMap();
         else StopMapPlayback();
         if (value == PersonView.Timeline) RebuildTimeline();
@@ -153,31 +167,70 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>The section picked on the navigation rail.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SectionIndex), nameof(IsHomeSection), nameof(IsPeopleSection), nameof(IsSourcesSection),
-                              nameof(IsPlacesSection), nameof(IsResearchSection), nameof(IsDnaSection), nameof(HasSidebar), nameof(SearchWatermark))]
+                              nameof(IsPlacesSection), nameof(IsResearchSection), nameof(IsDnaSection), nameof(IsChartsSection),
+                              nameof(IsReportsSection), nameof(IsPeopleList), nameof(HasSidebar), nameof(SearchWatermark),
+                              nameof(IsEvidenceAnalysis), nameof(IsSourcesList))]
     private AppSection _section = AppSection.People;
-    public int SectionIndex { get => (int)Section; set => Section = (AppSection)Math.Clamp(value, 0, 5); }
+    public int SectionIndex { get => (int)Section; set => Section = (AppSection)Math.Clamp(value, 0, (int)AppSection.Reports); }
     public bool IsHomeSection => Section == AppSection.Home;
     public bool IsPeopleSection => Section == AppSection.People;
     public bool IsSourcesSection => Section == AppSection.Sources;
     public bool IsPlacesSection => Section == AppSection.Places;
     public bool IsResearchSection => Section == AppSection.Research;
     public bool IsDnaSection => Section == AppSection.Dna;
-    /// <summary>People, Sources and Places have a list beside the page; Home and Research use the full width.</summary>
-    public bool HasSidebar => Section is AppSection.People or AppSection.Sources or AppSection.Places;
+    public bool IsChartsSection => Section == AppSection.Charts;
+    public bool IsReportsSection => Section == AppSection.Reports;
+    /// <summary>The people list sits beside both the person pages and the charts.</summary>
+    public bool IsPeopleList => Section is AppSection.People or AppSection.Charts;
+    /// <summary>People, Charts, Evidence and Places have a list beside the page; the others use the full width.</summary>
+    public bool HasSidebar => Section is AppSection.People or AppSection.Charts or AppSection.Places
+                              || (Section == AppSection.Sources && EvidenceModeIndex == 0);
     partial void OnSectionChanged(AppSection value)
     {
+        // The Charts tab shows the charts, the People tab the person's page, map and timeline.
+        if (value == AppSection.Charts && !IsChartView) View = _lastChart;
+        else if (value == AppSection.People && IsChartView) View = PersonView.Details;
         NotifyViewState();
         switch (value)
         {
-            case AppSection.Sources: RebuildSources(); break;
+            case AppSection.Sources: RebuildSources(); if (IsEvidenceAnalysis) RebuildEvidence(); break;
             case AppSection.Places: RebuildPlaceList(); break;
-            case AppSection.Research: RebuildResearch(); break;
+            case AppSection.Research: RebuildResearch(); RefreshProblemsSummary(); break;
             case AppSection.Home: RebuildHome(); break;
             case AppSection.Dna: RebuildDna(); break;
         }
     }
 
-    [RelayCommand] private void ShowView(PersonView view) { View = view; Section = AppSection.People; }
+    [RelayCommand] private void ShowView(PersonView view)
+    {
+        View = view;
+        Section = IsChart(view) ? AppSection.Charts : AppSection.People;
+    }
+
+    private static bool IsChart(PersonView view) => view is not (PersonView.Details or PersonView.Map or PersonView.Timeline);
+    private PersonView _lastChart = PersonView.Pedigree;
+
+    /// <summary>The People tab's views: 0 Details, 1 Map, 2 Timeline.</summary>
+    public int PersonTabIndex
+    {
+        get => View switch { PersonView.Map => 1, PersonView.Timeline => 2, _ => 0 };
+        set => View = value switch { 1 => PersonView.Map, 2 => PersonView.Timeline, _ => PersonView.Details };
+    }
+
+    /// <summary>The Charts tab's charts: 0 Pedigree, 1 Fan, 2 Descendants, 3 Hourglass, 4 Lifelines, 5 Relationship, 6 Statistics.</summary>
+    public int ChartTabIndex
+    {
+        get => View switch
+        {
+            PersonView.FanChart => 1, PersonView.Descendants => 2, PersonView.Hourglass => 3,
+            PersonView.Lifelines => 4, PersonView.Relationship => 5, PersonView.Statistics => 6, _ => 0,
+        };
+        set => View = value switch
+        {
+            1 => PersonView.FanChart, 2 => PersonView.Descendants, 3 => PersonView.Hourglass,
+            4 => PersonView.Lifelines, 5 => PersonView.Relationship, 6 => PersonView.Statistics, _ => PersonView.Pedigree,
+        };
+    }
 
     private Person? _current;
     internal Person? Current => _current;
@@ -190,7 +243,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string SearchWatermark => Section switch
     {
-        AppSection.Sources => "Search sources…",
+        AppSection.Sources => "Search sources and evidence…",
         AppSection.Places => "Search places…",
         _ => "Search names, years or IDs…",
     };
@@ -212,8 +265,8 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>True while nothing has been opened yet: the window shows the welcome screen.</summary>
     public bool IsWelcome => !HasTree;
     /// <summary>A tree is open but no one is shown (it is empty).</summary>
-    public bool IsEmptyTree => HasTree && !HasCurrent && IsPeopleSection;
-    public bool IsPersonShown => HasTree && HasCurrent && IsPeopleSection;
+    public bool IsEmptyTree => HasTree && !HasCurrent && IsPeopleList;
+    public bool IsPersonShown => HasTree && HasCurrent && IsPeopleList;
     partial void OnHasTreeChanged(bool value) => NotifyViewState();
     partial void OnHasCurrentChanged(bool value) => NotifyViewState();
     private void NotifyViewState()
@@ -229,7 +282,9 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _tree = tree;
         _history = new UndoHistory(tree);
+        SetHistoryAuthor();
         NotifyUndo();
+        NotifyLock();
         OnPropertyChanged(nameof(Tree));
         HasTree = true;
         FilePath = path;
@@ -267,12 +322,13 @@ public sealed partial class MainViewModel : ObservableObject
                 if (choice == 0) { await OpenPathAsync(copy); return; }
                 if (choice != 1) return;
             }
-            var tree = await Task.Run(() => ext switch
+            var tree = ext switch
             {
-                ".aq" => AqImporter.Import(path),
-                ".ged" => GedcomImporter.ImportFile(path),
-                _ => LineageStore.Load(path),
-            });
+                ".aq" => await Task.Run(() => AqImporter.Import(path)),
+                ".ged" => await Task.Run(() => GedcomImporter.ImportFile(path)),
+                _ => await LoadLineageAsync(path),
+            };
+            if (tree == null) return;   // the password wasn't given
             Load(tree, ext is ".aq" or ".ged" ? null : path, ext is ".aq" or ".ged" ? "Imported" : "Opened", sw.ElapsedMilliseconds);
             if (ext is ".aq" or ".ged") await SaveImportedCopyAsync(path);
             else
@@ -389,6 +445,48 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _allRows = _tree.People.Values.Select(p => new PersonRow(p)).OrderBy(r => r.SortKey).ToList();
         ApplyFilter();
+        FillRelations(_allRows);
+    }
+
+    private CancellationTokenSource? _relations;
+
+    /// <summary>
+    /// Works out everyone's relationship to the home person in the background and shows it in the people list a batch
+    /// at a time, so even a big tree's list appears at once. A newer list (after an edit) cancels an older run.
+    /// </summary>
+    private void FillRelations(IReadOnlyList<PersonRow> rows)
+    {
+        _relations?.Cancel();
+        if (_tree.Person(_tree.HomePersonId) is not { } home) return;
+        var cancel = (_relations = new CancellationTokenSource()).Token;
+        var tree = _tree;
+        _ = Task.Run(() =>
+        {
+            var batch = new List<(PersonRow Row, string Text)>();
+            void Flush()
+            {
+                var done = batch.ToList();
+                batch.Clear();
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (cancel.IsCancellationRequested) return;
+                    foreach (var (row, text) in done) row.Relation = text;
+                });
+            }
+            try
+            {
+                foreach (var row in rows)
+                {
+                    if (cancel.IsCancellationRequested) return;
+                    if (tree.Person(row.Id) is not { } p) continue;
+                    var text = p.Id == home.Id ? "Home person" : Relationship.Describe(tree, home, p) is { Related: true } r ? r.Text : "";
+                    if (text.Length > 0) batch.Add((row, text));
+                    if (batch.Count >= 200) Flush();
+                }
+                Flush();
+            }
+            catch (Exception) { /* the tree changed under us; the next rebuild starts again */ }
+        }, cancel);
     }
 
     /// <summary>
@@ -518,7 +616,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void Navigate(long id)
     {
         var from = Section;   // so Back returns to Home or the list this was opened from
-        Section = AppSection.People;
+        if (Section != AppSection.Charts) Section = AppSection.People;   // in Charts, clicking someone centres them
         Show(id, recordHistory: true, from);
     }
 

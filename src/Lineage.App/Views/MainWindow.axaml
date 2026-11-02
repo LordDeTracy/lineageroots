@@ -8,7 +8,7 @@
         x:DataType="vm:MainViewModel"
         x:Name="Root"
         Title="{Binding Title}" Width="1280" Height="820" MinWidth="820" MinHeight="520" Icon="/Assets/app.ico"
-        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+        Background="{DynamicResource Backdrop}" Foreground="{DynamicResource Ink}">
 
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewCommand}" />
@@ -22,6 +22,7 @@
     <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
     <KeyBinding Gesture="Ctrl+D" Command="{Binding ToggleBookmarkCommand}" />
     <KeyBinding Gesture="Ctrl+H" Command="{Binding GoToHomePersonCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+H" Command="{Binding ShowHistoryCommand}" />
     <KeyBinding Gesture="Ctrl+R" Command="{Binding FindRelationshipCommand}" />
     <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
@@ -33,17 +34,32 @@
     <KeyBinding Gesture="Ctrl+D6" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Map}" />
     <KeyBinding Gesture="Ctrl+D7" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Timeline}" />
     <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenQuickSearchCommand}" />
+    <KeyBinding Gesture="Alt+D1" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Home}" />
+    <KeyBinding Gesture="Alt+D2" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.People}" />
+    <KeyBinding Gesture="Alt+D3" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Sources}" />
+    <KeyBinding Gesture="Alt+D4" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Places}" />
+    <KeyBinding Gesture="Alt+D5" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Research}" />
+    <KeyBinding Gesture="Alt+D6" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Dna}" />
+    <KeyBinding Gesture="Alt+D7" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Charts}" />
+    <KeyBinding Gesture="Alt+D8" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Reports}" />
+    <KeyBinding Gesture="Ctrl+D8" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Lifelines}" />
+    <KeyBinding Gesture="Ctrl+D9" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Relationship}" />
+    <KeyBinding Gesture="Ctrl+D0" Command="{Binding ShowViewCommand}" CommandParameter="{x:Static vm:PersonView.Statistics}" />
+    <KeyBinding Gesture="Ctrl+Shift+A" Command="{Binding AddPersonCommand}" />
+    <KeyBinding Gesture="Ctrl+T" Command="{Binding TranscribeRecordCommand}" />
+    <KeyBinding Gesture="Ctrl+P" Command="{Binding ShowSectionCommand}" CommandParameter="{x:Static vm:AppSection.Reports}" />
+    <KeyBinding Gesture="F1" Command="{Binding ShowTutorialCommand}" />
   </Window.KeyBindings>
 
 
   <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- ===== Top bar ===== -->
-    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
+    <Border Background="{DynamicResource Chrome}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1"
             Padding="16,10">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Border Width="32" Height="32" CornerRadius="8" ClipToBounds="True">
+          <Border Width="32" Height="32" CornerRadius="10" ClipToBounds="True">
             <Image Source="/Assets/icon.png" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
           </Border>
           <TextBlock Text="Lineage Roots" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -87,7 +103,7 @@
             <c:LineIcon Name="ThemeIcon" Data="{StaticResource IconMoon}" />
           </Button>
           <Button Classes="ghost" Command="{Binding AddPersonCommand}" IsVisible="{Binding HasTree}"
-                  ToolTip.Tip="Add someone who isn't connected yet">
+                  ToolTip.Tip="Add someone who isn't connected yet (Ctrl+Shift+A)">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <c:LineIcon Data="{StaticResource IconUserPlus}" />
               <TextBlock Text="Add person" />
@@ -117,30 +133,28 @@
                 <MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
                 <MenuItem Header="Save as…" Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
                 <MenuItem Header="Export GEDCOM…" Command="{Binding ExportGedcomCommand}" />
+                <MenuItem Header="Password">
+                  <MenuItem Header="{Binding PasswordMenuText}" Command="{Binding SetPasswordCommand}" />
+                  <MenuItem Header="Remove the password…" Command="{Binding RemovePasswordCommand}" />
+                </MenuItem>
                 <Separator />
                 <MenuItem Header="{Binding UndoText}" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
                 <MenuItem Header="{Binding RedoText}" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
+                <MenuItem Header="Change history…" Command="{Binding ShowHistoryCommand}" InputGesture="Ctrl+Shift+H" />
                 <Separator />
-                <MenuItem Header="Find duplicates…" Command="{Binding FindDuplicatesCommand}" />
-                <MenuItem Header="Find problems…" Command="{Binding FindProblemsCommand}" />
-                <MenuItem Header="Compare with another tree…" Command="{Binding CompareTreesCommand}" />
-                <MenuItem Header="Share a copy with a relative…" Command="{Binding ShareWithRelativeCommand}" />
-                <MenuItem Header="Review a relative's changes…" Command="{Binding ReviewRelativeChangesCommand}" />
-                <MenuItem Header="How are they related?…" Command="{Binding FindRelationshipCommand}" InputGesture="Ctrl+R" />
-                <MenuItem Header="Reports" x:Name="ReportsMenu">
-                  <MenuItem Header="Family group sheet…" Command="{Binding FamilyGroupReportCommand}" />
-                  <MenuItem Header="Individual summary…" Command="{Binding IndividualSummaryCommand}" />
-                  <MenuItem Header="Ancestors…" Command="{Binding AncestorReportCommand}" />
-                  <MenuItem Header="Descendants (outline)…" Command="{Binding DescendantReportCommand}" />
-                  <MenuItem Header="Descendants (narrative, register style)…" Command="{Binding RegisterReportCommand}" />
-                  <Separator />
-                  <MenuItem Header="List of places…" Command="{Binding PlaceListReportCommand}" />
-                  <MenuItem Header="List of surnames…" Command="{Binding SurnameListReportCommand}" />
-                  <MenuItem Header="Birthday and anniversary calendar…" Command="{Binding BirthdayCalendarCommand}" />
-                  <Separator />
-                  <MenuItem Header="Family history book…" Command="{Binding FamilyBookCommand}" />
+                <MenuItem Header="Tools">
+                  <MenuItem Header="How are they related?…" Command="{Binding FindRelationshipCommand}" InputGesture="Ctrl+R" />
+                  <MenuItem Header="Find duplicates…" Command="{Binding FindDuplicatesCommand}" />
+                  <MenuItem Header="Clean up names, dates and places…" Command="{Binding CleanUpCommand}" />
+                  <MenuItem Header="Compare with another tree…" Command="{Binding CompareTreesCommand}" />
+                  <MenuItem Header="Transcribe a record…" Command="{Binding TranscribeRecordCommand}" InputGesture="Ctrl+T" />
                 </MenuItem>
-                <MenuItem Header="Make a family website…" Command="{Binding ExportWebsiteCommand}" />
+                <MenuItem Header="Share">
+                  <MenuItem Header="Share on this network (genealogy night)…" Command="{Binding ShareOnNetworkCommand}" />
+                  <MenuItem Header="Share a copy with a relative…" Command="{Binding ShareWithRelativeCommand}" />
+                  <MenuItem Header="Review a relative's changes…" Command="{Binding ReviewRelativeChangesCommand}" />
+                  <MenuItem Header="Make a phone viewer…" Command="{Binding ExportPhoneViewerCommand}" />
+                </MenuItem>
                 <MenuItem Header="Photos">
                   <MenuItem Header="Keep photos with the tree (copy into its folder)…" Command="{Binding CopyMediaIntoTreeFolderCommand}" />
                   <MenuItem Header="Find missing photos…" Command="{Binding FindMissingMediaCommand}" />
@@ -155,8 +169,11 @@
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="Settings…" Command="{Binding OpenSettingsCommand}" />
-                <MenuItem Header="Check for updates…" Command="{Binding CheckForUpdatesCommand}" />
-                <MenuItem Header="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
+                <MenuItem Header="Help">
+                  <MenuItem Header="Getting started and shortcuts" Command="{Binding ShowTutorialCommand}" InputGesture="F1" />
+                  <MenuItem Header="Check for updates…" Command="{Binding CheckForUpdatesCommand}" />
+                  <MenuItem Header="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
+                </MenuItem>
                 <MenuItem Header="Switch light / dark" Click="OnToggleTheme" />
                 <MenuItem Header="Exit" Click="OnExit" />
               </MenuFlyout>
@@ -174,7 +191,7 @@
     <Border Background="{DynamicResource Bg}" Opacity="0.84" />
     <ScrollViewer>
       <StackPanel MaxWidth="540" Margin="24,48,24,32" Spacing="0" VerticalAlignment="Center">
-        <Border Width="150" Height="150" CornerRadius="18" ClipToBounds="True" HorizontalAlignment="Left">
+        <Border Width="150" Height="150" CornerRadius="12" ClipToBounds="True" HorizontalAlignment="Left">
           <Image Source="/Assets/logo.png" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Border>
         <TextBlock Classes="display" Text="Welcome to Lineage Roots" Margin="0,22,0,6" />
@@ -212,6 +229,16 @@
               <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
             </Grid>
           </Button>
+          <Button Classes="option" Command="{Binding ShareOnNetworkCommand}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconUsers}" /></Border>
+              <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="Join a tree shared on this network" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Classes="muted" Text="At a genealogy night: get a copy from someone nearby, no internet needed" TextWrapping="Wrap" />
+              </StackPanel>
+              <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
+            </Grid>
+          </Button>
         </StackPanel>
 
         <StackPanel Spacing="8" Margin="0,24,0,0" IsVisible="{Binding HasRecoverable}">
@@ -245,42 +272,55 @@
     <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" IsVisible="{Binding HasTree}">
 
       <!-- Navigation rail -->
-      <Border Width="84" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <Border Width="84" Background="{DynamicResource Rail}">
         <ListBox Classes="rail" SelectedIndex="{Binding SectionIndex}" AutomationProperties.Name="Sections">
-          <ListBoxItem ToolTip.Tip="Home: reminders, research and tree overview">
+          <ListBoxItem ToolTip.Tip="Home: reminders, research and tree overview (Alt+1)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconHome}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="Home" />
+              <!-- Long words in other languages shrink to fit the rail. -->
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Home" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem ToolTip.Tip="People and their families">
+          <ListBoxItem ToolTip.Tip="People and their families (Alt+2)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconUsers}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="People" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="People" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem ToolTip.Tip="Sources and citations">
+          <ListBoxItem ToolTip.Tip="Evidence: sources, citations and what they prove (Alt+3)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconBook}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="Sources" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Evidence" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem ToolTip.Tip="Places, maps and GPS">
+          <ListBoxItem ToolTip.Tip="Places, maps and GPS (Alt+4)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconGlobe}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="Places" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Places" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem ToolTip.Tip="Research to-do list">
+          <ListBoxItem ToolTip.Tip="Research: to-do list, search log and problems (Alt+5)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconChecklist}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="Research" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Research" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem ToolTip.Tip="DNA matches, clusters and relationship odds">
+          <ListBoxItem ToolTip.Tip="DNA matches, clusters and relationship odds (Alt+6)">
             <StackPanel Spacing="5">
               <c:LineIcon Data="{StaticResource IconDna}" Width="21" Height="21" HorizontalAlignment="Center" />
-              <TextBlock Text="DNA" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="DNA" /></Viewbox>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="Charts: pedigree, fan, descendants, lifelines and more (Alt+7)">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconTree}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Charts" /></Viewbox>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem ToolTip.Tip="Reports and books to print or share (Alt+8 or Ctrl+P)">
+            <StackPanel Spacing="5">
+              <c:LineIcon Data="{StaticResource IconPrint}" Width="21" Height="21" HorizontalAlignment="Center" />
+              <Viewbox StretchDirection="DownOnly"><TextBlock Text="Reports" /></Viewbox>
             </StackPanel>
           </ListBoxItem>
         </ListBox>
@@ -288,7 +328,7 @@
 
       <!-- List beside the page (people, sources or places) -->
       <Border Grid.Column="1" Width="300" IsVisible="{Binding HasSidebar}"
-              Background="{DynamicResource Sidebar}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+              Background="{DynamicResource Pane}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
         <DockPanel Margin="12,14,12,8">
           <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
             <TextBox Name="SearchBox" Classes="search" Watermark="{Binding SearchWatermark}"
@@ -297,7 +337,7 @@
                         HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
                         Foreground="{DynamicResource Faint}" />
           </Grid>
-          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8" IsVisible="{Binding IsPeopleSection}">
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8" IsVisible="{Binding IsPeopleList}">
             <Border Classes="card" Padding="12,8" IsVisible="{Binding HasListFilter}">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Classes="small" Text="{Binding ListFilterText}" TextWrapping="Wrap" VerticalAlignment="Center"
@@ -335,7 +375,7 @@
                         HorizontalAlignment="Stretch" AutomationProperties.Name="Sex" />
             </StackPanel>
           </StackPanel>
-          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="6,0,0,6" IsVisible="{Binding IsPeopleSection}">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="6,0,0,6" IsVisible="{Binding IsPeopleList}">
             <TextBlock Classes="section" Text="{Binding PeopleCountText}" VerticalAlignment="Center" />
             <ToggleButton Grid.Column="1" Classes="soundsLike" IsChecked="{Binding SoundsLike}" Padding="8,3"
                           ToolTip.Tip="Also find names that sound alike or are spelled a little differently (Smith, Smyth)">
@@ -378,7 +418,7 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:SourceRow">
                   <Grid ColumnDefinitions="Auto,*">
-                    <Border Classes="iconTile" Width="34" Height="34" CornerRadius="9">
+                    <Border Classes="iconTile" Width="34" Height="34" CornerRadius="10">
                       <c:LineIcon Data="{StaticResource IconBook}" Width="17" Height="17" />
                     </Border>
                     <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center" Spacing="1">
@@ -391,11 +431,11 @@
               </ListBox.ItemTemplate>
             </ListBox>
             <ListBox Classes="people" ItemsSource="{Binding People}" SelectedItem="{Binding SelectedRow}"
-                     AutomationProperties.Name="People" IsVisible="{Binding IsPeopleSection}">
+                     AutomationProperties.Name="People" IsVisible="{Binding IsPeopleList}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:PersonRow">
                   <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Border Classes="avatar" Width="34" Height="34" CornerRadius="17"
+                    <Border Classes="avatar" Width="34" Height="34" CornerRadius="10"
                             Classes.male="{Binding IsMale}" Classes.female="{Binding IsFemale}">
                       <TextBlock Text="{Binding Initials}" FontSize="12" />
                     </Border>
@@ -403,6 +443,8 @@
                       <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
                       <TextBlock Classes="muted small" Text="{Binding Subtitle}" IsVisible="{Binding HasSubtitle}"
                                  TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small" Text="{Binding Relation}" IsVisible="{Binding HasRelation}"
+                                 Foreground="{DynamicResource Accent}" TextTrimming="CharacterEllipsis" />
                       <TextBlock Classes="small" Text="Found in notes" IsVisible="{Binding FoundInNotes}"
                                  Foreground="{DynamicResource Accent}" />
                     </StackPanel>
@@ -420,7 +462,7 @@
       <Panel Grid.Column="2">
         <StackPanel IsVisible="{Binding IsEmptyTree}" HorizontalAlignment="Center"
                     VerticalAlignment="Center" Spacing="8" MaxWidth="380">
-          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+          <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
             <c:LineIcon Data="{StaticResource IconUsers}" Width="28" Height="28" />
           </Border>
           <TextBlock Classes="title" Text="Your tree is empty" HorizontalAlignment="Center" Margin="0,8,0,0" />
@@ -434,11 +476,13 @@
           </Button>
         </StackPanel>
         <pages:PersonPage Name="PersonView" IsVisible="{Binding IsPersonShown}" />
-        <pages:SourcePage IsVisible="{Binding IsSourcesSection}" />
+        <pages:SourcePage IsVisible="{Binding IsSourcesList}" />
+        <pages:EvidencePage IsVisible="{Binding IsEvidenceAnalysis}" />
         <pages:ResearchPage IsVisible="{Binding IsResearchSection}" />
         <pages:HomePage IsVisible="{Binding IsHomeSection}" />
         <pages:PlacesPage IsVisible="{Binding IsPlacesSection}" />
         <pages:DnaPage IsVisible="{Binding IsDnaSection}" />
+        <pages:ReportsPage IsVisible="{Binding IsReportsSection}" />
       </Panel>
     </Grid>
 
@@ -448,7 +492,7 @@
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Text="{Binding Status}" Classes="faint small" TextTrimming="CharacterEllipsis" />
         <TextBlock Grid.Column="1" Text="{Binding VersionText}" Classes="faint" FontSize="10.5" Margin="12,0,0,0"
-                   VerticalAlignment="Center" ToolTip.Tip="The version of Lineage Roots you are running" />
+                   VerticalAlignment="Center" ToolTip.Tip="The version of Lineage Roots you are running. Copyright © 2026 Dellingr Dynamics." />
       </Grid>
     </Border>
 

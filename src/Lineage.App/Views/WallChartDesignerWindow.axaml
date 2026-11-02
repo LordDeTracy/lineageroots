@@ -1,0 +1,100 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.WallChartDesignerWindow"
+        x:DataType="vm:WallChartDesignerViewModel"
+        Title="Wall chart designer" Width="1120" Height="780" MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding PlanText}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" Click="OnSave">
+            <TextBlock Text="Save the wall chart (PDF)" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Border DockPanel.Dock="Left" Width="360" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+      <ScrollViewer>
+        <StackPanel Margin="24,20" Spacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconTree}" /></Border>
+            <TextBlock Classes="title" FontSize="20" VerticalAlignment="Center" Text="Wall chart designer" />
+          </StackPanel>
+
+          <TextBlock Classes="section" Text="CHART" />
+          <ComboBox ItemsSource="{Binding KindOptions}" SelectedIndex="{Binding KindIndex}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="Chart" />
+          <StackPanel>
+            <TextBlock Classes="label" Text="Generations" />
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding Generations}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Generations" />
+          </StackPanel>
+
+          <TextBlock Classes="section" Text="WORDING" />
+          <StackPanel>
+            <TextBlock Classes="label" Text="Title" />
+            <TextBox Text="{Binding Title}" AutomationProperties.Name="Title" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Subtitle" />
+            <TextBox Text="{Binding Subtitle}" Watermark="Optional" AutomationProperties.Name="Subtitle" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Note at the foot" />
+            <TextBox Text="{Binding Note}" Watermark="e.g. Made for the 2026 family reunion" AutomationProperties.Name="Note at the foot" />
+          </StackPanel>
+
+          <TextBlock Classes="section" Text="PRINTING" />
+          <ListBox Classes="choices" ItemsSource="{Binding ModeOptions}" SelectedIndex="{Binding ModeIndex}" AutomationProperties.Name="Printing" />
+          <StackPanel IsVisible="{Binding IsTiled}">
+            <TextBlock Classes="label" Text="Paper" />
+            <ComboBox ItemsSource="{Binding PaperOptions}" SelectedIndex="{Binding PaperIndex}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Paper" />
+          </StackPanel>
+          <StackPanel>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="label" Text="Size" />
+              <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding SizePercent, StringFormat='{}{0:0}%'}" />
+            </Grid>
+            <Slider Minimum="40" Maximum="250" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding SizePercent}"
+                    AutomationProperties.Name="Size" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="At 100% names print about as big as on screen." />
+          </StackPanel>
+
+          <TextBlock Classes="section" Text="LOOK" />
+          <ComboBox ItemsSource="{Binding ColourOptions}" SelectedIndex="{Binding ColourIndex}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="Colours" />
+          <CheckBox IsChecked="{Binding ColourByEvidence}" Content="Colour by evidence" />
+          <CheckBox IsChecked="{Binding Frame}" IsEnabled="{Binding IsPoster}" Content="A frame around the chart" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+    <Border Name="PreviewArea" Background="{DynamicResource SurfaceAlt}" Padding="24">
+      <ThemeVariantScope Name="SheetScope" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Border Name="Sheet" ClipToBounds="True" Background="{DynamicResource Bg}" BoxShadow="0 2 10 -2 #26000000" TextElement.Foreground="{DynamicResource Ink}">
+        <DockPanel Name="SheetContent" Margin="18">
+          <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
+            <TextBlock Name="PreviewTitle" FontSize="18" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Name="PreviewSubtitle" FontSize="11" Opacity="0.7" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <TextBlock DockPanel.Dock="Bottom" Name="PreviewNote" FontSize="9" Opacity="0.55" Margin="0,8,0,0" Text="{Binding Note}" />
+          <Border Name="ChartFrame" BorderBrush="{DynamicResource Accent}" Padding="6">
+            <Panel>
+              <!-- The chart lives here unseen (it needs a window for its colours); the preview is a picture of it. -->
+              <Canvas Name="ChartHost" IsVisible="False" />
+              <Image Name="ChartPicture" Stretch="Uniform" />
+            </Panel>
+          </Border>
+        </DockPanel>
+      </Border>
+      </ThemeVariantScope>
+    </Border>
+  </DockPanel>
+</Window>

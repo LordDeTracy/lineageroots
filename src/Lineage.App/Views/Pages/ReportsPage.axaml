@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lineage.App.ViewModels"
+             xmlns:c="using:Lineage.App.Controls"
+             x:Class="Lineage.App.Views.Pages.ReportsPage"
+             x:DataType="vm:MainViewModel">
+  <!-- Everything to print or share, as PDF or Word: the family book first, then reports about one person, then lists. -->
+  <ScrollViewer>
+    <StackPanel MaxWidth="820" Margin="32,28,32,40" Spacing="12">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="display" Text="Reports" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Books and reports to print or share, as PDF or Word. Reports about one person use whoever is selected in People." />
+      </StackPanel>
+
+      <Button Classes="option" Command="{Binding FamilyBookCommand}" Margin="0,8,0,0">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Border Classes="iconTile" Width="52" Height="52" CornerRadius="10">
+            <c:LineIcon Data="{StaticResource IconBook}" Width="26" Height="26" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center" Spacing="3">
+            <TextBlock Text="Family history book" FontWeight="SemiBold" FontSize="17" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="A whole book about a person and their family: title page, your introduction, a chapter for each generation, sources and an index." />
+          </StackPanel>
+          <c:LineIcon Grid.Column="2" Data="{StaticResource IconForward}" Foreground="{DynamicResource Faint}" />
+        </Grid>
+      </Button>
+
+      <TextBlock Classes="section" Margin="2,14,0,0">
+        <Run Text="ABOUT " /><Run Text="{Binding CurrentName}" />
+      </TextBlock>
+      <UniformGrid Columns="2">
+        <UniformGrid.Styles>
+          <Style Selector="Button.option"><Setter Property="Margin" Value="0,0,10,10" /></Style>
+        </UniformGrid.Styles>
+        <Button Classes="option" Command="{Binding ClientReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Client research report" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="For a client: findings, conclusions, the evidence weighed, searches made and next steps." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding IndividualSummaryCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Individual summary" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Everything recorded about them, with sources." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding FamilyGroupReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Family group sheet" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="A couple and their children on one page." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding AncestorReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Ancestors" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Parents, grandparents and further back, generation by generation." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding DescendantReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Descendants (outline)" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Children, grandchildren and their families, indented." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding RegisterReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Descendants (narrative)" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Register style: a written story for each family." />
+          </StackPanel>
+        </Button>
+      </UniformGrid>
+
+      <TextBlock Classes="section" Text="THE WHOLE TREE" Margin="2,8,0,0" />
+      <UniformGrid Columns="2">
+        <UniformGrid.Styles>
+          <Style Selector="Button.option"><Setter Property="Margin" Value="0,0,10,10" /></Style>
+        </UniformGrid.Styles>
+        <Button Classes="option" Command="{Binding PlaceListReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="List of places" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Every place, with who was there and when." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding SurnameListReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="List of surnames" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Every family name, with how many people and their years." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding BirthdayCalendarCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Birthday and anniversary calendar" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Month by month, for the living and the remembered." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding ExportWebsiteCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Family website" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Web pages that work offline from a USB stick or any web host." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding ExportPhoneViewerCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Phone viewer" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="The family in one file to open on a phone, with no internet or app." />
+          </StackPanel>
+        </Button>
+      </UniformGrid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

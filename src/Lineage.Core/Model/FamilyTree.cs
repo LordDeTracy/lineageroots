@@ -24,6 +24,10 @@ public sealed class FamilyTree
     public List<ShareRecord> Shares { get; } = new();
     /// <summary>In a copy made for a relative: which share it came from, so their changes can be merged back.</summary>
     public ShareOrigin? SharedFrom { get; set; }
+    /// <summary>The change history saved in the file, oldest first. The undo history adds to it.</summary>
+    public List<ChangeRecord> History { get; } = new();
+    /// <summary>The password the file is saved with; null for an ordinary file. Copies for others never carry it.</summary>
+    public Storage.FileLock? Lock { get; set; }
 
     public static string PairKey(long a, long b) => a < b ? $"{a}:{b}" : $"{b}:{a}";
 

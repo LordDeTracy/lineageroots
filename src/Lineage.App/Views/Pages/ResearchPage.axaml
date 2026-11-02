@@ -78,6 +78,22 @@
         </Button>
       </Grid>
 
+      <!-- The problem finder first: impossible or unlikely dates and relationships are research to do too. -->
+      <Border Classes="card" Padding="18,14">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Border Classes="iconTile" Width="40" Height="40" CornerRadius="10">
+            <c:LineIcon Data="{StaticResource IconAlert}" Width="20" Height="20" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="14,0" VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="Problems in the tree" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" Text="{Binding ProblemsSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="outline" Command="{Binding FindProblemsCommand}" VerticalAlignment="Center"
+                  Content="Open the problem finder" />
+        </Grid>
+      </Border>
+
+      <Grid ColumnDefinitions="*,Auto,Auto">
       <ListBox Classes="segmented" SelectedIndex="{Binding ResearchFilterIndex}" HorizontalAlignment="Left"
                AutomationProperties.Name="Show tasks">
         <ListBox.ItemsPanel>
@@ -89,9 +105,24 @@
         <ListBoxItem Content="Suggested" ToolTip.Tip="Next steps for the home person and their ancestors" />
         <ListBoxItem Content="Search log" ToolTip.Tip="Searches you've done and what they found — including nothing" />
       </ListBox>
+      <Button Grid.Column="1" Classes="ghost" Command="{Binding PrintResearchCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+              ToolTip.Tip="The whole research log as PDF or Word, to print or hand to a client">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <c:LineIcon Data="{StaticResource IconPrint}" Width="16" Height="16" />
+          <TextBlock Text="Print" />
+        </StackPanel>
+      </Button>
+      <Button Grid.Column="2" Classes="ghost" Command="{Binding ExportResearchCsvCommand}" Margin="4,0,0,0" VerticalAlignment="Center"
+              ToolTip.Tip="The research log as a spreadsheet (CSV)">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <c:LineIcon Data="{StaticResource IconExport}" Width="16" Height="16" />
+          <TextBlock Text="Export" />
+        </StackPanel>
+      </Button>
+      </Grid>
 
       <StackPanel IsVisible="{Binding HasNoResearch}" HorizontalAlignment="Center" Margin="0,60,0,0" Spacing="8" MaxWidth="420">
-        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
           <c:LineIcon Data="{StaticResource IconChecklist}" Width="28" Height="28" />
         </Border>
         <TextBlock Classes="title" Text="No research tasks yet" HorizontalAlignment="Center" Margin="0,8,0,0" />

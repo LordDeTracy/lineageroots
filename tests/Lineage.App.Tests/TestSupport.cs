@@ -19,6 +19,7 @@ public static class TestApp
         // Never read or change the user's own settings.
         Lineage.App.Services.AppSettings.FilePath = Path.Combine(Path.GetTempPath(), $"lineage-test-settings-{Guid.NewGuid():N}.json");
         Lineage.App.Services.AppSettings.CopiesFolder = Path.Combine(Path.GetTempPath(), $"lineage-test-copies-{Guid.NewGuid():N}");
+        MainViewModel.ReceivedFolder = Path.Combine(Path.GetTempPath(), $"lineage-test-received-{Guid.NewGuid():N}");
         return AppBuilder.Configure<App>().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
     }
 
@@ -54,6 +55,20 @@ public sealed class FakeDialogs : IDialogService
         return Task.FromResult(ChooseAnswer);
     }
     public Task<SaveChoice> AskSaveChangesAsync(string treeName) => Task.FromResult(SaveAnswer);
+    /// <summary>Answers each password question in turn (null = Cancel); records the hint and whether it said "wrong".</summary>
+    public Queue<string?> Passwords { get; } = new();
+    public List<(string Hint, bool Wrong)> PasswordAsks { get; } = new();
+    public Task<string?> AskPasswordAsync(string treeName, string hint, bool wrong)
+    {
+        PasswordAsks.Add((hint, wrong));
+        return Task.FromResult(Passwords.Count > 0 ? Passwords.Dequeue() : null);
+    }
+    public PasswordChoice? NewPassword { get; set; }
+    public Task<PasswordChoice?> ChoosePasswordAsync(bool changing) => Task.FromResult(NewPassword);
+    public Action<HistoryViewModel> History { get; set; } = _ => { };
+    public Task ShowHistoryAsync(HistoryViewModel history) { History(history); return Task.CompletedTask; }
+    public Func<CleanupViewModel, bool> Cleanup { get; set; } = _ => false;
+    public Task<bool> CleanupAsync(CleanupViewModel wizard) => Task.FromResult(Cleanup(wizard));
     public Task<bool> EditPersonAsync(PersonEditorViewModel editor) => Task.FromResult(Person(editor));
     public Task<EditorResult> EditEventAsync(EventEditorViewModel editor) => Task.FromResult(Event(editor));
     public Task<EditorResult> EditSourceAsync(SourceEditorViewModel editor) => Task.FromResult(Source(editor));
@@ -63,6 +78,8 @@ public sealed class FakeDialogs : IDialogService
     public Func<ReviewChangesViewModel, bool> Review { get; set; } = _ => true;
     public Func<FindGpsViewModel, bool> FindGps { get; set; } = _ => true;
     public Func<CensusEntryViewModel, bool> CensusEntry { get; set; } = _ => true;
+    public Func<TranscribeViewModel, bool> Transcribe { get; set; } = _ => true;
+    public Task<bool> TranscribeAsync(TranscribeViewModel form) => Task.FromResult(Transcribe(form));
     public Task<bool> EnterCensusAsync(CensusEntryViewModel form) => Task.FromResult(CensusEntry(form));
     public Task<bool> FindGpsAsync(FindGpsViewModel review) => Task.FromResult(FindGps(review));
     public Task<bool> ReviewChangesAsync(ReviewChangesViewModel review) => Task.FromResult(Review(review));
@@ -83,6 +100,10 @@ public sealed class FakeDialogs : IDialogService
     public ProblemsViewModel? LastProblems { get; private set; }
     public RelationshipViewModel? LastRelationship { get; private set; }
     public void ShowProblems(ProblemsViewModel problems) => LastProblems = problems;
+    public LocalShareViewModel? LastLocalShare { get; private set; }
+    public void ShowLocalShare(LocalShareViewModel share) => LastLocalShare = share;
+    public Action<TutorialViewModel> Tutorial { get; set; } = _ => { };
+    public Task ShowTutorialAsync(TutorialViewModel tutorial) { Tutorial(tutorial); return Task.CompletedTask; }
     public void ShowRelationship(RelationshipViewModel relationship) => LastRelationship = relationship;
     public Task ShowDuplicatesAsync(DuplicatesViewModel duplicates) { Duplicates(duplicates); return Task.CompletedTask; }
     public Task<bool> FamilySearchSettingsAsync(FamilySearchSettingsViewModel settings) => Task.FromResult(false);

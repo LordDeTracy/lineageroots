@@ -42,6 +42,14 @@ public static class Backups
             old.Delete();
     }
 
+    /// <summary>This file's backups that have no password (made before one was set).</summary>
+    public static List<string> UnlockedBackupsOf(string path)
+    {
+        var folder = Path.Combine(BackupFolder, Safe(Path.GetFileNameWithoutExtension(path)));
+        if (!Directory.Exists(folder)) return new();
+        return Directory.GetFiles(folder, "*.lineage").Where(f => !FileLock.IsLocked(f)).ToList();
+    }
+
     private sealed record Info(string? OriginalPath, string TreeName, DateTime SavedAt);
 
     private static string Key(string? path, string treeName) => path != null

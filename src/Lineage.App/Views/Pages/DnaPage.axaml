@@ -74,7 +74,7 @@
 
         <StackPanel IsVisible="{Binding HasDnaTester}">
           <StackPanel IsVisible="{Binding !HasDnaMatches}" HorizontalAlignment="Center" Margin="0,50,0,0" Spacing="8" MaxWidth="460">
-            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+            <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
               <c:LineIcon Data="{StaticResource IconDna}" Width="28" Height="28" />
             </Border>
             <TextBlock Classes="title" Text="No DNA matches yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
@@ -146,7 +146,7 @@
             <DataTemplate x:DataType="vm:PaintGroupRow">
               <Border Classes="card" Padding="20,14" Margin="0,0,0,8">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <Border Width="14" Height="14" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
+                  <Border Width="14" Height="14" CornerRadius="10" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
                   <StackPanel Grid.Column="1" Spacing="3">
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Classes="muted small" Text="{Binding Detail}" TextWrapping="Wrap" />
@@ -183,7 +183,7 @@
             <DataTemplate x:DataType="vm:DnaClusterCard">
               <Border Classes="card" Padding="20,16" Margin="0,0,0,10">
                 <Grid ColumnDefinitions="Auto,*">
-                  <Border Width="14" Height="14" CornerRadius="4" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
+                  <Border Width="14" Height="14" CornerRadius="10" Background="{Binding Brush}" VerticalAlignment="Top" Margin="0,3,12,0" />
                   <StackPanel Grid.Column="1" Spacing="4">
                     <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" />
                     <TextBlock Classes="muted small" Text="{Binding Members}" TextWrapping="Wrap" />

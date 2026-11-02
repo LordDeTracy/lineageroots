@@ -66,8 +66,11 @@ internal static class Display
     public static string Join(params string[] bits) => string.Join("  ·  ", bits.Where(b => b.Length > 0));
 }
 
+/// <summary>One of the big numbers across the top of Home ("6 people", "1815 earliest birth").</summary>
+public sealed record KeyFigure(string Number, string Label);
+
 /// <summary>One line in the people list.</summary>
-public sealed class PersonRow
+public sealed partial class PersonRow : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
 {
     public PersonRow(Person p)
     {
@@ -97,6 +100,12 @@ public sealed class PersonRow
     /// <summary>The person's colour-coding dot, if they have one.</summary>
     public Avalonia.Media.IBrush? ColourBrush { get; }
     public bool HasColour => ColourBrush != null;
+
+    /// <summary>How they're related to the home person ("great-grandfather"), filled in the background after the list is built.</summary>
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    [CommunityToolkit.Mvvm.ComponentModel.NotifyPropertyChangedFor(nameof(HasRelation))]
+    private string _relation = "";
+    public bool HasRelation => Relation.Length > 0;
 
     /// <summary>What screen readers announce for the row.</summary>
     public override string ToString() => Lifespan.Length > 0 ? $"{Name}, {Lifespan}" : Name;

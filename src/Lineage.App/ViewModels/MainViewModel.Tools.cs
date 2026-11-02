@@ -15,23 +15,27 @@ public sealed partial class MainViewModel
         var path = await _dialogs.OpenFileAsync("Compare with another family file",
             ("Family files", "*.ged;*.aq;*.lineage"), ("GEDCOM", "*.ged"), ("AQ 16", "*.aq"), ("Lineage Roots trees", "*.lineage"));
         if (path == null) return;
+        await CompareWithFileAsync(path);
+    }
+
+    /// <summary>Compares the open tree with a family file and copies in the people chosen.</summary>
+    internal async Task CompareWithFileAsync(string path)
+    {
         FamilyTree other;
         CompareResult result;
         try
         {
             Status = "Comparing…";
             var mine = _tree;
-            (other, result) = await Task.Run(() =>
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            var loaded = ext switch
             {
-                var ext = Path.GetExtension(path).ToLowerInvariant();
-                var t = ext switch
-                {
-                    ".aq" => Lineage.Core.Import.Aq.AqImporter.Import(path),
-                    ".ged" => Lineage.Core.Import.Gedcom.GedcomImporter.ImportFile(path),
-                    _ => Lineage.Core.Storage.LineageStore.Load(path),
-                };
-                return (t, TreeCompare.Compare(mine, t));
-            });
+                ".aq" => await Task.Run(() => Lineage.Core.Import.Aq.AqImporter.Import(path)),
+                ".ged" => await Task.Run(() => Lineage.Core.Import.Gedcom.GedcomImporter.ImportFile(path)),
+                _ => await LoadLineageAsync(path),
+            };
+            if (loaded == null) { Status = ""; return; }
+            (other, result) = await Task.Run(() => (loaded, TreeCompare.Compare(mine, loaded)));
         }
         catch (Exception ex)
         {

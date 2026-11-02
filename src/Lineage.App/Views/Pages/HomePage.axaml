@@ -24,10 +24,26 @@
 
   <ScrollViewer>
     <StackPanel MaxWidth="1040" Margin="32,28,32,40" Spacing="20">
-      <StackPanel Spacing="4">
-        <TextBlock Classes="display" Text="{Binding TreeName}" TextWrapping="Wrap" />
-        <TextBlock Classes="muted" Text="{Binding HomeStatsText}" />
+      <StackPanel Spacing="6">
+        <TextBlock Classes="section" Text="YOUR FAMILY TREE" />
+        <TextBlock Classes="display" FontSize="40" Text="{Binding TreeName}" TextWrapping="Wrap" />
       </StackPanel>
+      <!-- Key figures as tiles: big light numbers, small capital labels -->
+      <ItemsControl ItemsSource="{Binding KeyFigures}" Margin="0,0,-14,0">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:KeyFigure">
+            <Border Classes="card figure" Margin="0,0,14,0" Padding="18,14">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Number}" FontSize="32" FontWeight="Light" LetterSpacing="-0.8" Foreground="{DynamicResource Accent}" />
+                <TextBlock Classes="section" Text="{Binding Label}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
 
       <Grid ColumnDefinitions="*,20,*">
         <!-- Home person -->

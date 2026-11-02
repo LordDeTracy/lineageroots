@@ -9,6 +9,12 @@ public partial class ProblemsWindow : Window
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 }
 
+public partial class HistoryWindow : Window
+{
+    public HistoryWindow() => InitializeComponent();
+    private void OnClose(object? sender, RoutedEventArgs e) => Close();
+}
+
 public partial class RelationshipWindow : Window
 {
     public RelationshipWindow() => InitializeComponent();

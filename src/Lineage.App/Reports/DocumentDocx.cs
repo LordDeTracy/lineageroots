@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml.Packaging;
 using Lineage.Core.Reports;
 using Ext = DocumentFormat.OpenXml.ExtendedProperties;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace Lineage.App.Reports;
 
@@ -27,6 +30,7 @@ public static class DocumentDocx
 
     public static void Write(ReportDocument doc, Stream stream)
     {
+        doc = Services.Translator.Translate(doc);
         using var package = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
         var main = package.AddMainDocumentPart();
         Feed(main.AddNewPart<StyleDefinitionsPart>(), Styles);
@@ -38,7 +42,7 @@ public static class DocumentDocx
         var letter = RegionInfo.CurrentRegion.TwoLetterISORegionName is "US" or "CA";
         var (pageWidth, pageHeight) = letter ? (12240u, 15840u) : (11906u, 16838u);
         const int margin = 1080;
-        var writer = new Writer(doc, (int)pageWidth - 2 * margin);
+        var writer = new Writer(doc, (int)pageWidth - 2 * margin, main);
         var body = new W.Body();
         foreach (var e in writer.Body()) body.Append(e);
         var section = new W.SectionProperties(
@@ -72,11 +76,14 @@ public static class DocumentDocx
         private readonly Dictionary<string, string> _bookmarks = new(StringComparer.Ordinal);
         private readonly HashSet<string> _usedNames = new(StringComparer.OrdinalIgnoreCase);
         private int _nextBookmark = 1;
+        private readonly MainDocumentPart _main;
+        private uint _nextPicture = 1;
 
-        public Writer(ReportDocument doc, int width)
+        public Writer(ReportDocument doc, int width, MainDocumentPart main)
         {
             _doc = doc;
             _width = width;
+            _main = main;
             // Name every anchor up front so links can be checked against what really exists.
             foreach (var b in doc.Blocks)
                 if (b switch { Heading h => h.Anchor, Paragraph p => p.Anchor, _ => null } is { Length: > 0 } a) Bookmark(a);
@@ -138,6 +145,13 @@ public static class DocumentDocx
             {
                 case Heading h:
                     yield return Para($"Heading{Math.Clamp(h.Level, 1, 3)}", new[] { Text(h.Text) }, h.Anchor);
+                    break;
+                case Picture pic:
+                    if (Drawing(pic) is { } drawing)
+                    {
+                        yield return new W.Paragraph(new W.Run(drawing));
+                        if (pic.Caption.Length > 0) yield return Para("Muted", new[] { Text(pic.Caption) });
+                    }
                     break;
                 case Paragraph p:
                     yield return Para(p.Style == ParagraphStyle.Muted ? "Muted" : null, Runs(p.Runs), p.Anchor, center: p.Style == ParagraphStyle.Centered);
@@ -248,6 +262,31 @@ public static class DocumentDocx
             foreach (var e in content) p.Append(e);
             if (id != null) p.Append(new W.BookmarkEnd { Id = id });
             return p;
+        }
+
+        /// <summary>The picture embedded in the document, as an inline drawing the width the report asks for.</summary>
+        private W.Drawing? Drawing(Picture pic)
+        {
+            if (PictureData.Load(pic.File) is not { } data) return null;
+            var part = _main.AddImagePart(ImagePartType.Jpeg);
+            using (var s = new MemoryStream(data.Jpeg)) part.FeedData(s);
+            var id = _main.GetIdOfPart(part);
+            var n = _nextPicture++;
+            long cx = (long)(pic.Width * 12700), cy = cx * data.Height / data.Width;   // EMUs: 12,700 per point
+            return new W.Drawing(new DW.Inline(
+                new DW.Extent { Cx = cx, Cy = cy },
+                new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
+                new DW.DocProperties { Id = n, Name = $"Picture {n}", Description = pic.Caption },
+                new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+                new A.Graphic(new A.GraphicData(
+                    new PIC.Picture(
+                        new PIC.NonVisualPictureProperties(new PIC.NonVisualDrawingProperties { Id = 0U, Name = $"picture{n}.jpg" }, new PIC.NonVisualPictureDrawingProperties()),
+                        new PIC.BlipFill(new A.Blip { Embed = id }, new A.Stretch(new A.FillRectangle())),
+                        new PIC.ShapeProperties(
+                            new A.Transform2D(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = cx, Cy = cy }),
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })))
+                { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" }))
+            { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U });
         }
 
         private static W.Paragraph PageBreakParagraph() => new(new W.Run(new W.Break { Type = W.BreakValues.Page }));

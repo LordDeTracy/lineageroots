@@ -4,10 +4,16 @@
              xmlns:c="using:Lineage.App.Controls"
              x:Class="Lineage.App.Views.Pages.SourcePage"
              x:DataType="vm:MainViewModel">
+  <DockPanel>
+  <ListBox DockPanel.Dock="Top" Classes="segmented" ItemsSource="{x:Static vm:MainViewModel.EvidenceModes}"
+           SelectedIndex="{Binding EvidenceModeIndex}" HorizontalAlignment="Left" Margin="32,18,32,0"
+           AutomationProperties.Name="Evidence view">
+    <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+  </ListBox>
   <ScrollViewer>
     <Panel>
       <StackPanel IsVisible="{Binding HasNoSources}" HorizontalAlignment="Center" Margin="32,120,32,32" Spacing="8" MaxWidth="400">
-        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Center">
+        <Border Classes="iconTile" Width="56" Height="56" CornerRadius="10" HorizontalAlignment="Center">
           <c:LineIcon Data="{StaticResource IconBook}" Width="28" Height="28" />
         </Border>
         <TextBlock Classes="title" Text="No sources yet" HorizontalAlignment="Center" Margin="0,8,0,0" />
@@ -23,7 +29,7 @@
       <StackPanel MaxWidth="980" Margin="32,28,32,40" Spacing="20" IsVisible="{Binding HasSelectedSource}">
         <Border Classes="card" Padding="26,24">
           <Grid ColumnDefinitions="Auto,*,Auto">
-            <Border Classes="iconTile" Width="64" Height="64" CornerRadius="16" VerticalAlignment="Top">
+            <Border Classes="iconTile" Width="64" Height="64" CornerRadius="10" VerticalAlignment="Top">
               <c:LineIcon Data="{StaticResource IconBook}" Width="30" Height="30" />
             </Border>
             <StackPanel Grid.Column="1" Margin="20,2,16,0" Spacing="6">
@@ -120,4 +126,5 @@
       </StackPanel>
     </Panel>
   </ScrollViewer>
+  </DockPanel>
 </UserControl>

@@ -43,7 +43,7 @@ public class QuickSearchTests
         Assert.Equal("Show fan chart", Assert.Single(vm.QuickResults).Title);
         vm.RunQuickResultCommand.Execute(null);
         Assert.True(vm.IsFanView);
-        Assert.True(vm.IsPeopleSection);
+        Assert.True(vm.IsChartsSection);   // charts have their own tab
 
         vm.OpenQuickSearchCommand.Execute(null);
         var first = vm.SelectedQuickResult;

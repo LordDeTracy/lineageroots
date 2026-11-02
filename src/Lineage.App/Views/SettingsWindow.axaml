@@ -21,6 +21,8 @@
 
       <StackPanel Spacing="10">
         <TextBlock Classes="section" Text="KEEPING YOUR WORK SAFE" />
+        <CheckBox IsChecked="{Binding SaveAutomatically}" Content="Save automatically after every change"
+                  ToolTip.Tip="Imported trees are saved in Documents\Lineage Roots; Undo still works" />
         <Grid ColumnDefinitions="*,14,*">
           <StackPanel>
             <TextBlock Classes="label" Text="Recovery copy" />
@@ -50,8 +52,6 @@
 
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="MAPS" />
-        <CheckBox IsChecked="{Binding SaveAutomatically}" Content="Save automatically after every change"
-                  ToolTip.Tip="Imported trees are saved in Documents\Lineage Roots; Undo still works" />
         <CheckBox IsChecked="{Binding OnlineMaps}" Content="Show street maps from OpenStreetMap" />
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="Map pictures are downloaded for the area you're looking at — no names or other family details are sent. Turned off, maps show a plain grid with your pins." />
@@ -60,6 +60,12 @@
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="UPDATES" />
         <CheckBox IsChecked="{Binding CheckForUpdates}" Content="Check for a new version when Lineage Roots starts" />
+        <StackPanel Spacing="4">
+          <TextBlock Classes="label" Text="Language" />
+          <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedIndex="{Binding LanguageIndex}" MinWidth="200"
+                    AutomationProperties.Name="Language" />
+          <TextBlock Classes="faint small" Text="Takes effect the next time Lineage Roots starts." />
+        </StackPanel>
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="{Binding VersionText, StringFormat='{}{0} Lineage Roots asks GitHub whether there is a newer version — nothing about your family is sent — and asks you before updating. You can also check from the ⋯ menu.'}" />
       </StackPanel>
