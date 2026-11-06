@@ -113,3 +113,48 @@ public class FamilySearchTests
         Assert.Equal("KWCB-1", me.FamilySearchId);
     }
 }
+
+public class FamilySearchDescendancyTests
+{
+    private const string Descendancy = """
+    {
+      "persons": [
+        { "id": "KWD-1", "gender": { "type": "http://gedcomx.org/Male" }, "display": { "name": "George Whitfield", "descendancyNumber": "1" } },
+        { "id": "KWD-2", "gender": { "type": "http://gedcomx.org/Female" }, "display": { "name": "Mary Ann Cole", "descendancyNumber": "1-S" } },
+        { "id": "KWD-3", "gender": { "type": "http://gedcomx.org/Male" }, "display": { "name": "Thomas Whitfield", "descendancyNumber": "1.1" } },
+        { "id": "KWD-4", "gender": { "type": "http://gedcomx.org/Female" }, "display": { "name": "Ellen Whitfield", "descendancyNumber": "1.2" } },
+        { "id": "KWD-5", "gender": { "type": "http://gedcomx.org/Female" }, "display": { "name": "Sarah Bell", "descendancyNumber": "1.1-S" } },
+        { "id": "KWD-6", "display": { "name": "Arthur Whitfield", "descendancyNumber": "1.1.1" } }
+      ]
+    }
+    """;
+
+    [Fact]
+    public void DescendantsAreAddedOnceAndLinked()
+    {
+        var people = GedcomX.Persons(System.Text.Json.JsonDocument.Parse(Descendancy).RootElement);
+        Assert.Equal("1.1-S", people[4].DescendancyNumber);
+
+        var t = new FamilyTree();
+        var george = t.AddPerson(new Person { Sex = Sex.Male, Names = { new Name { Given = "George", Surname = "Whitfield" } } });
+        var fam = t.AddFamily(new Family());
+        t.SetPartner(fam, george, second: false);
+        var thomas = t.AddPerson(new Person { Sex = Sex.Male, Names = { new Name { Given = "Thomas", Surname = "Whitfield" } } });
+        t.AddChild(fam, thomas);
+
+        var added = FsSync.AddDescendants(t, george, people);
+
+        Assert.Equal(4, added);                              // Mary Ann, Ellen, Sarah, Arthur; Thomas was already there
+        Assert.Equal("KWD-1", george.FamilySearchId);
+        Assert.Equal("KWD-3", thomas.FamilySearchId);
+        Assert.Equal("Mary Ann Cole", t.Person(fam.Partner2Id)!.DisplayName);
+        Assert.Equal(2, fam.Children.Count);
+        var arthur = t.People.Values.Single(p => p.DisplayName == "Arthur Whitfield");
+        var (f, m) = t.PrimaryParents(arthur);
+        Assert.Same(thomas, f);
+        Assert.Equal("Sarah Bell", m!.DisplayName);
+
+        Assert.Equal(0, FsSync.AddDescendants(t, george, people));
+        Assert.Equal(6, t.People.Count);
+    }
+}

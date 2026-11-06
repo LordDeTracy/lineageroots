@@ -71,6 +71,14 @@ public sealed class FamilySearchApi
         return GedcomX.Persons(doc.RootElement).Where(p => p.AscendancyNumber != null).ToList();
     }
 
+    /// <summary>The person, their spouses and descendants, numbered "1", "1-S", "1.1", "1.1-S", "1.2"…</summary>
+    public async Task<List<FsPerson>> DescendancyAsync(string id, int generations, CancellationToken ct = default)
+    {
+        using var doc = await GetAsync($"/platform/tree/descendancy?person={Uri.EscapeDataString(id)}&generations={Math.Clamp(generations, 1, 2)}&personDetails=",
+                                       "application/x-gedcomx-v1+json", ct);
+        return GedcomX.Persons(doc.RootElement).Where(p => p.DescendancyNumber != null).ToList();
+    }
+
     public async Task<List<FsPerson>> SearchAsync(string given, string surname, int birthYear, string birthPlace, CancellationToken ct = default)
     {
         var q = new List<string>();

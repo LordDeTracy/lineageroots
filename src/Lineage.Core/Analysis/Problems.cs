@@ -529,7 +529,8 @@ public static class Problems
                 if (keys.TryGetValue(id, out var k)) return k;
                 return keys[id] = _tree.People.TryGetValue(id, out var p) && p.Names.Count > 0 ? p.Names[0].SortKey : "";
             }
-            return _found.OrderBy(x => x.Severity).ThenBy(x => Key(x.PersonId), StringComparer.Ordinal)
+            // The same event entered twice, or a child linked through two copies of a family, is one problem to the reader.
+            return _found.DistinctBy(x => (x.Code, x.PersonId, x.Message)).OrderBy(x => x.Severity).ThenBy(x => Key(x.PersonId), StringComparer.Ordinal)
                 .ThenBy(x => x.PersonId).ThenBy(x => x.Code, StringComparer.Ordinal).ToList();
         }
 

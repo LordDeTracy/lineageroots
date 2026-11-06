@@ -244,12 +244,53 @@ public sealed partial class MainViewModel
 
     internal AppSettings Settings => _settings;
 
+    /// <summary>
+    /// The family file and all its photos and recordings in one zip, to keep on a USB stick or in a OneDrive, Google
+    /// Drive or Dropbox folder. Unsaved changes are saved first, so the backup has everything.
+    /// </summary>
+    [RelayCommand]
+    private async Task BackupToZipAsync()
+    {
+        if (!HasTree) return;
+        if (FilePath == null || IsDirty)
+        {
+            if (!await _dialogs.ConfirmAsync("Back up to a zip file", "The tree has to be saved before it's backed up. Save it now?")) return;
+            await SaveCommand.ExecuteAsync(null);
+            if (FilePath == null || IsDirty) return;
+        }
+        var zip = await _dialogs.SaveFileAsync("Back up to a zip file (choose a USB stick or a cloud folder such as OneDrive)",
+            SafeName($"{TreeName} backup {DateTime.Today:yyyy-MM-dd}") + ".zip", ("Zip file", "*.zip"));
+        if (zip == null) return;
+        try
+        {
+            Status = "Backing up…";
+            var file = FilePath;
+            var tree = _tree;
+            var result = await Task.Run(() => Lineage.Core.Storage.ZipBackup.Create(file, tree, zip));
+            Status = $"Backed up {result.Files:N0} files ({result.Bytes / 1048576.0:0.#} MB) to {Path.GetFileName(zip)}"
+                     + (result.Missing > 0 ? $" — {result.Missing} linked file{(result.Missing == 1 ? "" : "s")} couldn't be found" : "");
+        }
+        catch (Exception ex) { Status = ""; await _dialogs.ShowMessageAsync("Could not make the backup", ex.Message); }
+    }
+
     [RelayCommand]
     private async Task OpenSettingsAsync()
     {
-        var vm = new SettingsViewModel(_settings);
+        var vm = new SettingsViewModel(_settings, PluginRows(), PluginProblems);
         if (!await _dialogs.EditSettingsAsync(vm)) return;
         vm.Apply(_settings);
+        if (vm.PortableMode != Services.Portable.IsOn)
+        {
+            try { await _dialogs.ShowMessageAsync("Portable mode", Services.Portable.Switch(vm.PortableMode)); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                await _dialogs.ShowMessageAsync("Portable mode", $"Couldn't change it: {ex.Message} (Is the program's folder read-only?)");
+            }
+        }
+        _settings.EnabledPlugins = vm.Plugins.Where(r => r.Enabled).Select(r => r.Info.Key).ToList();
+        OnPropertyChanged(nameof(IsAdvanced));
+        if (!IsAdvanced && IsClientsFilter) ResearchFilterIndex = 0;
+        RefreshPluginLists();
         try { _settings.Save(); }
         catch (Exception ex) { await _dialogs.ShowMessageAsync("Could not save settings", ex.Message); }
         if (Avalonia.Application.Current is { } app)

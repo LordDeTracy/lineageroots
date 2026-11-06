@@ -37,7 +37,7 @@ public sealed record BookChapter(string Title, string Text);
 /// Each returns a <see cref="ReportDocument"/> for a renderer to lay out. Private events are always left out;
 /// any other privacy filtering (living people, say) is up to the caller.
 /// </summary>
-public static class Narrative
+public static partial class Narrative
 {
     // ---- register ---------------------------------------------------------------------------------
 
@@ -61,28 +61,53 @@ public static class Narrative
         return doc;
     }
 
-    private static void WriteRegister(ReportDocument doc, StoryWriter w, FamilyTree tree, Person root, int generations,
-                                      string prefix, string labelPrefix, int headingLevel, Func<Person, Block?>? photo = null)
+    /// <summary>
+    /// Descendants in the NGSQ style (the National Genealogical Society Quarterly's): like the Register, but every child
+    /// gets a number of their own, and a plus sign marks those whose families are described later.
+    /// </summary>
+    public static ReportDocument Ngsq(FamilyTree tree, Person root, int generations = 4)
     {
-        // Numbers first, generation by generation, so each list of children can point forward.
+        generations = Math.Clamp(generations, 1, 50);
+        var doc = new ReportDocument
+        {
+            Title = $"Descendants of {root.DisplayName}",
+            Subtitle = Join(" · ", root.Lifespan, "NGSQ style", generations == 1 ? "1 generation" : $"{generations} generations"),
+        };
+        var notes = new NoteBook(tree, doc);
+        doc.Add(new Paragraph(
+            "Every descendant has a number. In the lists of children, a plus sign (+) means that child’s own family is described " +
+            "later under their number.", ParagraphStyle.Muted));
+        WriteRegister(doc, new StoryWriter(tree, notes, null), tree, root, generations, "d", "", headingLevel: 1, numberEveryone: true);
+        return doc;
+    }
+
+    private static void WriteRegister(ReportDocument doc, StoryWriter w, FamilyTree tree, Person root, int generations,
+                                      string prefix, string labelPrefix, int headingLevel, Func<Person, Block?>? photo = null, bool numberEveryone = false)
+    {
+        // Numbers first, generation by generation, so each list of children can point forward. The Register numbers only
+        // children whose families follow; the NGSQ style numbers every child.
         var numbers = new Dictionary<long, int> { [root.Id] = 1 };
         var order = new List<(Person Person, int Generation)> { (root, 1) };
+        var next = 2;
         for (var i = 0; i < order.Count; i++)
         {
             var (p, gen) = order[i];
             if (gen >= generations) continue;
             foreach (var (_, _, children) in tree.FamiliesOf(p))
                 foreach (var c in children)
-                    if (!numbers.ContainsKey(c.Id) && HasFamily(tree, c))
-                    {
-                        numbers[c.Id] = order.Count + 1;
-                        order.Add((c, gen + 1));
-                    }
+                {
+                    if (numbers.ContainsKey(c.Id)) continue;
+                    var carried = HasFamily(tree, c);
+                    if (!carried && !numberEveryone) continue;
+                    numbers[c.Id] = next++;
+                    if (carried) order.Add((c, gen + 1));
+                }
         }
+        var entries = order.Select(x => x.Person.Id).ToHashSet();
         StoryWriter.Entry Entry(int n) => new($"{prefix}-{n}", n, labelPrefix + n);
-        w.EntryOf = p => numbers.TryGetValue(p.Id, out var n) ? Entry(n) : null;
+        w.EntryOf = p => entries.Contains(p.Id) ? Entry(numbers[p.Id]) : null;
 
-        foreach (var group in order.Select((x, i) => (x.Person, x.Generation, Number: i + 1)).GroupBy(x => x.Generation))
+        foreach (var group in order.Select(x => (x.Person, x.Generation, Number: numbers[x.Person.Id])).GroupBy(x => x.Generation))
         {
             var g = group.Key;
             var about = g switch
@@ -102,7 +127,7 @@ public static class Narrative
                 runs.AddRange(w.Story(person));
                 doc.Add(new Paragraph(StoryWriter.Compact(runs), entry.Anchor));
                 if (photo?.Invoke(person) is { } picture) doc.Add(picture);
-                foreach (var block in NoteFormat.Blocks(person.Note)) doc.Add(block);
+                foreach (var block in NoteFormat.Blocks(person.SharedNote)) doc.Add(block);
 
                 foreach (var (_, spouse, children) in tree.FamiliesOf(person))
                 {
@@ -118,16 +143,78 @@ public static class Narrative
                     {
                         var child = children[i];
                         var roman = ReportText.Roman(i + 1) + ".";
-                        var own = numbers.TryGetValue(child.Id, out var cn) && cn != n;
+                        var numbered = numbers.TryGetValue(child.Id, out var cn) && cn != n;
+                        var own = numbered && entries.Contains(child.Id);
                         var line = new List<Run>();
                         w.Mention(child);
                         line.Add(own ? Run.To(child.DisplayName, Entry(cn).Anchor, bold: true) : Run.B(child.DisplayName));
                         line.AddRange(ChildVitals(w, tree, child, withSpouses: !own));
                         items.Add(own ? new ListItem(StoryWriter.Compact(line), $"+ {cn}  {roman}", Entry(cn).Anchor)
+                                      : numbered ? new ListItem(StoryWriter.Compact(line), $"{cn}  {roman}")
                                       : new ListItem(StoryWriter.Compact(line), roman));
                     }
                     doc.Add(new BulletList(items));
                 }
+            }
+        }
+        w.Current = null;
+    }
+
+    /// <summary>
+    /// An Ahnentafel: the person's ancestors numbered so that a father is twice his child's number and a mother twice
+    /// plus one, generation by generation, each with the story of their life.
+    /// </summary>
+    public static ReportDocument Ahnentafel(FamilyTree tree, Person root, int generations = 5)
+    {
+        generations = Math.Clamp(generations, 1, 30);
+        var doc = new ReportDocument
+        {
+            Title = $"Ancestors of {root.DisplayName}",
+            Subtitle = Join(" · ", root.Lifespan, "Ahnentafel", generations == 1 ? "1 generation" : $"{generations} generations"),
+        };
+        doc.Add(new Paragraph("Each ancestor has a number: a person’s father is twice their number and their mother twice their number plus one.", ParagraphStyle.Muted));
+        WriteAhnentafel(doc, tree, new NoteBook(tree, doc), null, root, generations, headingLevel: 1);
+        return doc;
+    }
+
+    private static void WriteAhnentafel(ReportDocument doc, FamilyTree tree, NoteBook? notes, IndexBook? index, Person root, int generations,
+                                        int headingLevel, Func<Person, Block?>? photo = null)
+    {
+        var people = tree.Ancestors(root, generations);
+        var first = new Dictionary<long, int>();
+        foreach (var (n, p) in people.OrderBy(kv => kv.Key)) first.TryAdd(p.Id, n);
+        var w = new StoryWriter(tree, notes, index)
+        {
+            EntryOf = p => first.TryGetValue(p.Id, out var n) ? new StoryWriter.Entry($"a-{n}", n, $"A{n}") : null,
+        };
+        for (var gen = 1; gen <= generations; gen++)
+        {
+            var from = 1 << (gen - 1);
+            var inGen = people.Where(kv => kv.Key >= from && kv.Key < from * 2).OrderBy(kv => kv.Key).ToList();
+            if (inGen.Count == 0) break;
+            var about = gen switch
+            {
+                1 => "",
+                2 => "parents",
+                3 => "grandparents",
+                4 => "great-grandparents",
+                _ => $"{ReportText.Ordinal(gen - 3)} great-grandparents",
+            };
+            doc.Add(new Heading(headingLevel, about.Length > 0 ? $"Generation {gen} — {about}" : $"Generation {gen}", $"a-gen-{gen}"));
+            foreach (var (n, p) in inGen)
+            {
+                if (first[p.Id] != n)
+                {
+                    // the same ancestor reached by two lines (cousins who married)
+                    doc.Add(new Paragraph(new[] { Run.B($"{n}. "), Run.B(p.DisplayName), new Run(" — see "), Run.To(first[p.Id].ToString(), $"a-{first[p.Id]}"), new Run(".") }, $"a-{n}"));
+                    continue;
+                }
+                w.Current = new IndexRef($"a-{n}", $"A{n}");
+                var runs = new List<Run> { Run.B($"{n}. ") };
+                runs.AddRange(w.Story(p));
+                doc.Add(new Paragraph(StoryWriter.Compact(runs), $"a-{n}"));
+                if (photo?.Invoke(p) is { } picture) doc.Add(picture);
+                foreach (var block in NoteFormat.Blocks(p.SharedNote)) doc.Add(block);
             }
         }
         w.Current = null;
@@ -170,6 +257,101 @@ public static class Narrative
         }
     }
 
+    // ---- who's missing ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// What's still to find for a person's ancestors: missing birth or death details, unknown parents (the end of a
+    /// line), and facts with no source. Ancestors are in Ahnentafel order, so the nearest generations come first.
+    /// </summary>
+    public static ReportDocument WhosMissing(FamilyTree tree, Person root, int generations = 6, int? currentYear = null)
+    {
+        generations = Math.Clamp(generations, 1, 30);
+        var year = currentYear ?? DateTime.Today.Year;
+        var doc = new ReportDocument
+        {
+            Title = "What’s missing",
+            Subtitle = Join(" · ", $"Ancestors of {root.DisplayName}", generations == 1 ? "1 generation" : $"{generations} generations"),
+        };
+        doc.Add(new Paragraph("Each ancestor with something still to find, nearest first. The number is their place in the Ahnentafel: "
+            + "a person’s father is twice their number and their mother twice their number plus one.", ParagraphStyle.Muted));
+
+        var people = tree.Ancestors(root, generations);
+        var seen = new HashSet<long>();
+        var rows = new List<IReadOnlyList<Cell>>();
+        var unknownParents = 0;
+        foreach (var (n, p) in people.OrderBy(kv => kv.Key))
+        {
+            if (!seen.Add(p.Id)) continue;
+            var gaps = Missing(tree, p, year);
+            // A missing parent inside the chart is a line that stops.
+            var deepest = n >= 1 << (generations - 1);
+            if (!deepest)
+            {
+                if (!people.ContainsKey(2 * n)) { gaps.Add("father"); unknownParents++; }
+                if (!people.ContainsKey(2 * n + 1)) { gaps.Add("mother"); unknownParents++; }
+            }
+            if (gaps.Count == 0) continue;
+            rows.Add(new Cell[] { Num(n), p.DisplayName, p.Lifespan, string.Join(", ", gaps) });
+        }
+        if (rows.Count == 0)
+        {
+            doc.Add(new Paragraph("Nothing is missing for these ancestors — every one has their birth, death, parents and sources recorded."));
+            return doc;
+        }
+        doc.Add(new Paragraph(Join(" · ", rows.Count == 1 ? "1 ancestor with gaps" : $"{rows.Count} ancestors with gaps",
+            unknownParents == 1 ? "1 unknown parent" : $"{unknownParents} unknown parents")));
+        doc.Add(new Table(new[] { "No.", "Name", "Years", "Still to find" }, rows, new[] { 0.6f, 3f, 1.2f, 4f }));
+        return doc;
+    }
+
+    /// <summary>"birth date", "death place", "a source"… for one person.</summary>
+    private static List<string> Missing(FamilyTree tree, Person p, int year)
+    {
+        var gaps = new List<string>();
+        var birth = StoryWriter.Find(p, "BIRT") ?? StoryWriter.Find(p, "CHR") ?? StoryWriter.Find(p, "BAPM");
+        if (birth == null || birth.Date.IsEmpty) gaps.Add("birth date");
+        if (birth == null || birth.Place.Trim().Length == 0) gaps.Add("birth place");
+        var death = StoryWriter.Find(p, "DEAT") ?? StoryWriter.Find(p, "BURI");
+        var born = birth == null ? 0 : ReportText.Year(birth.Date);
+        var surelyDead = born > 0 && year - born > 110;
+        if (death == null && (surelyDead || born == 0)) gaps.Add("death");
+        else if (death != null && death.Date.IsEmpty) gaps.Add("death date");
+        if (born > 0 && year - born > 18 && tree.FamiliesOf(p).All(f => f.Family.Marriage == null) && tree.FamiliesOf(p).Any(f => f.Spouse != null))
+            gaps.Add("marriage");
+        var cited = p.Citations.Count > 0 || StoryWriter.Visible(p.Events).Any(e => e.Citations.Count > 0);
+        if (!cited) gaps.Add("a source");
+        return gaps;
+    }
+
+    // ---- bibliography -------------------------------------------------------------------------------
+
+    /// <summary>Every source in the tree as a bibliography, grouped by kind of record and in alphabetical order.</summary>
+    public static ReportDocument Bibliography(FamilyTree tree)
+    {
+        var cited = tree.People.Values.SelectMany(p => p.Citations.Concat(p.Events.SelectMany(e => e.Citations)))
+            .Concat(tree.Families.Values.SelectMany(f => f.Citations.Concat(f.Events.SelectMany(e => e.Citations))))
+            .GroupBy(c => c.SourceId).ToDictionary(g => g.Key, g => g.Count());
+        var doc = new ReportDocument
+        {
+            Title = "Bibliography",
+            Subtitle = Join(" · ", tree.Name, tree.Sources.Count == 1 ? "1 source" : $"{tree.Sources.Count} sources"),
+        };
+        doc.Add(new Paragraph("The sources in this tree, by kind of record. The figure after each says how many facts cite it.", ParagraphStyle.Muted));
+        if (tree.Sources.Count == 0) { doc.Add(new Paragraph("No sources are recorded yet.")); return doc; }
+        string Group(Source s) =>
+            Lineage.Core.Sources.SourceTemplates.Find(s.Template)?.Group ?? (s.Type.Trim().Length > 0 ? s.Type.Trim() : "Other sources");
+        foreach (var group in tree.Sources.Values.GroupBy(Group).OrderBy(g => g.Key == "Other sources" ? 1 : 0).ThenBy(g => g.Key, StringComparer.CurrentCultureIgnoreCase))
+        {
+            doc.Add(new Heading(2, group.Key));
+            doc.Add(new BulletList(group
+                .Select(s => (Text: NoteBook.Bibliography(tree, s), Uses: cited.GetValueOrDefault(s.Id)))
+                .OrderBy(x => x.Text, StringComparer.CurrentCultureIgnoreCase)
+                .Select(x => new ListItem(new[] { new Run(x.Text), new Run(x.Uses == 0 ? "  (not cited yet)" : $"  ({Num(x.Uses)})", Italic: true) }))
+                .ToList()));
+        }
+        return doc;
+    }
+
     // ---- individual summary -------------------------------------------------------------------------
 
     /// <summary>Everything about one person: names, a table of facts, parents, each family, notes and sources.</summary>
@@ -184,7 +366,7 @@ public static class Narrative
         for (var i = 0; i < p.Names.Count; i++)
         {
             var n = p.Names[i];
-            if (n.Full.Length == 0 && n.Nickname.Length == 0) continue;
+            if (n.Full.Length == 0 && n.Nickname.Length == 0 || i > 0 && n.Private) continue;
             var kind = i == 0 ? "" : n.Type.ToLowerInvariant() switch
             {
                 "" or "aka" => "also known as",
@@ -252,7 +434,7 @@ public static class Narrative
             foreach (var block in NoteFormat.Blocks(family.Note)) doc.Add(block);
         }
 
-        var personNotes = NoteFormat.Blocks(p.Note).ToList();
+        var personNotes = NoteFormat.Blocks(p.SharedNote).ToList();
         if (personNotes.Count > 0)
         {
             doc.Add(new Heading(1, "Notes", "notes-text"));
@@ -462,44 +644,7 @@ public static class Narrative
         if (ancestorGenerations > 0) doc.Add(new PageBreak());
         if (ancestorGenerations > 0) doc.Add(new Heading(1, $"Ancestors of {root.DisplayName}", "ancestors"));
         if (ancestorGenerations > 0) doc.Add(new Paragraph("Each ancestor has a number: a person’s father is twice their number and their mother twice their number plus one.", ParagraphStyle.Muted));
-        var people = tree.Ancestors(root, ancestorGenerations);
-        var first = new Dictionary<long, int>();
-        foreach (var (n, p) in people.OrderBy(kv => kv.Key)) first.TryAdd(p.Id, n);
-        var w = new StoryWriter(tree, notes, index)
-        {
-            EntryOf = p => first.TryGetValue(p.Id, out var n) ? new StoryWriter.Entry($"a-{n}", n, $"A{n}") : null,
-        };
-        for (var gen = 1; gen <= ancestorGenerations; gen++)
-        {
-            var from = 1 << (gen - 1);
-            var inGen = people.Where(kv => kv.Key >= from && kv.Key < from * 2).OrderBy(kv => kv.Key).ToList();
-            if (inGen.Count == 0) break;
-            var about = gen switch
-            {
-                1 => "",
-                2 => "parents",
-                3 => "grandparents",
-                4 => "great-grandparents",
-                _ => $"{ReportText.Ordinal(gen - 3)} great-grandparents",
-            };
-            doc.Add(new Heading(2, about.Length > 0 ? $"Generation {gen} — {about}" : $"Generation {gen}", $"a-gen-{gen}"));
-            foreach (var (n, p) in inGen)
-            {
-                if (first[p.Id] != n)
-                {
-                    // the same ancestor reached by two lines (cousins who married)
-                    doc.Add(new Paragraph(new[] { Run.B($"{n}. "), Run.B(p.DisplayName), new Run(" — see "), Run.To(first[p.Id].ToString(), $"a-{first[p.Id]}"), new Run(".") }, $"a-{n}"));
-                    continue;
-                }
-                w.Current = new IndexRef($"a-{n}", $"A{n}");
-                var runs = new List<Run> { Run.B($"{n}. ") };
-                runs.AddRange(w.Story(p));
-                doc.Add(new Paragraph(StoryWriter.Compact(runs), $"a-{n}"));
-                if (Photo(p) is { } photo) doc.Add(photo);
-                foreach (var block in NoteFormat.Blocks(p.Note)) doc.Add(block);
-            }
-        }
-        w.Current = null;
+        WriteAhnentafel(doc, tree, notes, index, root, ancestorGenerations, headingLevel: 2, Photo);
 
         // Descendants, as a register.
         if (options.DescendantGenerations > 0)
@@ -530,7 +675,7 @@ public static class Narrative
     /// <summary>The person's profile photo (or else their first picture) as a captioned picture, if its file can be found.</summary>
     private static Picture? PortraitOf(Person p, Func<string, string?> find)
     {
-        foreach (var m in p.Media.Where(m => m.Primary).Concat(p.Media))
+        foreach (var m in p.SharedMedia.Where(m => m.Primary).Concat(p.SharedMedia))
         {
             if (!PictureTypes.Contains(Path.GetExtension(m.File).ToLowerInvariant())) continue;
             if (find(m.File) is { } path && File.Exists(path))
@@ -540,7 +685,8 @@ public static class Narrative
     }
 
     /// <summary>One person's life as a single plain paragraph, without source notes — for web pages and tooltips.</summary>
-    public static string LifeSummary(FamilyTree tree, Person p) => Run.Join(new StoryWriter(tree, null, null).Story(p));
+    public static string LifeSummary(FamilyTree tree, Person p, StoryLanguage? language = null) =>
+        Run.Join(new StoryWriter(tree, null, null) { Language = language ?? StoryLanguage.Current }.Story(p));
 
     private static string Num(int n) => n.ToString(System.Globalization.CultureInfo.CurrentCulture);
 

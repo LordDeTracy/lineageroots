@@ -44,6 +44,16 @@ public class TranslationTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void SourceTypesFromAqAreTranslated(string code)
+    {
+        var map = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(Repo(), "src", "Lineage.App", "Assets", "Lang", code + ".json")))!;
+        var missing = Lineage.Core.Import.Aq.AqSourceTypes.Names.Values.Where(n => !map.ContainsKey(n)).ToList();
+        Assert.True(missing.Count == 0, $"{code}: {string.Join(" | ", missing)}");
+    }
+
     private static IEnumerable<string> Gaps(string s) => Regex.Matches(s, @"\{\d\}").Select(m => m.Value).Order();
 
     [AvaloniaFact]

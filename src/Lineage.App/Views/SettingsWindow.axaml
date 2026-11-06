@@ -16,6 +16,7 @@
         </Button>
       </StackPanel>
     </Border>
+    <ScrollViewer MaxHeight="760">
     <StackPanel Margin="28,24" Spacing="20">
       <TextBlock Classes="title" FontSize="20" Text="Settings" />
 
@@ -38,6 +39,8 @@
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="While you have unsaved changes, a recovery copy is written in the background (never over your file) and offered back if Lineage Roots closes unexpectedly. Each time you save, the previous version of the file is kept in the backups folder:" />
         <SelectableTextBlock Classes="small" Text="{Binding BackupFolder}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" />
+        <CheckBox IsChecked="{Binding PortableMode}" Content="Portable: keep settings and backups beside the program (for a USB stick)"
+                  ToolTip.Tip="{Binding PortableFolder}" />
       </StackPanel>
 
       <StackPanel Spacing="10">
@@ -69,6 +72,39 @@
         <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
                    Text="{Binding VersionText, StringFormat='{}{0} Lineage Roots asks GitHub whether there is a newer version — nothing about your family is sent — and asks you before updating. You can also check from the ⋯ menu.'}" />
       </StackPanel>
+
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="ADVANCED MODE" />
+        <CheckBox IsChecked="{Binding AdvancedMode}" Content="Tools for professional researchers" />
+        <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
+                   Text="Adds client projects (hours, invoices, what's promised) to the Research tab, locality guides to the Places tab, and citations made from web links to the source editor." />
+      </StackPanel>
+
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="PLUGINS" />
+        <TextBlock Classes="faint small" TextWrapping="Wrap" LineHeight="18"
+                   Text="Plugins add reports, charts, file types and tools. Put a plugin's .dll file in the plugins folder, restart, and tick it here. Only use plugins from people you trust: a plugin can do anything the program can." />
+        <ItemsControl ItemsSource="{Binding Plugins}" IsVisible="{Binding HasPlugins}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:PluginRow">
+              <CheckBox IsChecked="{Binding Enabled}" Margin="0,2">
+                <StackPanel>
+                  <TextBlock>
+                    <Run Text="{Binding Name}" FontWeight="SemiBold" />
+                    <Run Text="{Binding Kind, StringFormat=' · {0}'}" Foreground="{DynamicResource Muted}" />
+                  </TextBlock>
+                  <TextBlock Classes="faint small" Text="{Binding Description}" TextWrapping="Wrap" />
+                </StackPanel>
+              </CheckBox>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="faint small" Text="No plugins found." IsVisible="{Binding !HasPlugins}" />
+        <TextBlock Classes="small" Text="{Binding PluginProblems}" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
+                   IsVisible="{Binding HasPluginProblems}" />
+        <Button Classes="outline" Content="Open plugins folder" Command="{Binding OpenPluginsFolderCommand}" HorizontalAlignment="Left" />
+      </StackPanel>
     </StackPanel>
+    </ScrollViewer>
   </DockPanel>
 </Window>

@@ -166,6 +166,8 @@
             <TextBox Name="NoteBox" Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180" MaxHeight="460"
                      Watermark="Stories, research notes, anything worth remembering"
                      VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+            <CheckBox IsChecked="{Binding NotePrivate}" Content="Private: keep these notes out of anything shared"
+                      ToolTip.Tip="Left out of GEDCOM exports, websites, the phone viewer and reports when private things are left out" />
           </StackPanel>
         </StackPanel>
 
@@ -192,6 +194,8 @@
                              AutomationProperties.Name="Given names" />
                     <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding Surname}" Watermark="Surname" Margin="0,10,0,0"
                              AutomationProperties.Name="Surname" />
+                    <CheckBox Grid.Row="1" Grid.Column="4" IsChecked="{Binding Private}" Content="Private" Margin="0,10,0,0"
+                              ToolTip.Tip="Keep this name out of anything shared (an adoption name, say)" />
                   </Grid>
                 </Border>
               </DataTemplate>

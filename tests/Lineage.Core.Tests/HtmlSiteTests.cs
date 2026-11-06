@@ -122,7 +122,8 @@ public sealed class HtmlSiteTests : IDisposable
         var t = Whitfields();
         HtmlSite.Export(t, _dir, new HtmlSiteOptions());
         var js = Read(Path.Combine(_dir, "search-index.js"));
-        var json = js["window.LINEAGE_PEOPLE = ".Length..].TrimEnd().TrimEnd(';');
+        var line = js.Split('\n')[0];
+        var json = line["window.LINEAGE_PEOPLE = ".Length..].TrimEnd().TrimEnd(';');
         using var doc = System.Text.Json.JsonDocument.Parse(json);
         var people = doc.RootElement.EnumerateArray().ToList();
         Assert.Equal(t.People.Count, people.Count);
@@ -131,6 +132,22 @@ public sealed class HtmlSiteTests : IDisposable
         Assert.Equal("Harrow, Middlesex, England", thomas.GetProperty("p").GetString());
         Assert.Equal("people/1.html", thomas.GetProperty("u").GetString());
         Assert.Equal("Tom Whitfield", Assert.Single(thomas.GetProperty("a").EnumerateArray()).GetString());
+    }
+
+    [Fact]
+    public void ASiteCanBeInAnotherLanguage()
+    {
+        var t = Whitfields();
+        var words = new Dictionary<string, string> { ["Timeline"] = "Zeitleiste", ["Parents"] = "Eltern", ["Search"] = "Suchen", ["Birth"] = "Geburt" };
+        HtmlSite.Export(t, _dir, new HtmlSiteOptions { Language = "de", Translate = s => words.GetValueOrDefault(s, s) });
+        var page = System.Net.WebUtility.HtmlDecode(Read(Path.Combine(_dir, "people", "1.html")));
+        Assert.Contains("<html lang=\"de\">", page);
+        Assert.Contains("<h2>Zeitleiste</h2>", page);
+        Assert.Contains("<h3>Eltern</h3>", page);
+        Assert.Contains("<strong>Geburt</strong>", page);
+        Assert.Contains("14. März 1842", page);
+        Assert.Contains("wurde am 14. März 1842 in Harrow, Middlesex, England als Sohn von", page);
+        Assert.Contains("LINEAGE_WORDS", Read(Path.Combine(_dir, "search-index.js")));
     }
 
     [Fact]

@@ -32,7 +32,7 @@ public partial class PersonPage : UserControl
         };
     }
 
-    private ZoomHost[] Hosts => new[] { PedigreeHost, FanHost, DescendantHost, HourglassHost, LifelinesHost, RelationshipHost, StatisticsHost };
+    private ZoomHost[] Hosts => new[] { PedigreeHost, FanHost, DescendantHost, HourglassHost, BowTieHost, LifelinesHost, RelationshipHost, StatisticsHost };
 
     public void ScrollPageTo(double y) =>
         Dispatcher.UIThread.Post(() => PageScroller.Offset = new Vector(0, y), DispatcherPriority.Background);
@@ -44,6 +44,7 @@ public partial class PersonPage : UserControl
         PersonView.FanChart => FanHost,
         PersonView.Descendants => DescendantHost,
         PersonView.Hourglass => HourglassHost,
+        PersonView.BowTie => BowTieHost,
         PersonView.Lifelines => LifelinesHost,
         PersonView.Relationship => RelationshipHost,
         PersonView.Statistics => StatisticsHost,
@@ -104,6 +105,7 @@ public partial class PersonPage : UserControl
             PersonView.FanChart => WallChartKind.Fan,
             PersonView.Descendants => WallChartKind.Descendants,
             PersonView.Hourglass => WallChartKind.Hourglass,
+            PersonView.BowTie => WallChartKind.BowTie,
             _ => WallChartKind.Pedigree,
         };
         var designer = new WallChartDesignerViewModel(vm.Tree, person, vm.TreeName, kind, vm.ChartsShowEvidence);

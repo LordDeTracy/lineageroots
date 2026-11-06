@@ -26,6 +26,32 @@ public sealed partial class MainViewModel
         ? SaveDocumentAsync($"Descendants of {p.DisplayName}", () => Narrative.Register(_tree, p, 4)) : Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private Task NgsqReportAsync() => _current is { } p
+        ? SaveDocumentAsync($"Descendants of {p.DisplayName} (NGSQ)", () => Narrative.Ngsq(_tree, p, 4)) : Task.CompletedTask;
+
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private Task AhnentafelReportAsync() => _current is { } p
+        ? SaveDocumentAsync($"Ancestors of {p.DisplayName}", () => Narrative.Ahnentafel(_tree, p, 5)) : Task.CompletedTask;
+
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private Task WhosMissingReportAsync() => _current is { } p
+        ? SaveDocumentAsync($"What's missing - {p.DisplayName}", () => Narrative.WhosMissing(_tree, p, 6)) : Task.CompletedTask;
+
+    /// <summary>A report put together from the user's choices: who is in it and what it says about each person.</summary>
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private async Task BuildReportAsync()
+    {
+        if (_current is not { } p) return;
+        var builder = new ReportBuilderViewModel(_tree, p);
+        if (!await _dialogs.ReportBuilderAsync(builder)) return;
+        var options = builder.ToOptions(file => ResolveMedia(file));
+        await SaveDocumentAsync(builder.Title.Trim().Length > 0 ? builder.Title.Trim() : $"Report - {p.DisplayName}", () => Narrative.Custom(_tree, p, options));
+    }
+
+    [RelayCommand]
+    private Task BibliographyReportAsync() => SaveDocumentAsync("Bibliography", () => Narrative.Bibliography(_tree));
+
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
     private Task IndividualSummaryAsync() => _current is { } p
         ? SaveDocumentAsync($"Summary - {p.DisplayName}", () => Narrative.IndividualSummary(_tree, p)) : Task.CompletedTask;
 
@@ -100,6 +126,22 @@ public sealed partial class MainViewModel
     /// <summary>Asks where to save and writes the report as PDF or Word (chosen by the file type).</summary>
     private async Task SaveDocumentAsync(string name, Func<ReportDocument> build, bool wordFirst = false)
     {
+        // Build it once and show the pages first; nothing is saved unless the user says so.
+        ReportDocument doc;
+        try
+        {
+            Status = "Writing the report…";
+            var built = await Task.Run(() => { var d = build(); return (Doc: d, Pages: DocumentPdf.PagePictures(d)); });
+            doc = built.Doc;
+            Status = "";
+            if (!await _dialogs.PreviewReportAsync(new ReportPreviewViewModel(name, built.Pages))) return;
+        }
+        catch (Exception ex)
+        {
+            Status = "";
+            await _dialogs.ShowMessageAsync("Could not create the report", ex.Message);
+            return;
+        }
         (string, string)[] types = wordFirst
             ? new[] { ("Word document", "*.docx"), ("PDF", "*.pdf") }
             : new[] { ("PDF", "*.pdf"), ("Word document", "*.docx") };
@@ -110,7 +152,6 @@ public sealed partial class MainViewModel
             Status = "Writing the report…";
             await Task.Run(() =>
             {
-                var doc = build();
                 if (path.EndsWith(".docx", StringComparison.OrdinalIgnoreCase)) DocumentDocx.Save(doc, path);
                 else DocumentPdf.Save(doc, path);
             });
@@ -129,7 +170,7 @@ public sealed partial class MainViewModel
     private async Task ExportWebsiteAsync()
     {
         if (!HasTree) return;
-        var privacy = new ExportOptionsViewModel(_tree, "Make a family website", "Choose folder");
+        var privacy = new ExportOptionsViewModel(_tree, "Make a family website", "Choose folder", _current);
         if (!await _dialogs.ExportOptionsAsync(privacy)) return;
         var folder = await _dialogs.PickFolderAsync("Choose an empty folder for the website");
         if (folder == null) return;
@@ -143,11 +184,12 @@ public sealed partial class MainViewModel
             {
                 Title = TreeName, HomePersonId = _tree.HomePersonId ?? _current?.Id,
                 IncludePhotos = !privacy.ExcludeMedia,
+                Language = Translator.Language, Translate = Translator.T,
             };
             var treeFolder = FilePath is { } fp ? Path.GetDirectoryName(Path.GetFullPath(fp)) : null;
             var index = await Task.Run(() =>
             {
-                var tree = keepAll ? source : Privacy.Filter(source, options);
+                var tree = keepAll ? privacy.Apply(source) : Privacy.Filter(privacy.Apply(source), options);
                 return HtmlSite.Export(tree, folder, site,
                     file => Path.IsPathRooted(file) ? file : treeFolder != null ? Path.Combine(treeFolder, file) : null);
             });
@@ -169,7 +211,7 @@ public sealed partial class MainViewModel
     private async Task ExportPhoneViewerAsync()
     {
         if (!HasTree) return;
-        var privacy = new ExportOptionsViewModel(_tree, "Make a phone viewer", "Save");
+        var privacy = new ExportOptionsViewModel(_tree, "Make a phone viewer", "Save", _current);
         if (!await _dialogs.ExportOptionsAsync(privacy)) return;
         var path = await _dialogs.SaveFileAsync("Save the phone viewer", SafeName(TreeName) + " - phone.html", ("Web page", "*.html"));
         if (path == null) return;
@@ -179,10 +221,17 @@ public sealed partial class MainViewModel
             var source = _tree;
             var options = privacy.ToOptions();
             var keepAll = privacy.KeepsEverything;
-            var viewer = new PhoneViewerOptions { Title = TreeName, HomePersonId = _tree.HomePersonId ?? _current?.Id };
+            var viewer = new PhoneViewerOptions
+            {
+                Title = TreeName, HomePersonId = _tree.HomePersonId ?? _current?.Id,
+                // Shrunk to phone size and written into the page, which has to stay one file.
+                Picture = privacy.ExcludeMedia ? null : (file, portrait) =>
+                    Lineage.App.Reports.PictureData.Load(ResolveMedia(file), portrait ? 200 : 720, portrait ? 80 : 72) is { } pic
+                        ? "data:image/jpeg;base64," + Convert.ToBase64String(pic.Jpeg) : null,
+            };
             await Task.Run(() =>
             {
-                var tree = keepAll ? source : Privacy.Filter(source, options);
+                var tree = keepAll ? privacy.Apply(source) : Privacy.Filter(privacy.Apply(source), options);
                 File.WriteAllText(path, PhoneViewer.Build(tree, viewer, Translator.T), new System.Text.UTF8Encoding(false));
             });
             Status = $"Saved {Path.GetFileName(path)}";

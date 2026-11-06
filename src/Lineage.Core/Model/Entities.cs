@@ -84,6 +84,8 @@ public sealed class Event
     public string Reasoning { get; set; } = "";
     /// <summary>Records that disagree with this fact.</summary>
     public List<EvidenceConflict> Conflicts { get; } = new();
+    /// <summary>Other people at the event and what they were there as: witnesses, godparents, the informant.</summary>
+    public List<EventRole> Roles { get; } = new();
 
     public static Event Of(string tag, GenDate? date = null, string place = "") =>
         new() { Tag = tag, Date = date ?? GenDate.Empty, Place = place };
@@ -97,6 +99,8 @@ public sealed class Name
     public string Suffix { get; set; } = "";
     public string Nickname { get; set; } = "";
     public string Type { get; set; } = "";   // "", "aka", "married", ...
+    /// <summary>An other name kept to oneself (an adoption name, say): left out of anything shared.</summary>
+    public bool Private { get; set; }
 
     [JsonIgnore] public string Full => string.Join(' ', new[] { Prefix, Given, Surname, Suffix }.Where(s => s.Length > 0));
     [JsonIgnore] public string SortKey => $"{Surname}, {Given}".ToUpperInvariant();
@@ -115,6 +119,8 @@ public sealed class MediaLink
     public string Taken { get; set; } = "";        // when it was taken, as recorded by the camera
     /// <summary>File size in bytes when it was linked (0 if unknown); helps find the file again after it moves.</summary>
     public long Size { get; set; }
+    /// <summary>Kept out of anything shared (exports, websites, phone viewer, reports) when private things are left out.</summary>
+    public bool Private { get; set; }
     /// <summary>People tagged in the photo, each with the rectangle around them.</summary>
     public List<PhotoRegion> Regions { get; } = new();
 
@@ -138,6 +144,7 @@ public sealed class MediaLink
         Location = other.Location;
         Taken = other.Taken;
         Size = other.Size;
+        Private = other.Private;
         Regions.Clear();
         Regions.AddRange(other.Regions.Select(r => r.Clone()));
     }
@@ -186,8 +193,29 @@ public sealed class DnaSegment
     public int Snps { get; set; }
 }
 
+/// <summary>Someone else at an event, and in what role ("Witness", "Godparent", "Informant").</summary>
+public sealed class EventRole
+{
+    public long PersonId { get; set; }
+    public string Role { get; set; } = "";
+}
+
+/// <summary>
+/// A friend, associate or neighbour (the "FAN club"): people who turn up in each other's lives and records, and often
+/// lead to relatives when the direct trail goes cold.
+/// </summary>
+public sealed class Association
+{
+    public long PersonId { get; set; }
+    /// <summary>"Neighbour", "Business partner", "Fellow soldier"…</summary>
+    public string Relation { get; set; } = "";
+    public string Note { get; set; } = "";
+}
+
 public sealed class Person : Entity
 {
+    /// <summary>Friends, associates and neighbours, each with how they were connected.</summary>
+    public List<Association> Associations { get; } = new();
     public List<DnaTest> DnaTests { get; } = new();
     /// <summary>People this person shares DNA with (when this person has tested).</summary>
     public List<DnaMatch> DnaMatches { get; } = new();
@@ -198,6 +226,12 @@ public sealed class Person : Entity
     public string UserId { get; set; } = "";        // REFN
     public string FamilySearchId { get; set; } = "";
     public string Note { get; set; } = "";
+    /// <summary>The note is for the researcher only: left out of anything shared.</summary>
+    public bool NotePrivate { get; set; }
+    /// <summary>What reports, websites and viewers may show: the note unless it's private, photos and other names not marked private.</summary>
+    [JsonIgnore] public string SharedNote => NotePrivate ? "" : Note;
+    [JsonIgnore] public IEnumerable<MediaLink> SharedMedia => Media.Where(m => !m.Private);
+    [JsonIgnore] public IEnumerable<Name> SharedNames => Names.Where((n, i) => i == 0 || !n.Private);
     public string Email { get; set; } = "";
     public string Url { get; set; } = "";
     public string Address { get; set; } = "";
@@ -278,6 +312,10 @@ public sealed class Source : Entity
     public long? RepositoryId { get; set; }
     public int? Quality { get; set; }
     public SourceKind Kind { get; set; }
+    /// <summary>The citation template it follows (<see cref="Sources.SourceTemplates"/>), or empty for a free-form source.</summary>
+    public string Template { get; set; } = "";
+    /// <summary>The template's fields, by key ("Year", "County"…).</summary>
+    public Dictionary<string, string> Fields { get; set; } = new();
     /// <summary>Scans or photos of the source itself: a register page, a certificate, a letter.</summary>
     public List<MediaLink> Media { get; } = new();
 }
@@ -307,4 +345,21 @@ public sealed class ResearchItem : Entity
     public string Note { get; set; } = "";
     public long? RepositoryId { get; set; }
     public long? SourceId { get; set; }
+    /// <summary>Set when the entry is a letter, email or call (the correspondence log); <see cref="Done"/> means it's answered.</summary>
+    public Correspondence? Letter { get; set; }
+}
+
+/// <summary>A letter, email or call to or from an archive, a record office or a relative.</summary>
+public sealed class Correspondence
+{
+    /// <summary>Who it was with: "Leeds Register Office", "Cousin Alice".</summary>
+    public string With { get; set; } = "";
+    /// <summary>Their postal or email address, or phone number.</summary>
+    public string Address { get; set; } = "";
+    /// <summary>"Letter", "Email", "Phone", "Online form"…</summary>
+    public string Method { get; set; } = "Letter";
+    /// <summary>They wrote to us (rather than us to them).</summary>
+    public bool Incoming { get; set; }
+    /// <summary>When the reply came.</summary>
+    public GenDate Replied { get; set; } = GenDate.Empty;
 }

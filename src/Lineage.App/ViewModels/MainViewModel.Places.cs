@@ -40,6 +40,15 @@ public sealed partial class MainViewModel
     [ObservableProperty] private string _placeCountText = "";
     [ObservableProperty] private string _placeTitle = "";
     [ObservableProperty] private string _placeSummary = "";
+    /// <summary>What an old name is called today ("Königsberg has been called Kaliningrad, Russia since 1946.").</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasPlaceHistory))] private string _placeHistory = "";
+    public bool HasPlaceHistory => PlaceHistory.Length > 0;
+    /// <summary>The gazetteer's full modern name for the place, when it's sure and the tree writes it differently.</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasPlaceStandard))] private string _placeStandard = "";
+    public bool HasPlaceStandard => PlaceStandard.Length > 0;
+    /// <summary>The locality guide for the place (Advanced mode): records that exist for its country in its years.</summary>
+    public ObservableCollection<Lineage.Core.Places.RecordSet> PlaceRecords { get; } = new();
+    public bool HasPlaceRecords => PlaceRecords.Count > 0;
     [ObservableProperty] private string _placeCoordinates = "";
     [ObservableProperty] private string _placeCoordinatesError = "";
     [ObservableProperty] private bool _hasPlaceSuggestions;
@@ -129,9 +138,16 @@ public sealed partial class MainViewModel
         {
             if (SelectedPlace is not { } row)
             {
-                PlaceTitle = PlaceSummary = PlaceCoordinates = "";
+                PlaceTitle = PlaceSummary = PlaceCoordinates = PlaceHistory = PlaceStandard = "";
                 return;
             }
+            PlaceHistory = string.Join(" ", Lineage.Core.Places.HistoricalPlaces.In(row.Name).Select(Lineage.Core.Places.HistoricalPlaces.Describe));
+            PlaceRecords.Clear();
+            if (IsAdvanced)
+                foreach (var r in Lineage.Core.Places.LocalityGuides.For(row.Name, row.Entry.FirstYear, row.Entry.LastYear)) PlaceRecords.Add(r);
+            OnPropertyChanged(nameof(HasPlaceRecords));
+            PlaceStandard = PlaceHistory.Length == 0 && Lineage.Core.Places.Gazetteer.Default.Locate(row.Name) is { Sure: true, Precision: Lineage.Core.Places.GeoPrecision.Town } match
+                            && !string.Equals(match.Description, row.Name, StringComparison.OrdinalIgnoreCase) ? match.Description : "";
             PlaceTitle = row.Name;
             PlaceSummary = Display.Join($"{row.Entry.EventCount:N0} events", $"{row.Entry.PersonCount:N0} people",
                 row.Entry.FamilyCount > 0 ? $"{row.Entry.FamilyCount:N0} families" : "",
@@ -167,6 +183,19 @@ public sealed partial class MainViewModel
             row.Name, _allPlaces.Select(p => p.Name).Where(n => n != row.Name).ToList());
         if (to == null || to.Trim().Length == 0 || to.Trim() == row.Name) return;
         var target = to.Trim();
+        var count = 0;
+        Change($"rename {row.Name}", PlaceIndex.Touched(_tree, new[] { row.Name, target }),
+               () => count = PlaceIndex.Rename(_tree, row.Name, target));
+        SelectedPlace = PlaceList.FirstOrDefault(p => p.Name == target);
+        Status = $"Renamed {count:N0} event{(count == 1 ? "" : "s")} to \"{target}\".";
+    }
+
+    /// <summary>Renames the place to the gazetteer's standard modern name (old names are left as recorded).</summary>
+    [RelayCommand]
+    private void UseStandardPlaceName()
+    {
+        if (SelectedPlace is not { } row || PlaceStandard.Length == 0) return;
+        var target = PlaceStandard;
         var count = 0;
         Change($"rename {row.Name}", PlaceIndex.Touched(_tree, new[] { row.Name, target }),
                () => count = PlaceIndex.Rename(_tree, row.Name, target));

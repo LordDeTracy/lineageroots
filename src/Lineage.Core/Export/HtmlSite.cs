@@ -18,6 +18,10 @@ public sealed class HtmlSiteOptions
     public long? HomePersonId { get; set; }
     public bool IncludeSources { get; set; } = true;
     public bool IncludePhotos { get; set; } = true;
+    /// <summary>The site's language code ("en", "de"…), for the page and its life stories.</summary>
+    public string Language { get; set; } = "en";
+    /// <summary>Puts the site's own words (headings, labels) into <see cref="Language"/>; English is left as it is.</summary>
+    public Func<string, string> Translate { get; set; } = s => s;
 }
 
 /// <summary>
@@ -48,7 +52,12 @@ public static class HtmlSite
         private readonly string _title;
         private readonly Dictionary<string, string> _copied = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _usedNames = new(StringComparer.OrdinalIgnoreCase);
-        private readonly string _stamp = DateTime.Now.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
+        private readonly StoryLanguage _story;
+        private string _stamp => _story.Date(GenDate.Parse(DateTime.Now.ToString("d MMM yyyy", CultureInfo.InvariantCulture)));
+
+        private string T(string english) => _options.Translate(english);
+        /// <summary>A translated phrase with its {0} filled (the filling is already HTML).</summary>
+        private string T(string english, string value) => T(english).Replace("{0}", value);
 
         public Writer(FamilyTree tree, string root, HtmlSiteOptions options, Func<string, string?>? resolve)
         {
@@ -57,7 +66,9 @@ public static class HtmlSite
             _options = options;
             _resolve = resolve;
             _title = options.Title.Trim().Length > 0 ? options.Title.Trim()
-                : tree.Name.Trim().Length > 0 && tree.Name != "Untitled" ? tree.Name.Trim() : "Our family history";
+                : tree.Name.Trim().Length > 0 && tree.Name != "Untitled" ? tree.Name.Trim() : options.Translate("Our family history");
+            _story = StoryLanguage.For(options.Language);
+            _story.Words = options.Translate;
         }
 
         public string Run()
@@ -110,10 +121,10 @@ public static class HtmlSite
             return "other";
         }
 
-        private static string LetterLabel(string key) => key == "other" ? "Other" : key.ToUpperInvariant();
+        private string LetterLabel(string key) => key == "other" ? T("Other") : key.ToUpperInvariant();
 
-        private static string Letters(IEnumerable<SurnameGroup> groups, string prefix, string? current = null) =>
-            "<nav class=\"letters\" aria-label=\"Surnames by letter\">" +
+        private string Letters(IEnumerable<SurnameGroup> groups, string prefix, string? current = null) =>
+            $"<nav class=\"letters\" aria-label=\"{H(T("Surnames by letter"))}\">" +
             string.Concat(groups.Select(g => g.Letter).Distinct().Select(l => l == current
                 ? $"<a class=\"current\" aria-current=\"page\" href=\"{prefix}{l}.html\">{LetterLabel(l)}</a>"
                 : $"<a href=\"{prefix}{l}.html\">{LetterLabel(l)}</a>")) +
@@ -122,8 +133,8 @@ public static class HtmlSite
         private void WriteLetter(string letter, List<SurnameGroup> mine, List<SurnameGroup> all)
         {
             var sb = new StringBuilder();
-            sb.Append($"<section class=\"card intro\"><h1>Surnames — {LetterLabel(letter)}</h1>");
-            sb.Append($"<p class=\"muted\">{Count(mine.Sum(g => g.People.Count), "person", "people")} with {Count(mine.Count, "surname", "surnames")}.</p>");
+            sb.Append($"<section class=\"card intro\"><h1>{H(T("Surnames"))} — {LetterLabel(letter)}</h1>");
+            sb.Append($"<p class=\"muted\">{H(T("{0} with {1}.").Replace("{0}", Count(mine.Sum(g => g.People.Count), "person", "people")).Replace("{1}", Count(mine.Count, "surname", "surnames")))}</p>");
             sb.Append(Letters(all, "", letter)).Append("</section>");
             foreach (var g in mine)
             {
@@ -132,7 +143,7 @@ public static class HtmlSite
                 foreach (var p in g.People) sb.Append($"<li>{PersonLink(p, "../people/")}{Dates(p)}</li>");
                 sb.Append("</ul></section>");
             }
-            File.WriteAllText(Path.Combine(_root, "surnames", letter + ".html"), Page($"Surnames {LetterLabel(letter)} — {_title}", "../", sb.ToString()), Utf8);
+            File.WriteAllText(Path.Combine(_root, "surnames", letter + ".html"), Page($"{T("Surnames")} {LetterLabel(letter)} — {_title}", "../", sb.ToString()), Utf8);
         }
 
         // ---- home page ---------------------------------------------------------------------------
@@ -147,20 +158,20 @@ public static class HtmlSite
 
             if (_tree.Person(_options.HomePersonId) is { } home)
             {
-                sb.Append("<section class=\"card home\"><h2>Start here</h2><div class=\"home-person\">");
+                sb.Append($"<section class=\"card home\"><h2>{H(T("Start here"))}</h2><div class=\"home-person\">");
                 sb.Append(Portrait(home, "people/", small: true));
                 sb.Append($"<div><a class=\"big\" href=\"people/{home.Id}.html\">{H(home.DisplayName)}</a>");
                 if (home.Lifespan.Length > 0) sb.Append($"<div class=\"muted\">{H(home.Lifespan)}</div>");
                 sb.Append("</div></div></section>");
             }
 
-            sb.Append("<section class=\"card search\" id=\"search\"><h2>Find a person</h2>");
-            sb.Append("<label class=\"visually-hidden\" for=\"q\">Search by name</label>");
-            sb.Append("<input type=\"search\" id=\"q\" placeholder=\"Type a name, a year or a place…\" autocomplete=\"off\" spellcheck=\"false\">");
+            sb.Append($"<section class=\"card search\" id=\"search\"><h2>{H(T("Find a person"))}</h2>");
+            sb.Append($"<label class=\"visually-hidden\" for=\"q\">{H(T("Search by name"))}</label>");
+            sb.Append($"<input type=\"search\" id=\"q\" placeholder=\"{H(T("Type a name, a year or a place…"))}\" autocomplete=\"off\" spellcheck=\"false\">");
             sb.Append("<p id=\"search-status\" class=\"muted\" aria-live=\"polite\"></p><ul id=\"results\" class=\"people\"></ul>");
-            sb.Append("<noscript><p class=\"muted\">Search needs JavaScript; the surname index below works without it.</p></noscript></section>");
+            sb.Append($"<noscript><p class=\"muted\">{H(T("Search needs JavaScript; the surname index below works without it."))}</p></noscript></section>");
 
-            sb.Append("<section class=\"card\" id=\"surnames\"><h2>Surnames</h2>");
+            sb.Append($"<section class=\"card\" id=\"surnames\"><h2>{H(T("Surnames"))}</h2>");
             sb.Append(Letters(groups, "surnames/"));
             foreach (var letter in groups.GroupBy(g => g.Letter))
             {
@@ -178,7 +189,7 @@ public static class HtmlSite
             var entries = _tree.People.Values.OrderBy(p => p.PrimaryName.SortKey, StringComparer.Ordinal).Select(p => new
             {
                 n = p.DisplayName,
-                a = p.Names.Skip(1).Select(x => x.Full).Where(x => x.Length > 0 && x != p.DisplayName).Distinct().ToArray(),
+                a = p.SharedNames.Skip(1).Select(x => x.Full).Where(x => x.Length > 0 && x != p.DisplayName).Distinct().ToArray(),
                 y = p.Lifespan,
                 p = StoryWriter.Find(p, "BIRT")?.Place.Trim() ?? "",
                 u = $"people/{p.Id}.html",
@@ -186,7 +197,12 @@ public static class HtmlSite
             // A script that sets a global, not JSON to fetch(): browsers block fetch() for pages opened from disk.
             // The default encoder escapes <, >, & and quotes, so names can't break out of the string.
             var json = JsonSerializer.Serialize(entries);
-            File.WriteAllText(Path.Combine(_root, "search-index.js"), $"window.LINEAGE_PEOPLE = {json};\n", Utf8);
+            var words = JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["none"] = T("No one matches “{0}”."), ["some"] = T("Showing the first {0} of {1} matches."),
+                ["one"] = T("1 match."), ["many"] = T("{0} matches."),
+            });
+            File.WriteAllText(Path.Combine(_root, "search-index.js"), $"window.LINEAGE_PEOPLE = {json};\nwindow.LINEAGE_WORDS = {words};\n", Utf8);
         }
 
         // ---- person pages ------------------------------------------------------------------------
@@ -199,20 +215,20 @@ public static class HtmlSite
             sb.Append(Portrait(p, "../people/", small: false));
             sb.Append($"<div><h1>{H(p.DisplayName)}</h1>");
             if (p.Lifespan.Length > 0) sb.Append($"<p class=\"lifespan\">{H(p.Lifespan)}</p>");
-            var others = p.Names.Skip(1).Select(n => n.Full).Where(n => n.Length > 0 && n != p.DisplayName).Distinct().ToList();
+            var others = p.SharedNames.Skip(1).Select(n => n.Full).Where(n => n.Length > 0 && n != p.DisplayName).Distinct().ToList();
             if (p.PrimaryName.Nickname.Length > 0) others.Insert(0, $"“{p.PrimaryName.Nickname}”");
-            if (others.Count > 0) sb.Append($"<p class=\"muted\">Also known as {H(string.Join(", ", others))}</p>");
-            if (group != null) sb.Append($"<p class=\"crumbs\"><a href=\"../surnames/{group.Letter}.html#{group.Anchor}\">All {H(group.Surname)} entries</a></p>");
+            if (others.Count > 0) sb.Append($"<p class=\"muted\">{T("Also known as {0}", H(string.Join(", ", others)))}</p>");
+            if (group != null) sb.Append($"<p class=\"crumbs\"><a href=\"../surnames/{group.Letter}.html#{group.Anchor}\">{T("All {0} entries", H(group.Surname))}</a></p>");
             sb.Append("</div></div>");
-            var summary = Narrative.LifeSummary(_tree, p);
+            var summary = Narrative.LifeSummary(_tree, p, _story);
             if (summary.Length > 0 && summary != p.DisplayName + ".") sb.Append($"<p class=\"summary\">{H(summary)}</p>");
             sb.Append("</article>");
 
             Timeline(sb, p);
             Relatives(sb, p);
 
-            var notes = NoteFormat.Html(p.Note);
-            if (notes.Length > 0) sb.Append($"<section class=\"card\"><h2>Notes</h2>{notes}</section>");
+            var notes = NoteFormat.Html(p.SharedNote);
+            if (notes.Length > 0) sb.Append($"<section class=\"card\"><h2>{H(T("Notes"))}</h2>{notes}</section>");
 
             Gallery(sb, p);
             if (_options.IncludeSources) Sources(sb, p);
@@ -222,25 +238,25 @@ public static class HtmlSite
 
         private void Timeline(StringBuilder sb, Person p)
         {
-            var rows = StoryWriter.Visible(p.Events).Select(e => (Event: e, Label: EventTypes.Label(e), With: (Person?)null)).ToList();
+            var rows = StoryWriter.Visible(p.Events).Select(e => (Event: e, Label: T(EventTypes.Label(e)), With: (Person?)null)).ToList();
             foreach (var (family, spouse, _) in _tree.FamiliesOf(p))
-                rows.AddRange(StoryWriter.Visible(family.Events).Select(e => (Event: e, Label: EventTypes.Label(e), With: spouse)));
+                rows.AddRange(StoryWriter.Visible(family.Events).Select(e => (Event: e, Label: T(EventTypes.Label(e)), With: spouse)));
             if (rows.Count == 0) return;
-            sb.Append("<section class=\"card\"><h2>Timeline</h2><ol class=\"timeline\">");
+            sb.Append($"<section class=\"card\"><h2>{H(T("Timeline"))}</h2><ol class=\"timeline\">");
             foreach (var (e, label, with) in rows.Select((r, i) => (r, i))
                          .OrderBy(x => x.r.Event.Date.SortKey == 0 ? int.MaxValue : x.r.Event.Date.SortKey).ThenBy(x => x.i).Select(x => x.r))
             {
                 var year = ReportText.Year(e.Date);
                 sb.Append($"<li><span class=\"year\">{(year > 0 ? year.ToString(CultureInfo.InvariantCulture) : "")}</span><div>");
                 sb.Append($"<strong>{H(label)}</strong>");
-                if (with != null) sb.Append($" with {PersonLink(with, "")}");
-                var date = ReportText.Date(e.Date);
+                if (with != null) sb.Append(" " + T("with {0}", PersonLink(with, "")));
+                var date = _story.Date(e.Date);
                 if (date.Length > 0) sb.Append($"<div class=\"when\">{H(date)}</div>");
                 if (e.Place.Trim().Length > 0) sb.Append($"<div class=\"where\">{H(e.Place.Trim())}</div>");
                 var details = new List<string>();
                 var value = StoryWriter.Value(e);
                 if (value.Length > 0) details.Add(value);
-                if (e.Cause.Trim().Length > 0) details.Add("Cause: " + e.Cause.Trim());
+                if (e.Cause.Trim().Length > 0) details.Add(T("Cause: {0}", e.Cause.Trim()));
                 if (e.Note.Trim().Length > 0) details.Add(e.Note.Trim());
                 if (details.Count > 0) sb.Append($"<div class=\"detail\">{H(string.Join(". ", details))}</div>");
                 sb.Append("</div></li>");
@@ -257,21 +273,21 @@ public static class HtmlSite
             var families = _tree.FamiliesOf(p).ToList();
             if (parents.Count == 0 && siblings.Count == 0 && families.Count == 0) return;
 
-            sb.Append("<section class=\"card\"><h2>Family</h2>");
-            if (parents.Count > 0) PeopleList(sb, "Parents", parents);
+            sb.Append($"<section class=\"card\"><h2>{H(T("Family"))}</h2>");
+            if (parents.Count > 0) PeopleList(sb, T("Parents"), parents);
             foreach (var (family, spouse, children) in families)
             {
                 sb.Append("<div class=\"family\">");
-                sb.Append(spouse != null ? $"<h3>With {PersonLink(spouse, "")}{Dates(spouse)}</h3>" : "<h3>Family</h3>");
+                sb.Append(spouse != null ? $"<h3>{T("With {0}", PersonLink(spouse, ""))}{Dates(spouse)}</h3>" : $"<h3>{H(T("Family"))}</h3>");
                 if (StoryWriter.Visible(family.Events).FirstOrDefault(e => e.Tag == "MARR") is { } m)
                 {
-                    var when = string.Join(" ", new[] { ReportText.DatePhrase(m.Date), m.Place.Trim().Length > 0 ? "in " + m.Place.Trim() : "" }.Where(x => x.Length > 0));
-                    sb.Append($"<p class=\"muted\">Married{(when.Length > 0 ? " " + H(when) : "")}</p>");
+                    var when = (_story.DatePhrase(m.Date) is { Length: > 0 } d ? " " + d : "") + (m.Place.Trim().Length > 0 ? _story.Format("place.in", m.Place.Trim()) : "");
+                    sb.Append($"<p class=\"muted\">{H(T("Married") + when)}</p>");
                 }
-                if (children.Count > 0) PeopleList(sb, children.Count == 1 ? "Child" : "Children", children, heading: false);
+                if (children.Count > 0) PeopleList(sb, T(children.Count == 1 ? "Child" : "Children"), children, heading: false);
                 sb.Append("</div>");
             }
-            if (siblings.Count > 0) PeopleList(sb, "Brothers and sisters", siblings);
+            if (siblings.Count > 0) PeopleList(sb, T("Brothers and sisters"), siblings);
             sb.Append("</section>");
         }
 
@@ -287,13 +303,13 @@ public static class HtmlSite
         {
             if (!_options.IncludePhotos) return;
             var portrait = ProfilePhoto(p);
-            var photos = p.Media.Where(m => m != portrait).Select(m => (Media: m, File: Copy(m))).Where(x => x.File != null).ToList();
+            var photos = p.SharedMedia.Where(m => m != portrait).Select(m => (Media: m, File: Copy(m))).Where(x => x.File != null).ToList();
             if (photos.Count == 0) return;
-            sb.Append("<section class=\"card\"><h2>Photos</h2><div class=\"gallery\">");
+            sb.Append($"<section class=\"card\"><h2>{H(T("Photos"))}</h2><div class=\"gallery\">");
             foreach (var (m, file) in photos)
             {
                 var caption = m.Title.Trim();
-                sb.Append($"<figure><a href=\"../media/{file}\"><img src=\"../media/{file}\" alt=\"{H(caption.Length > 0 ? caption : "Photo of " + p.DisplayName)}\" loading=\"lazy\"></a>");
+                sb.Append($"<figure><a href=\"../media/{file}\"><img src=\"../media/{file}\" alt=\"{H(caption.Length > 0 ? caption : T("Photo of {0}", p.DisplayName))}\" loading=\"lazy\"></a>");
                 if (caption.Length > 0) sb.Append($"<figcaption>{H(caption)}</figcaption>");
                 sb.Append("</figure>");
             }
@@ -307,7 +323,7 @@ public static class HtmlSite
                 citations.AddRange(family.Citations.Concat(StoryWriter.Visible(family.Events).SelectMany(e => e.Citations)));
             var lines = citations.Select(c => NoteBook.CitationText(_tree, c)).Where(t => t.Length > 0).Distinct().ToList();
             if (lines.Count == 0) return;
-            sb.Append("<section class=\"card\"><h2>Sources</h2><ol class=\"sources\">");
+            sb.Append($"<section class=\"card\"><h2>{H(T("Sources"))}</h2><ol class=\"sources\">");
             foreach (var line in lines) sb.Append($"<li>{H(line)}</li>");
             sb.Append("</ol></section>");
         }
@@ -315,7 +331,7 @@ public static class HtmlSite
         // ---- photos ------------------------------------------------------------------------------
 
         private MediaLink? ProfilePhoto(Person p) =>
-            p.Media.Where(m => m.Primary).Concat(p.Media).FirstOrDefault(m => Copy(m) != null);
+            p.SharedMedia.Where(m => m.Primary).Concat(p.SharedMedia).FirstOrDefault(m => Copy(m) != null);
 
         private string Portrait(Person p, string peoplePrefix, bool small)
         {
@@ -367,7 +383,7 @@ public static class HtmlSite
 
         private string Page(string title, string root, string body, string scripts = "") => $"""
             <!DOCTYPE html>
-            <html lang="en">
+            <html lang="{H(_options.Language)}">
             <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -376,11 +392,11 @@ public static class HtmlSite
             <link rel="stylesheet" href="{root}style.css">
             </head>
             <body>
-            <header class="site-header"><div class="wrap"><a class="site-title" href="{root}index.html">{H(_title)}</a><nav><a href="{root}index.html#search">Search</a><a href="{root}index.html#surnames">Surnames</a></nav></div></header>
+            <header class="site-header"><div class="wrap"><a class="site-title" href="{root}index.html">{H(_title)}</a><nav><a href="{root}index.html#search">{H(T("Search"))}</a><a href="{root}index.html#surnames">{H(T("Surnames"))}</a></nav></div></header>
             <main class="wrap">
             {body}
             </main>
-            <footer class="wrap">Made with Lineage Roots · {H(_stamp)}</footer>
+            <footer class="wrap">{H(T("Made with Lineage Roots"))} · {H(_stamp)}</footer>
             {scripts}
             </body>
             </html>
@@ -404,7 +420,8 @@ public static class HtmlSite
             text.Replace("\r\n", "\n").Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(p => string.Join("<br>", p.Split('\n', StringSplitOptions.TrimEntries).Select(H)));
 
-        private static string Count(int n, string one, string many) => n == 1 ? $"1 {one}" : $"{n.ToString("N0", CultureInfo.InvariantCulture)} {many}";
+        private string Count(int n, string one, string many) =>
+            n == 1 ? T("1 " + one) : T("{0} " + many).Replace("{0}", n.ToString("N0", CultureInfo.InvariantCulture));
     }
 
     private static string H(string s) => WebUtility.HtmlEncode(s);
@@ -552,9 +569,10 @@ public static class HtmlSite
               }
               list.appendChild(li);
             }
-            status.textContent = found === 0 ? 'No one matches “' + input.value.trim() + '”.'
-              : found > shown ? 'Showing the first ' + shown + ' of ' + found + ' matches.'
-              : found === 1 ? '1 match.' : found + ' matches.';
+            var w = window.LINEAGE_WORDS || {};
+            status.textContent = found === 0 ? (w.none || 'No one matches “{0}”.').replace('{0}', input.value.trim())
+              : found > shown ? (w.some || 'Showing the first {0} of {1} matches.').replace('{0}', shown).replace('{1}', found)
+              : found === 1 ? (w.one || '1 match.') : (w.many || '{0} matches.').replace('{0}', found);
           }
           input.addEventListener('input', show);
           if (location.hash === '#search') input.focus();

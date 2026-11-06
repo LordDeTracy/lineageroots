@@ -53,8 +53,10 @@
             <ContentControl Content="{Binding HomePersonCard}" ContentTemplate="{StaticResource PersonCardTemplate}"
                             IsVisible="{Binding HasHomePerson}" />
             <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasHomePerson}"
-                       Text="Choose the person the tree should start from — usually you. Open their page and use ⋯ › Make this the home person." />
+                       Text="Choose the person the tree should start from — usually you." />
             <TextBlock Classes="faint small" Text="Ctrl+H goes to the home person from anywhere." IsVisible="{Binding HasHomePerson}" />
+            <Button Classes="outline" HorizontalAlignment="Left" Command="{Binding ChooseHomePersonCommand}"
+                    Content="Choose the home person…" />
           </StackPanel>
         </Border>
         <!-- Bookmarks -->

@@ -4,9 +4,9 @@
 
 A free, cross-platform family history program, with its source code published for anyone to read and improve. Lineage Roots opens **AQ 16** databases
 directly. You don't need AQ installed and you don't need to export from it first. It also reads and writes
-**GEDCOM 5.5.1**, so it works with every other genealogy program.
+**GEDCOM 5.5.1** and **GEDCOM 7.0**, so it works with every other genealogy program.
 
-> Status: **0.5.0, early development.** Everything listed below works and is covered by automated tests. The
+> Status: **0.6.0, early development.** Everything listed below works and is covered by automated tests. The
 > FamilySearch features need an app key and have only been tested against simulated responses so far.
 
 ![A person's page](docs/screenshots/person-light.png)
@@ -70,6 +70,59 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 | ![Family map through time](docs/screenshots/map-timeline-light.png) | ![Reviewing a relative's changes](docs/screenshots/review-light.png) |
 | The family map, played through the years | Reviewing a relative's changes |
 
+**New in 0.6**
+- **Plugins**: other people's reports, charts, file importers and tools, each switched on in Settings
+- **Branches**: export just one person's ancestors, descendants or both (GEDCOM, website, phone viewer), or save that
+  branch as a family file of its own (⋯ → Save a branch as a new family file)
+- **Sound and video**: interviews, home movies and documents sit beside a person's photos and play in the computer's
+  own player
+- **Slide show**: a person's photos, or every photo in the tree, full screen with who is in each and when it was taken
+- **Read text from scans** (Windows): clear print in a scanned record goes into a photo's notes or a source's transcript,
+  on this computer with nothing sent anywhere. Uses the Tesseract engine (Apache License 2.0) with its English data;
+  handwriting is mostly beyond it, and it needs Microsoft's Visual C++ Redistributable, which most PCs already have
+- **Old place names**: about 90 former towns, counties and countries (Danzig, Königsberg, Middlesex, Bombay, Upper
+  Canada…) say what they're called today on the Places tab and are found on the map under their modern names; places
+  the gazetteer is sure of show their standard modern name, which can be used everywhere in one step
+- **Witnesses and the FAN club**: name the witnesses, godparents and informants at any event, and record friends,
+  associates and neighbours; each person's page lists everyone around them, from both sides (saved in GEDCOM as ASSO)
+- **Correspondence log and trip planner**: letters, emails and calls to archives and relatives (Research → Letters),
+  showing which await a reply; and a printable checklist for a visit to an archive with the tasks to do there, the
+  records you cite from it and letters still waiting on them
+- **Calculators** (⋯ menu): the time between two dates, a birth date from an age in a record, Soundex codes (with the
+  tree's surnames that share one), and conversions between Gregorian, Julian (Old Style), Quaker, Hebrew and French
+  Republican dates
+- **Private photos, names and notes**: besides events, a photo, another name (an adoption name, say) or a person's
+  notes can be marked private, and are then left out of GEDCOM exports, websites, the phone viewer and reports
+- **GEDCOM 7.0**: reads and writes the newest GEDCOM as well as 5.5.1 (choose the version when exporting): photos as
+  multimedia records, witnesses and associates with roles, FamilySearch IDs, shared notes
+- **Zip backup and portable mode**: the family file with all its photos and recordings in one zip, to keep on a USB
+  stick or in a OneDrive, Google Drive or Dropbox folder (⋯ menu); and a portable mode (Settings) that keeps settings and
+  backups beside the program, for running it from a USB stick
+- **Side by side** (⋯ menu): the person showing and anyone else in two columns — facts, family and notes — to compare
+  possible duplicates or two candidates for the same record
+- **Advanced mode** (Settings, off by default) for professional researchers: **client projects** on the Research tab —
+  the client's question, hours worked against the hours agreed, what's promised, and invoices made from the unbilled
+  hours (saved as PDF or Word), and **citations from web links**: paste a link to a record on FamilySearch, Find a Grave,
+  Ancestry, FreeBMD, WikiTree, Chronicling America, Trove and others, and the source editor picks the template and fills
+  in what the link says; and **locality guides** on the Places tab: the main records for the place's country in the years
+  of its events (parish registers, civil registration, censuses, probate…), with where each is kept, for 14 countries
+- **Build your own report**: choose who is in it (the person, ancestors, descendants, both or everyone, and how many
+  generations) and what it says about each (life story, facts, family, notes, photo), with source notes, an index of
+  names and one person to a page if you like
+- **More report formats**: Ahnentafel (numbered ancestors with their stories), NGSQ-style descendants (every child
+  numbered), "What's missing" (ancestors' unknown dates, places, parents and sources, nearest first) and a bibliography
+  grouped by kind of record
+- **Source templates**: 18 forms (censuses, parish registers, certificates, wills, deeds, books, newspapers, websites,
+  gravestones, letters…) that write notes in the Evidence Explained style: in full the first time a source is cited,
+  short after that, and a matching bibliography
+- **Clearer chart boxes**: given names with the surname on its own line in bold, and both birth and death places; colours
+  that stay distinct for red-green colour blindness; the arrows at a chart's edge can be clicked to go further; lifelines
+  can show the close family, either side or the descendants, with the average age at death
+- **Reports and books in your language**: life stories are written in real sentences in all seven languages, with their own word
+  order and forms; the family website and AQ's source types are translated too
+- **Photos in the phone viewer**, and FamilySearch can now download descendants as well as ancestors
+- Fixed: undo now refreshes the Home, Places, DNA and Evidence tabs
+
 **New in 0.5**
 - **A new look**: earthy browns, tans and greens, rounded silky cards, translucent glass buttons, large light headings
   and a dark walnut-to-forest navigation strip, in light and dark. The program opens maximised
@@ -82,13 +135,14 @@ Finding GPS for places and finding faces in photos both happen inside the progra
 - **Client research report**: findings, conclusions, the evidence weighed, searches made and next steps
 - **Family history book**: profile photos beside each person, chapters you write yourself (stories, memories), and
   either the ancestors or the descendants part can be left out
-- **Charts tab**: pedigree, fan, descendants and hourglass, plus new lifelines, relationship path and statistics
-  charts, and a **wall-chart designer** (chart, generations, title, footnote, poster or pages, paper, size, colours,
-  frame) with a live preview
+- **Charts tab**: pedigree, fan, descendants, hourglass and bow tie (father's side left, mother's right), plus
+  lifelines, relationship path and statistics charts, and a **wall-chart designer** (chart, generations, title,
+  footnote, poster or pages, paper, size, colours, frame, and a Classic, Heritage or Modern look) with a live preview
 - **Research tab**: the problem finder at the top, and the research log can be printed (PDF/Word) or exported (CSV)
 - **Share on this network** for genealogy nights: no internet needed; others nearby join with a PIN and your say-so,
   laptops get a privacy-filtered copy, phones see a family website
-- **Phone viewer**: the whole family in one web page to open on a phone with no internet or app (Reports tab)
+- **Phone viewer**: the whole family in one web page to open on a phone with no internet or app (Reports tab), with
+  each person's portrait and a few photos, shrunk to phone size
 - **Password protection**: a tree can be encrypted (AES-256) with a password, backups included
 - **Change history** saved in the file: who changed what and when, and undo from any point, even after closing
 - **Clean-up wizard**: names in CAPITALS, dates the program can't read, and places written different ways, every
@@ -223,7 +277,7 @@ Finding GPS for places and finding faces in photos both happen inside the progra
   version. Unsaved changes are offered for saving first. Turn the check off in Settings, or check any time from the
   ⋯ menu. Publishing a GitHub release with the Windows zip and Linux tarball attached is all an update needs
 - **FamilySearch**: open a linked person on FamilySearch.org, find and link people, compare and copy details, and
-  download ancestors. Read-only; needs your own app key from the
+  download ancestors (4 generations) or descendants (spouses, children, grandchildren). Read-only; needs your own app key from the
   [FamilySearch developer program](https://www.familysearch.org/developers/)
 - Light and dark themes (the sun/moon button at the top); every control has a screen-reader name
 
@@ -236,6 +290,9 @@ dotnet build
 dotnet run --project src/Lineage.App
 dotnet test
 ```
+
+`global.json` asks for any .NET 8 SDK, so a newer SDK on the same machine (common on a Mac) doesn't get in the way. Macs
+and Linux build and run from source this way; reading text from scans is Windows only.
 
 To open a file at startup, pass its path: `dotnet run --project src/Lineage.App -- family.aq`
 
@@ -264,6 +321,37 @@ Linux program executable), with `LICENSE`, a `README.txt` and the Lato font's li
 package) beside the program. Publish a GitHub release tagged `v<version>` with both attached; the app finds it,
 checks the download against the SHA-256 GitHub records for each uploaded file, and offers it. Drafts and
 pre-releases aren't offered.
+
+### Writing a plugin
+
+A plugin is a .NET 8 class library that references `Lineage.Core` and has one or more public classes with a
+constructor without parameters implementing one of these (in `Lineage.Core.Plugins`):
+
+| Interface | What it adds | Where it shows |
+|---|---|---|
+| `IReportPlugin` | `Build(tree, current)` returns a `ReportDocument` | Reports tab, "From plugins"; previewed, saved as PDF or Word |
+| `IChartPlugin` | `DrawSvg(tree, current)` returns an SVG picture | Reports tab; saved as .svg and opened |
+| `IImporterPlugin` | `Import(path)` reads another kind of file into a `FamilyTree` | Import, with its own file types |
+| `IToolPlugin` | `Run(tree, current)` may change the tree, returns a status line | ⋯ menu → Plugin tools; one undoable step |
+
+Build it and put the .dll (and any libraries it needs, but not `Lineage.Core.dll`) in
+`Documents\Lineage Roots\Plugins`, restart, and tick it in Settings → Plugins. Plugins are off until ticked. A plugin
+runs with the same rights as the program, so only install plugins from people you trust.
+
+```csharp
+public sealed class SurnameCount : IReportPlugin
+{
+    public string Name => "Surname count";
+    public string Description => "How many people have each surname.";
+    public ReportDocument Build(FamilyTree tree, Person? current)
+    {
+        var doc = new ReportDocument { Title = Name };
+        foreach (var g in tree.People.Values.GroupBy(p => p.Names.FirstOrDefault()?.Surname ?? "").OrderBy(g => g.Key))
+            doc.Blocks.Add(new Paragraph($"{g.Key}: {g.Count()}"));
+        return doc;
+    }
+}
+```
 
 ## Layout
 

@@ -73,7 +73,7 @@
         <Button Grid.Column="2" Classes="primary" Command="{Binding NewResearchCommand}" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <c:LineIcon Data="{StaticResource IconPlus}" />
-            <TextBlock Text="New task" />
+            <TextBlock Text="{Binding NewResearchText}" />
           </StackPanel>
         </Button>
       </Grid>
@@ -93,7 +93,7 @@
         </Grid>
       </Border>
 
-      <Grid ColumnDefinitions="*,Auto,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
       <ListBox Classes="segmented" SelectedIndex="{Binding ResearchFilterIndex}" HorizontalAlignment="Left"
                AutomationProperties.Name="Show tasks">
         <ListBox.ItemsPanel>
@@ -104,15 +104,24 @@
         <ListBoxItem Content="All" />
         <ListBoxItem Content="Suggested" ToolTip.Tip="Next steps for the home person and their ancestors" />
         <ListBoxItem Content="Search log" ToolTip.Tip="Searches you've done and what they found — including nothing" />
+        <ListBoxItem Content="Letters" ToolTip.Tip="Letters, emails and calls to and from archives and relatives, and which are waiting for a reply" />
+        <ListBoxItem Content="Clients" IsVisible="{Binding IsAdvanced}" ToolTip.Tip="Paid research: hours, invoices and what's promised (Advanced mode)" />
       </ListBox>
-      <Button Grid.Column="1" Classes="ghost" Command="{Binding PrintResearchCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+      <Button Grid.Column="1" Classes="ghost" Command="{Binding PlanTripCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+              ToolTip.Tip="A printable checklist for a visit to an archive or library">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <c:LineIcon Data="{StaticResource IconMap}" Width="16" Height="16" />
+          <TextBlock Text="Plan a trip" />
+        </StackPanel>
+      </Button>
+      <Button Grid.Column="2" Classes="ghost" Command="{Binding PrintResearchCommand}" Margin="4,0,0,0" VerticalAlignment="Center"
               ToolTip.Tip="The whole research log as PDF or Word, to print or hand to a client">
         <StackPanel Orientation="Horizontal" Spacing="6">
           <c:LineIcon Data="{StaticResource IconPrint}" Width="16" Height="16" />
           <TextBlock Text="Print" />
         </StackPanel>
       </Button>
-      <Button Grid.Column="2" Classes="ghost" Command="{Binding ExportResearchCsvCommand}" Margin="4,0,0,0" VerticalAlignment="Center"
+      <Button Grid.Column="3" Classes="ghost" Command="{Binding ExportResearchCsvCommand}" Margin="4,0,0,0" VerticalAlignment="Center"
               ToolTip.Tip="The research log as a spreadsheet (CSV)">
         <StackPanel Orientation="Horizontal" Spacing="6">
           <c:LineIcon Data="{StaticResource IconExport}" Width="16" Height="16" />
@@ -138,6 +147,24 @@
       </StackPanel>
 
       <ItemsControl ItemsSource="{Binding ResearchList}" ItemTemplate="{StaticResource TaskTemplate}" />
+      <StackPanel IsVisible="{Binding IsClientsFilter}" Spacing="10">
+        <TextBlock Classes="muted" IsVisible="{Binding !ProjectRows.Count}" TextWrapping="Wrap"
+                   Text="No client projects yet. Each keeps the client's question, the hours worked, what's promised and the invoices." />
+        <ItemsControl ItemsSource="{Binding ProjectRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ProjectRow">
+              <Button Classes="option" HorizontalAlignment="Stretch" Margin="0,0,0,10"
+                      Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).OpenProjectCommand}" CommandParameter="{Binding}">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding Client}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Question}" TextWrapping="Wrap" IsVisible="{Binding HasQuestion}" />
+                  <TextBlock Classes="muted small" Text="{Binding Detail}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
       <TextBlock Classes="muted" Text="Nothing here — try another filter." HorizontalAlignment="Center"
                  IsVisible="{Binding ShowNoResearchMatches}" Margin="0,20,0,0" />
     </StackPanel>

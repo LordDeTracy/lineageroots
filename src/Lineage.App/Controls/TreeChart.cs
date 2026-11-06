@@ -15,13 +15,13 @@ namespace Lineage.App.Controls;
 /// </summary>
 public abstract class TreeChart : ChartBase
 {
-    private const double Radius = 10, BadgeRadius = 8.5;
+    private const double Radius = 10, BadgeRadius = 8.5, ArrowGap = 12, ArrowReach = 11;
     private static readonly Geometry Heart =
         StreamGeometry.Parse("M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z");
 
     private TreeLayoutResult? _layout;
     private StreamGeometry? _connectors;
-    private (FormattedText Name, FormattedText Detail)?[][]? _labels;
+    private FormattedText[]?[][]? _labels;
     private IBrush? _labelInk;
 
     protected TreeChart() => ActualThemeVariantChanged += (_, _) => _labels = null;
@@ -51,7 +51,24 @@ public abstract class TreeChart : ChartBase
     protected override Size MeasureOverride(Size availableSize) =>
         Layout is { Nodes.Count: > 0 } l ? new Size(l.Width, l.Height) : default;
 
-    protected override long? HitTest(Point p) => Layout?.HitTest(p.X, p.Y);
+    protected override long? HitTest(Point p) => ArrowAt(p) ?? Layout?.HitTest(p.X, p.Y);
+
+    /// <summary>The person whose "more beyond the edge" arrow is under the point: clicking one centres the chart on them.</summary>
+    internal long? ArrowAt(Point p)
+    {
+        if (Layout is not { } layout) return null;
+        static bool Near(Point p, double x, double y) => Math.Abs(p.X - x) <= ArrowReach && Math.Abs(p.Y - y) <= ArrowReach;
+        foreach (var node in layout.Nodes)
+        {
+            if (node.MoreDescendants && Near(p, node.X + node.Width / 2, node.Y + node.Height + ArrowGap))
+                return node.Slots.FirstOrDefault(s => s.PersonId != null)?.PersonId;
+            for (var s = 0; s < node.Slots.Count; s++)
+                if (node.Slots[s] is { MoreAncestors: true, PersonId: { } id } && node.SlotBounds(s) is var box
+                    && Near(p, box.X + box.Width / 2, box.Y - ArrowGap))
+                    return id;
+        }
+        return null;
+    }
 
     /// <summary>
     /// Theme colour that also works before the chart is in a window (image export, tests), where the
@@ -68,7 +85,7 @@ public abstract class TreeChart : ChartBase
         var ink = Paint("Ink");
         if (_labels == null || !ReferenceEquals(ink, _labelInk))
         {
-            _labels = layout.Nodes.Select(n => new (FormattedText, FormattedText)?[n.Slots.Count]).ToArray();
+            _labels = layout.Nodes.Select(n => new FormattedText[]?[n.Slots.Count]).ToArray();
             _labelInk = ink;
         }
 
@@ -97,7 +114,7 @@ public abstract class TreeChart : ChartBase
         return _connectors = g;
     }
 
-    private void DrawNode(DrawingContext ctx, TreeNode node, (FormattedText Name, FormattedText Detail)?[] labels, FamilyTree tree, Palette b)
+    private void DrawNode(DrawingContext ctx, TreeNode node, FormattedText[]?[] labels, FamilyTree tree, Palette b)
     {
         var r = new Rect(node.X, node.Y, node.Width, node.Height);
         var root = node.Generation == 0;
@@ -123,22 +140,16 @@ public abstract class TreeChart : ChartBase
             var rightRoom = s < node.Slots.Count - 1 ? 14.0 : 12.0;
             if (tree.Person(slot.PersonId) is not { } p)
             {
-                var label = labels[s] ??= (Text("Partner unknown", 12, b.Faint, maxWidth: box.Width - left - 9 - rightRoom),
-                                            Text("", 11, b.Faint));
-                ctx.DrawText(label.Name, new Point(box.X + left + 9, box.Center.Y - label.Name.Height / 2));
+                DrawLines(ctx, labels[s] ??= new[] { Text("Partner unknown", 12, b.Faint, maxWidth: box.Width - left - 9 - rightRoom) }, box.X + left + 9, box.Center.Y);
                 continue;
             }
             var bar = ShowEvidence ? PersonBar(p) : p.Sex switch { Sex.Male => b.Male, Sex.Female => b.Female, _ => b.Other };
             ctx.DrawRectangle(bar, null, new Rect(box.X + left, box.Y + 12, 3.5, box.Height - 24), 1.75, 1.75);
             var x = box.X + left + 9;
             var width = box.Right - rightRoom - x;
-            var text = labels[s] ??= (Text(p.DisplayName, 13.5, b.Ink, bold: true, maxWidth: width),
-                                      Text(Detail(p), 11.5, b.Muted, maxWidth: width));
-            var top = box.Center.Y - (text.Name.Height + text.Detail.Height) / 2;
-            ctx.DrawText(text.Name, new Point(x, top));
-            ctx.DrawText(text.Detail, new Point(x, top + text.Name.Height));
+            DrawLines(ctx, labels[s] ??= PersonLines(p, width, b.Ink, b.Muted), x, box.Center.Y);
 
-            if (slot.MoreAncestors) Chevron(ctx, b.Accent, new Point(box.Center.X, box.Y - 10), up: true);
+            if (slot.MoreAncestors) Chevron(ctx, b, new Point(box.Center.X, box.Y - ArrowGap), up: true, Hover == slot.PersonId);
         }
 
         // Badges on the dividers: a heart for a couple, numbers when someone married more than once.
@@ -159,21 +170,16 @@ public abstract class TreeChart : ChartBase
             }
         }
 
-        if (node.MoreDescendants) Chevron(ctx, b.Accent, new Point(r.Center.X, r.Bottom + 10), up: false);
+        if (node.MoreDescendants) Chevron(ctx, b, new Point(r.Center.X, r.Bottom + ArrowGap), up: false, hovered);
     }
 
-    private static void Chevron(DrawingContext ctx, IBrush brush, Point at, bool up)
+    /// <summary>A round button with an arrow: there are more people that way, and clicking it goes to them.</summary>
+    private static void Chevron(DrawingContext ctx, Palette b, Point at, bool up, bool hovered)
     {
-        var pen = new Pen(brush, 1.8, lineCap: PenLineCap.Round);
+        ctx.DrawEllipse(hovered ? b.AccentSoft : b.Surface, new Pen(hovered ? b.Accent : b.Line, 1), at, 9.5, 9.5);
+        var pen = new Pen(b.Accent, 1.8, lineCap: PenLineCap.Round);
         var dy = up ? 2.5 : -2.5;
         ctx.DrawLine(pen, new Point(at.X - 5, at.Y + dy), new Point(at.X, at.Y - dy));
         ctx.DrawLine(pen, new Point(at.X, at.Y - dy), new Point(at.X + 5, at.Y + dy));
-    }
-
-    /// <summary>"1842–1911 · Harrow", as on the pedigree chart.</summary>
-    private static string Detail(Person p)
-    {
-        var place = p.Birth?.Place.Split(',')[0].Trim() ?? "";
-        return string.Join("  ·  ", new[] { Years(p), place }.Where(s => s.Length > 0));
     }
 }

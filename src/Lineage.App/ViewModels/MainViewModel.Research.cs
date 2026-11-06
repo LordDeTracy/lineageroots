@@ -21,14 +21,18 @@ public sealed partial class MainViewModel
     public ObservableCollection<ResearchRow> ResearchList { get; } = new();
     public ObservableCollection<ResearchRow> PersonResearch { get; } = new();
 
-    /// <summary>0 = open tasks, 1 = done, 2 = everything, 3 = suggestions, 4 = search log.</summary>
-    [ObservableProperty] private int _researchFilterIndex;
+    /// <summary>0 = open tasks, 1 = done, 2 = everything, 3 = suggestions, 4 = search log, 5 = letters.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLettersFilter), nameof(NewResearchText), nameof(IsClientsFilter))]
+    private int _researchFilterIndex;
+    public bool IsLettersFilter => ResearchFilterIndex == 5;
+    public string NewResearchText => IsClientsFilter ? "New client project" : IsLettersFilter ? "New letter" : "New task";
     [ObservableProperty] private string _researchSearch = "";
     [ObservableProperty] private string _researchSummary = "";
     [ObservableProperty] private bool _hasPersonResearch;
-    public bool HasNoResearch => _tree.Research.Count == 0 && !IsSuggestedFilter;
+    public bool HasNoResearch => _tree.Research.Count == 0 && !IsSuggestedFilter && !IsClientsFilter;
     public bool HasResearchResults => ResearchList.Count > 0;
-    public bool ShowNoResearchMatches => !HasNoResearch && ResearchList.Count == 0 && !IsSuggestedFilter;
+    public bool ShowNoResearchMatches => !HasNoResearch && ResearchList.Count == 0 && !IsSuggestedFilter && !IsClientsFilter;
 
     partial void OnResearchFilterIndexChanged(int value) => RebuildResearch();
     partial void OnResearchSearchChanged(string value) => RebuildResearch();
@@ -55,8 +59,13 @@ public sealed partial class MainViewModel
     {
         var where = r.SourceId is { } sid && _tree.Sources.TryGetValue(sid, out var s) ? s.Title
                   : r.RepositoryId is { } rid && _tree.Repositories.TryGetValue(rid, out var repo) ? repo.Name : "";
+        var detail = r.Letter is { } l
+            ? Display.Join($"{l.Method} {(l.Incoming ? "from" : "to")} {(l.With.Length > 0 ? l.With : "someone")}",
+                           r.Date.IsEmpty ? "" : $"{(l.Incoming ? "received" : "sent")} {Display.Date(r.Date)}",
+                           !l.Replied.IsEmpty ? $"answered {Display.Date(l.Replied)}" : r.Done ? "answered" : l.Incoming ? "to answer" : "awaiting a reply")
+            : Display.Join(ResultText(r.Result), r.Category, where, Display.Date(r.Date));
         return new ResearchRow(r.Id, r.Description.Length > 0 ? r.Description : "(no description)",
-            Display.Join(ResultText(r.Result), r.Category, where, Display.Date(r.Date)),
+            detail,
             ResearchEditorViewModel.Priorities[Math.Clamp(r.Priority, 0, 3)], Math.Clamp(r.Priority, 0, 3), r.Done,
             (people ?? new()).Select(p => new PersonChoice(p.Id, p.DisplayName)).ToList(),
             r.Note.Length > 140 ? r.Note[..140].TrimEnd() + "…" : r.Note);
@@ -73,6 +82,14 @@ public sealed partial class MainViewModel
     private void RebuildResearch()
     {
         OnPropertyChanged(nameof(IsSuggestedFilter));
+        RebuildProjects();
+        if (IsClientsFilter)
+        {
+            ResearchList.Clear();
+            OnPropertyChanged(nameof(HasResearchResults));
+            OnPropertyChanged(nameof(ShowNoResearchMatches));
+            return;
+        }
         if (IsSuggestedFilter)
         {
             ResearchList.Clear();
@@ -84,11 +101,12 @@ public sealed partial class MainViewModel
         }
         var people = ResearchPeople();
         var words = ResearchSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var isLog = ResearchFilterIndex == 4;
+        var isLog = ResearchFilterIndex is 4 or 5;
         var rows = _tree.Research.Values
-            .Where(r => isLog ? r.Result != SearchResult.None
-                        : r.Result == SearchResult.None && (ResearchFilterIndex == 2 || r.Done == (ResearchFilterIndex == 1)))
-            .OrderByDescending(r => isLog ? r.Date.SortKey : 0)   // the search log runs newest first
+            .Where(r => IsLettersFilter ? r.Letter != null
+                        : r.Letter == null && (isLog ? r.Result != SearchResult.None
+                        : r.Result == SearchResult.None && (ResearchFilterIndex == 2 || r.Done == (ResearchFilterIndex == 1))))
+            .OrderByDescending(r => isLog ? r.Date.SortKey : 0)   // the search log and letters run newest first
             .Select(r => ToRow(r, people.GetValueOrDefault(r.Id)))
             .Where(row => words.All(w => row.Description.Contains(w, StringComparison.OrdinalIgnoreCase)
                                       || row.Detail.Contains(w, StringComparison.OrdinalIgnoreCase)
@@ -118,7 +136,35 @@ public sealed partial class MainViewModel
     }
 
     [RelayCommand]
-    private Task NewResearchAsync() => EditResearchItemAsync(null, Array.Empty<long>());
+    private Task NewResearchAsync() => IsClientsFilter ? NewProjectAsync() : IsLettersFilter ? NewLetterAsync() : EditResearchItemAsync(null, Array.Empty<long>());
+
+    /// <summary>Logs a letter, email or call to or from an archive or relative.</summary>
+    [RelayCommand]
+    private Task NewLetterAsync() => EditResearchItemAsync(null, Array.Empty<long>(),
+        new ResearchItem { Letter = new Correspondence(), Date = GenDate.Parse(DateTime.Today.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture)) });
+
+    /// <summary>A checklist for a visit to one archive: tasks to do there, records held there, letters waiting on them.</summary>
+    [RelayCommand]
+    private async Task PlanTripAsync()
+    {
+        var archives = _tree.Repositories.Values.Where(r => r.Name.Trim().Length > 0)
+            .GroupBy(r => r.Name.Trim(), StringComparer.CurrentCultureIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.CurrentCultureIgnoreCase);
+        if (archives.Count == 0)
+        {
+            await _dialogs.ShowMessageAsync("Plan an archive trip",
+                "There are no archives or libraries in the tree yet. Add one to a source (Where it is kept) or to a research task first.");
+            return;
+        }
+        var name = await _dialogs.PromptAsync("Plan an archive trip", "Which archive or library are you visiting?",
+            archives.Count == 1 ? archives.Keys.First() : "", archives.Keys.OrderBy(k => k).ToList());
+        if (name == null) return;
+        if (!archives.TryGetValue(name.Trim(), out var repo))
+        {
+            await _dialogs.ShowMessageAsync("Plan an archive trip", $"There's no archive called \"{name.Trim()}\" in the tree.");
+            return;
+        }
+        await SaveDocumentAsync($"Visit to {repo.Name.Trim()}", () => Lineage.Core.Reports.Narrative.TripPlan(_tree, repo));
+    }
 
     [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
     private Task AddResearchForPersonAsync() => _current is { } p ? EditResearchItemAsync(null, new[] { p.Id }) : Task.CompletedTask;
@@ -134,9 +180,10 @@ public sealed partial class MainViewModel
         Change(item.Done ? "reopen task" : "finish task", new[] { item }, () => item.Done = !item.Done);
     }
 
-    private async Task EditResearchItemAsync(ResearchItem? existing, IEnumerable<long> linked)
+    /// <param name="draft">A new item that starts filled in (a letter); it's added like any new task.</param>
+    private async Task EditResearchItemAsync(ResearchItem? existing, IEnumerable<long> linked, ResearchItem? draft = null)
     {
-        var item = existing ?? new ResearchItem();
+        var item = existing ?? draft ?? new ResearchItem();
         var before = linked.ToList();
         var editor = new ResearchEditorViewModel(_tree, item, isNew: existing == null, before);
         var result = await _dialogs.EditResearchAsync(editor);

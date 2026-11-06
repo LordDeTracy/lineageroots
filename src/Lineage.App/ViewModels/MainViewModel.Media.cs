@@ -15,12 +15,12 @@ public sealed partial class MainViewModel
 
     private PhotoTile Tile(MediaLink m) => new(m, ResolveMedia(m.File));
 
-    /// <summary>The person's own photos, then photos of other records they are tagged in.</summary>
+    /// <summary>The person's own photos, recordings and documents, then photos of other records they are tagged in.</summary>
     private void ShowPhotos(Person p)
     {
         Photos.Clear();
         ProfilePhoto = null;
-        foreach (var m in p.Media.Where(PhotoTile.IsPhoto).OrderByDescending(m => m.Primary))
+        foreach (var m in p.Media.OrderByDescending(m => m.Primary).ThenBy(m => PhotoTile.IsPhoto(m) ? 0 : 1))
             Photos.Add(Tile(m));
         foreach (var r in MediaLibrary.TaggedIn(_tree, p.Id))
             if (!p.Media.Contains(r.Link) && PhotoTile.IsPhoto(r.Link)) Photos.Add(Tile(r.Link));
@@ -56,9 +56,13 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Picks photos and makes links for them (relative when they're already in the tree's folder).</summary>
-    internal async Task<List<MediaLink>> PickPhotosAsync(string title)
+    internal async Task<List<MediaLink>> PickPhotosAsync(string title, bool recordings = false)
     {
-        var files = await _dialogs.OpenFilesAsync(title, ("Photos", PhotoTile.FileTypes));
+        var files = recordings
+            ? await _dialogs.OpenFilesAsync(title, ("Photos, sound, video and documents", PhotoTile.AllTypes), ("Photos", PhotoTile.FileTypes),
+                ("Sound recordings", Lineage.Core.Media.MediaKinds.SoundTypes), ("Videos", Lineage.Core.Media.MediaKinds.VideoTypes),
+                ("Documents", Lineage.Core.Media.MediaKinds.DocumentTypes))
+            : await _dialogs.OpenFilesAsync(title, ("Photos", PhotoTile.FileTypes));
         if (files.Count == 0) return new();
         var path = FilePath;
         return await Task.Run(() => files.Select(f =>
@@ -73,26 +77,39 @@ public sealed partial class MainViewModel
     private async Task AddPhotosAsync()
     {
         if (_current is not { } p) return;
-        var links = await PickPhotosAsync($"Add photos of {p.DisplayName}");
+        var links = await PickPhotosAsync($"Add photos or recordings of {p.DisplayName}", recordings: true);
         var known = p.Media.Select(m => ResolveMedia(m.File)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         links = links.Where(l => known.Add(ResolveMedia(l.File))).ToList();
         if (links.Count == 0) return;
         Change(links.Count == 1 ? "add photo" : "add photos", new[] { p }, () =>
         {
-            if (!p.Media.Any(m => m.Primary)) links[0].Primary = true;
+            if (!p.Media.Any(m => m.Primary) && links.FirstOrDefault(PhotoTile.IsPhoto) is { } first) first.Primary = true;
             p.Media.AddRange(links);
         });
         var located = links.Count(l => l.Location != null);
-        Status = $"Added {links.Count} photo{(links.Count == 1 ? "" : "s")}" +
-                 (located > 0 ? $" — {located} with a GPS location from the camera" : "");
+        var pictures = links.Count(PhotoTile.IsPhoto);
+        var others = links.Count - pictures;
+        var added = new List<string>();
+        if (pictures > 0) added.Add(pictures == 1 ? "1 photo" : $"{pictures} photos");
+        if (others > 0) added.Add(others == 1 ? "1 recording or document" : $"{others} recordings or documents");
+        Status = "Added " + string.Join(" and ", added) + (located > 0 ? $" — {located} with a GPS location from the camera" : "");
     }
 
     /// <summary>Opens the photo viewer (tag people, edit title, date and place) at this photo.</summary>
     [RelayCommand]
-    private Task OpenPhotoAsync(PhotoTile tile) => ViewPhotosAsync(Photos.Select(t => t.Media).ToList(), tile.Media);
+    private Task OpenPhotoAsync(PhotoTile tile)
+    {
+        // Recordings and documents open in the computer's own player or viewer.
+        if (tile.IsFile) { OpenPhotoExternally(tile); return Task.CompletedTask; }
+        return ViewPhotosAsync(Photos.Where(t => t.IsPicture).Select(t => t.Media).ToList(), tile.Media);
+    }
 
     [RelayCommand]
-    private Task OpenSourcePhotoAsync(PhotoTile tile) => ViewPhotosAsync(SourcePhotos.Select(t => t.Media).ToList(), tile.Media);
+    private Task OpenSourcePhotoAsync(PhotoTile tile)
+    {
+        if (tile.IsFile) { OpenPhotoExternally(tile); return Task.CompletedTask; }
+        return ViewPhotosAsync(SourcePhotos.Where(t => t.IsPicture).Select(t => t.Media).ToList(), tile.Media);
+    }
 
     private async Task ViewPhotosAsync(List<MediaLink> photos, MediaLink start)
     {
@@ -106,6 +123,39 @@ public sealed partial class MainViewModel
         if (viewer.OpenPersonId is { } id) OpenPerson(id);
     }
 
+    /// <summary>The person showing and anyone else, side by side (split view).</summary>
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private async Task SideBySideAsync()
+    {
+        if (_current is not { } p) return;
+        var view = new SideBySideViewModel(_tree, p);
+        await _dialogs.ShowSideBySideAsync(view);
+        if (view.OpenPersonId is { } id) OpenPerson(id);
+    }
+
+    /// <summary>Soundex, date and age calculators and calendar conversions.</summary>
+    [RelayCommand]
+    private Task OpenCalculatorsAsync() => _dialogs.ShowCalculatorsAsync(new CalculatorsViewModel(_tree));
+
+    /// <summary>The person's photos (and those they're tagged in) as a full-screen slide show.</summary>
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private Task SlideShowAsync() => ShowSlidesAsync(Photos.Where(t => t.IsPicture).Select(t => t.Media));
+
+    /// <summary>Every photo in the tree as a slide show, for a family gathering.</summary>
+    [RelayCommand]
+    private Task SlideShowAllAsync() => ShowSlidesAsync(MediaLibrary.AllLinks(_tree).Where(r => r.Owner is not Source).Select(r => r.Link));
+
+    private async Task ShowSlidesAsync(IEnumerable<MediaLink> media)
+    {
+        var slides = SlideShowViewModel.From(_tree, media, ResolveMedia);
+        if (slides.Count == 0)
+        {
+            await _dialogs.ShowMessageAsync("Slide show", "There are no photos to show yet — or their files can't be found.");
+            return;
+        }
+        await _dialogs.ShowSlideShowAsync(new SlideShowViewModel(slides));
+    }
+
     [RelayCommand]
     private void OpenPhotoExternally(PhotoTile tile)
     {
@@ -115,7 +165,7 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private void SetProfilePhoto(PhotoTile tile)
     {
-        if (_current is not { } p || !p.Media.Contains(tile.Media)) return;
+        if (_current is not { } p || !p.Media.Contains(tile.Media) || !tile.IsPicture) return;
         Change("change profile photo", new[] { p }, () =>
         {
             foreach (var m in p.Media) m.Primary = ReferenceEquals(m, tile.Media);

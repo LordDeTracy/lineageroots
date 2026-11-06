@@ -12,12 +12,24 @@ namespace Lineage.App.Controls;
 public sealed class LifelinesChart : ChartBase
 {
     private const double LabelWidth = 250, RowHeight = 34, Top = 40, YearWidth = 7, Pad = 16;
+    public static readonly StyledProperty<LifelineScope> ScopeProperty =
+        AvaloniaProperty.Register<LifelinesChart, LifelineScope>(nameof(Scope));
+
+    static LifelinesChart()
+    {
+        AffectsMeasure<LifelinesChart>(ScopeProperty);
+        AffectsRender<LifelinesChart>(ScopeProperty);
+    }
+
+    /// <summary>Who to show: the close family, one side's ancestors, or the descendants.</summary>
+    public LifelineScope Scope { get => GetValue(ScopeProperty); set => SetValue(ScopeProperty, value); }
+
     private List<LifeRow> _rows = new();
     private int _first, _last;
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        _rows = Data is { } d ? MoreCharts.Lifelines(d.Tree, d.RootId) : new();
+        _rows = Data is { } d ? MoreCharts.Lifelines(d.Tree, d.RootId, scope: Scope) : new();
         if (_rows.Count == 0) return new Size(400, 80);
         _first = _rows.Min(r => r.From) / 10 * 10;
         _last = (_rows.Max(r => r.To) / 10 + 1) * 10;
@@ -31,9 +43,14 @@ public sealed class LifelinesChart : ChartBase
         if (Data == null) return;
         if (_rows.Count == 0)
         {
-            ctx.DrawText(Text("No dates recorded for this family yet.", 13, Brush("Muted")), new Point(Pad, Pad));
+            ctx.DrawText(Text("No dates recorded for these people yet.", 13, Brush("Muted")), new Point(Pad, Pad));
             return;
         }
+        var (average, counted) = MoreCharts.Longevity(_rows);
+        if (counted > 0)
+            ctx.DrawText(Text(Lineage.App.Services.Translator.T("Average age at death: {0} ({1} people)")
+                                  .Replace("{0}", average.ToString("0")).Replace("{1}", counted.ToString()), 11.5, Brush("Muted"), maxWidth: LabelWidth - 12),
+                         new Point(Pad, Top - 26));
         var line = new Pen(Brush("Line"), 1);
         // The scale: a faint line every ten years, labelled every fifty (or twenty-five on a short span).
         var labelEvery = _last - _first > 200 ? 50 : 25;

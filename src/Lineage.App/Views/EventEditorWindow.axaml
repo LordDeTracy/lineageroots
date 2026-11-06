@@ -87,6 +87,40 @@
           </StackPanel>
         </Grid>
 
+        <!-- Others at the event -->
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="section" Text="OTHERS AT THIS EVENT" Margin="2,6,0,0" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddRoleCommand}" Margin="0,0,-10,0"
+                    ToolTip.Tip="A witness, godparent, informant or anyone else named in the record">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add a person" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Roles}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RoleRow">
+                <Grid ColumnDefinitions="2*,10,*,Auto">
+                  <AutoCompleteBox Text="{Binding Person}" FilterMode="Contains" Watermark="Type a name from the tree"
+                                   ItemsSource="{Binding $parent[Window].((vm:EventEditorViewModel)DataContext).PeopleNames}"
+                                   AutomationProperties.Name="Person" />
+                  <AutoCompleteBox Grid.Column="2" Text="{Binding Role}" FilterMode="StartsWith" MinimumPrefixLength="0"
+                                   ItemsSource="{x:Static vm:EventEditorViewModel.RoleOptions}" AutomationProperties.Name="Role" />
+                  <Button Grid.Column="3" Classes="ghost icon" Margin="4,0,-8,0" AutomationProperties.Name="Remove"
+                          Command="{Binding $parent[Window].((vm:EventEditorViewModel)DataContext).RemoveRoleCommand}" CommandParameter="{Binding}">
+                    <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
         <!-- Sources -->
         <StackPanel Spacing="10">
           <TextBlock Classes="section" Text="SOURCES" Margin="2,6,0,0" />

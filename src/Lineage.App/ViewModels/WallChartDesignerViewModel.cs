@@ -5,7 +5,7 @@ using Lineage.Core.Model;
 namespace Lineage.App.ViewModels;
 
 /// <summary>The kinds of chart the wall-chart designer can print.</summary>
-public enum WallChartKind { Pedigree, Fan, Descendants, Hourglass }
+public enum WallChartKind { Pedigree, Fan, Descendants, Hourglass, BowTie }
 
 /// <summary>
 /// Choices for a printed wall chart: which chart and how far it reaches, the words on it, poster or pages,
@@ -26,13 +26,14 @@ public sealed partial class WallChartDesignerViewModel : ObservableObject
     public FamilyTree Tree { get; }
     public Person Root { get; }
 
-    private static readonly string[] Titles = { "Ancestors of {0}", "Ancestors of {0}", "Descendants of {0}", "The family of {0}" };
+    private static readonly string[] Titles = { "Ancestors of {0}", "Ancestors of {0}", "Descendants of {0}", "The family of {0}", "The ancestors of {0}" };
 
-    public string[] KindOptions { get; } = { "Pedigree (ancestors as a tree)", "Fan (ancestors in a half circle)", "Descendants", "Hourglass (ancestors and descendants)" };
+    public string[] KindOptions { get; } = { "Pedigree (ancestors as a tree)", "Fan (ancestors in a half circle)", "Descendants", "Hourglass (ancestors and descendants)", "Bow tie (father's side left, mother's right)" };
     public int[] GenerationOptions { get; } = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     public string[] ModeOptions { get; } = { "One poster (for a print shop)", "Pages to print at home and tape together" };
     public string[] PaperOptions { get; } = { "Usual paper for this computer", "Letter", "A4" };
     public string[] ColourOptions { get; } = { "Light (best on paper)", "As on screen" };
+    public string[] StyleOptions { get; } = { "Classic", "Heritage (parchment and a double frame)", "Modern (clean, with a coloured band)" };
 
     [ObservableProperty] private int _kindIndex;
     [ObservableProperty] private int _generations = 5;
@@ -44,6 +45,8 @@ public sealed partial class WallChartDesignerViewModel : ObservableObject
     /// <summary>Printed size in percent of the on-screen size (100 = names about 10 pt).</summary>
     [ObservableProperty] private double _sizePercent = 100;
     [ObservableProperty] private int _colourIndex;
+    /// <summary>The poster's look: <see cref="WallChartStyle"/>.</summary>
+    [ObservableProperty] private int _styleIndex;
     [ObservableProperty] private bool _colourByEvidence;
     [ObservableProperty] private bool _frame = true;
     /// <summary>What the PDF will be, e.g. "A 92 × 61 cm poster"; filled in by the window, which owns the chart.</summary>
@@ -74,6 +77,7 @@ public sealed partial class WallChartDesignerViewModel : ObservableObject
         Scale = Math.Clamp(SizePercent / 100, 0.3, 4),
         LightTheme = ColourIndex == 0,
         Frame = Frame && !IsTiled,
+        Style = (WallChartStyle)StyleIndex,
     };
 
     /// <summary>Describes a plan in words for the window.</summary>

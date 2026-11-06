@@ -32,6 +32,7 @@ public partial class App : Application
         var window = new MainWindow();
         window.WindowState = WindowState.Maximized;
         var vm = new MainViewModel(new DialogService(window));
+        vm.LoadPlugins();
         window.DataContext = vm;
         if (file != null) window.Opened += async (_, _) => await vm.OpenPathAsync(file);
         else window.Opened += async (_, _) => await vm.OpenLastFileAsync();
@@ -83,6 +84,7 @@ public partial class App : Application
             if (size?.Split('x') is [var w, var h]) { window.Width = double.Parse(w); window.Height = double.Parse(h); }
             else window.WindowState = WindowState.Maximized;   // opens filling the screen
             var vm = new MainViewModel(new DialogService(window));
+            vm.LoadPlugins();
             window.DataContext = vm;
             desktop.MainWindow = window;
             var file = args.FirstOrDefault(a => !a.StartsWith("--"));
@@ -114,6 +116,7 @@ public partial class App : Application
                     case "fan": vm.View = PersonView.FanChart; break;
                     case "descendants": vm.View = PersonView.Descendants; break;
                     case "hourglass": vm.View = PersonView.Hourglass; break;
+                    case "bowtie": vm.View = PersonView.BowTie; break;
                     case "map": vm.View = PersonView.Map; break;
                     case "map-1800": vm.View = PersonView.Map; vm.MapYear = 1800; break;
                     case "timeline": vm.View = PersonView.Timeline; break;
@@ -149,6 +152,8 @@ public partial class App : Application
                     {
                         "event" => vm.EditEventCommand.ExecuteAsync(vm.Events.FirstOrDefault(e => e.Event.Citations.Count > 0) ?? vm.Events.FirstOrDefault()),
                         "source" => vm.EditSourceCommand.ExecuteAsync(null),
+                        "calculators" => vm.OpenCalculatorsCommand.ExecuteAsync(null),
+                        "sidebyside" => new Views.SideBySideWindow { DataContext = new SideBySideViewModel(vm.Tree, vm.Current!, vm.Tree.People.Values.FirstOrDefault(p => p != vm.Current)) }.ShowDialog(window),
                         "duplicates" => vm.FindDuplicatesCommand.ExecuteAsync(null),
                         "familysearch" => vm.FamilySearchSettingsCommand.ExecuteAsync(null),
                         "settings" => vm.OpenSettingsCommand.ExecuteAsync(null),
@@ -164,6 +169,7 @@ public partial class App : Application
                             DataContext = new WallChartDesignerViewModel(vm.Tree, vm.Current!, vm.TreeName, WallChartKind.Pedigree, false) { Note = "Made for the family reunion" },
                         }.ShowDialog<string?>(window),
                         "bookdialog" => DemoBook(vm, window),
+                        "sourcetemplate" => new Views.SourceEditorWindow { DataContext = DemoTemplate(vm) }.ShowDialog<EditorResult>(window),
                         "photo" => vm.OpenPhotoCommand.ExecuteAsync(vm.Photos.First()),
                         "dnamatch" => vm.EditDnaMatchCommand.ExecuteAsync(vm.DnaMatchRows.Skip(2).First()),
                         "problems" => Task.Run(() => Avalonia.Threading.Dispatcher.UIThread.Invoke(() => vm.FindProblemsCommand.Execute(null))),
@@ -187,6 +193,18 @@ public partial class App : Application
     }
 
     /// <summary>For screenshots: a copy of the open tree with a few made-up edits, shown in the review window.</summary>
+    /// <summary>A new source on the census template, partly filled in, for screenshots.</summary>
+    private static SourceEditorViewModel DemoTemplate(MainViewModel vm)
+    {
+        var editor = new SourceEditorViewModel(vm.Tree, new Lineage.Core.Model.Source(), isNew: true)
+        {
+            TemplateOption = SourceEditorViewModel.TemplateOptions.First(o => o.Template?.Id == "census-uk"),
+        };
+        foreach (var (key, value) in new[] { ("Year", "1881"), ("Parish", "Leeds"), ("County", "Yorkshire"), ("Archive", "The National Archives"), ("Piece", "RG 11/4532") })
+            editor.Fields.First(f => f.Field.Key == key).Value = value;
+        return editor;
+    }
+
     /// <summary>The book dialog with a chapter filled in, for screenshots.</summary>
     private static Task DemoBook(MainViewModel vm, Window owner)
     {

@@ -33,7 +33,16 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
     {
         _tree = tree;
         IsNew = isNew;
-        Title = isNew ? "New research task" : "Edit research task";
+        IsLetter = item.Letter != null;
+        Title = IsLetter ? (isNew ? "New letter" : "Edit letter") : isNew ? "New research task" : "Edit research task";
+        _with = item.Letter?.With ?? "";
+        _address = item.Letter?.Address ?? "";
+        _method = item.Letter?.Method is { Length: > 0 } m ? m : "Letter";
+        _incoming = item.Letter?.Incoming ?? false;
+        _replied = item.Letter is { } l ? Display.Date(l.Replied) : "";
+        Correspondents = tree.Repositories.Values.Select(r => r.Name)
+            .Concat(tree.Research.Values.Select(r => r.Letter?.With ?? ""))
+            .Where(n => n.Trim().Length > 0).Distinct(StringComparer.CurrentCultureIgnoreCase).OrderBy(n => n).ToList();
         _description = item.Description;
         _category = item.Category;
         _priorityIndex = Math.Clamp(item.Priority, 0, 3);
@@ -82,6 +91,21 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
     [ObservableProperty] private RecordOption _source;
     [ObservableProperty] private PersonChoice? _personToAdd;
 
+    // ---- a letter, email or call (the correspondence log) ----
+
+    public bool IsLetter { get; }
+    public bool IsTask => !IsLetter;
+    public static string[] Methods { get; } = { "Letter", "Email", "Phone", "Online form", "In person" };
+    public IReadOnlyList<string> Correspondents { get; }
+    [ObservableProperty] private string _with;
+    [ObservableProperty] private string _address;
+    [ObservableProperty] private string _method;
+    [ObservableProperty] private bool _incoming;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(RepliedHint), nameof(HasRepliedHint))] private string _replied;
+    public string RepliedHint => Display.DateHint(Replied);
+    public bool HasRepliedHint => RepliedHint.Length > 0;
+    public string DoneLabel => IsLetter ? "Answered" : "Done";
+
     public string DateHint => Display.DateHint(Date);
     public bool HasDateHint => DateHint.Length > 0;
     public bool IsValid => Description.Trim().Length > 0;
@@ -109,5 +133,14 @@ public sealed partial class ResearchEditorViewModel : ObservableObject
         item.Note = Note;
         item.RepositoryId = Repository.Id > 0 ? Repository.Id : null;
         item.SourceId = Source.Id > 0 ? Source.Id : null;
+        if (IsLetter)
+        {
+            item.Result = SearchResult.None;
+            item.Done = Done || Replied.Trim().Length > 0;   // a reply answers it
+            item.Letter = new Correspondence
+            {
+                With = With.Trim(), Address = Address.Trim(), Method = Method.Trim(), Incoming = Incoming, Replied = GenDate.Parse(Replied),
+            };
+        }
     }
 }

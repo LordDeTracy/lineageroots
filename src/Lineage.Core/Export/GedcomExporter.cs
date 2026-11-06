@@ -60,6 +60,14 @@ public sealed class GedcomExporter
             if (t.SourceId is { } sid) L(1, "SOUR", $"@S{sid}@");
             if (t.Result != SearchResult.None) L(1, "_RESULT", t.Result.ToString().ToUpperInvariant());
             O(1, "_HINT", t.HintKey);
+            if (t.Letter is { } letter)
+            {
+                L(1, "_LETTER", letter.With);
+                O(2, "ADDR", letter.Address);
+                O(2, "_METHOD", letter.Method);
+                if (letter.Incoming) L(2, "_IN", "Y");
+                O(2, "_REPLIED", letter.Replied.ToGedcom());
+            }
             O(1, "NOTE", t.Note);
         }
         L(0, "TRLR");
@@ -79,6 +87,7 @@ public sealed class GedcomExporter
             O(2, "NPFX", n.Prefix);
             O(2, "NSFX", n.Suffix);
             O(2, "NICK", n.Nickname);
+            if (n.Private) L(2, "_CONF");
         }
         if (p.Sex != Sex.Unknown) L(1, "SEX", p.Sex == Sex.Male ? "M" : "F");
         O(1, "TITL", p.Title);
@@ -111,8 +120,15 @@ public sealed class GedcomExporter
         foreach (var d in p.DnaTests) WriteDna(d);
         foreach (var m in p.DnaMatches) WriteMatch(m);
         foreach (var rid in p.ResearchIds) L(1, "_TODO", $"@TODO{rid}@");
+        foreach (var a in p.Associations.Where(a => _tree.Person(a.PersonId) != null))
+        {
+            L(1, "ASSO", $"@I{a.PersonId}@");
+            L(2, "RELA", a.Relation.Length > 0 ? a.Relation : "Associate");
+            O(2, "NOTE", a.Note);
+        }
         foreach (var m in p.Media) WriteMedia(1, m);
         O(1, "NOTE", p.Note);
+        if (p.NotePrivate && p.Note.Length > 0) L(1, "_NOTECONF");
         L(1, "_UID", p.Uid.ToString("N").ToUpperInvariant());
         L(1, "RIN", p.Id.ToString());
     }
@@ -172,6 +188,12 @@ public sealed class GedcomExporter
         if (e.Private) L(level + 1, "_CONF");
         foreach (var c in e.Citations) WriteCitation(level + 1, c);
         foreach (var m in e.Media) WriteMedia(level + 1, m);
+        // Others at the event, the GEDCOM 7 way (an ASSO under the event); RELA too, which 5.5.1 readers know.
+        foreach (var r in e.Roles.Where(r => _tree.Person(r.PersonId) != null))
+        {
+            L(level + 1, "ASSO", $"@I{r.PersonId}@");
+            L(level + 2, "RELA", r.Role.Length > 0 ? r.Role : "Witness");
+        }
         O(level + 1, "NOTE", e.Note);
         WriteProof(level + 1, e);
         L(level + 1, "_UID", e.Id.ToString("N").ToUpperInvariant());   // so a relative's copy can be merged back fact by fact
@@ -243,6 +265,7 @@ public sealed class GedcomExporter
         O(level + 1, "TITL", m.Title);
         O(level + 1, "_TYPE", m.MediaType);
         if (m.Primary) L(level + 1, "_PRIM", "Y");
+        if (m.Private) L(level + 1, "_CONF");
         O(level + 1, "_DATE", m.Taken);
         if (m.Location is { } at) WriteMap(level + 1, "_MAP", at);
         foreach (var r in m.Regions.Where(r => _tree.People.ContainsKey(r.PersonId)))

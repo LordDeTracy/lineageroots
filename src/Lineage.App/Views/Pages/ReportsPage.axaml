@@ -34,6 +34,12 @@
         <UniformGrid.Styles>
           <Style Selector="Button.option"><Setter Property="Margin" Value="0,0,10,10" /></Style>
         </UniformGrid.Styles>
+        <Button Classes="option" Command="{Binding BuildReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Build your own report" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Choose who is in it and what it says about each person." />
+          </StackPanel>
+        </Button>
         <Button Classes="option" Command="{Binding ClientReportCommand}">
           <StackPanel Spacing="3">
             <TextBlock Text="Client research report" FontWeight="SemiBold" />
@@ -70,6 +76,24 @@
             <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Register style: a written story for each family." />
           </StackPanel>
         </Button>
+        <Button Classes="option" Command="{Binding NgsqReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Descendants (NGSQ style)" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Like the register, but every child has a number of their own." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding AhnentafelReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Ancestors (Ahnentafel)" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Numbered ancestors, each with the story of their life." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding WhosMissingReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="What’s missing" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Their ancestors’ unknown dates, places, parents and sources, nearest first." />
+          </StackPanel>
+        </Button>
       </UniformGrid>
 
       <TextBlock Classes="section" Text="THE WHOLE TREE" Margin="2,8,0,0" />
@@ -87,6 +111,12 @@
           <StackPanel Spacing="3">
             <TextBlock Text="List of surnames" FontWeight="SemiBold" />
             <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Every family name, with how many people and their years." />
+          </StackPanel>
+        </Button>
+        <Button Classes="option" Command="{Binding BibliographyReportCommand}">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Bibliography" FontWeight="SemiBold" />
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Every source, grouped by kind of record, with how often each is cited." />
           </StackPanel>
         </Button>
         <Button Classes="option" Command="{Binding BirthdayCalendarCommand}">
@@ -108,6 +138,24 @@
           </StackPanel>
         </Button>
       </UniformGrid>
+
+      <TextBlock Classes="section" Text="FROM PLUGINS" Margin="2,8,0,0" IsVisible="{Binding HasPluginReports}" />
+      <ItemsControl ItemsSource="{Binding PluginReports}" IsVisible="{Binding HasPluginReports}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:PluginRow">
+            <Button Classes="option" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,10,10"
+                    Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).RunPluginCommand}" CommandParameter="{Binding}">
+              <StackPanel Spacing="3">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Description}" />
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

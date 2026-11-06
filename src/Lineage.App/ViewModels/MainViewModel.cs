@@ -21,7 +21,7 @@ namespace Lineage.App.ViewModels;
 public enum AppSection { Home, People, Sources, Places, Research, Dna, Charts, Reports }
 
 /// <summary>Which picture of the current person the main area shows.</summary>
-public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map, Timeline, Lifelines, Relationship, Statistics }
+public enum PersonView { Details, Pedigree, FanChart, Descendants, Hourglass, Map, Timeline, Lifelines, Relationship, Statistics, BowTie }
 
 /// <summary>Ancestors of the person at the centre of a chart, by Ahnentafel number.</summary>
 public sealed record ChartData(FamilyTree Tree, long RootId, IReadOnlyDictionary<int, Person> Ancestors);
@@ -134,7 +134,7 @@ public sealed partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsDetailsView), nameof(IsPedigreeView), nameof(IsFanView), nameof(IsDescendantsView),
                               nameof(IsHourglassView), nameof(IsMapView), nameof(IsTimelineView), nameof(IsChartView), nameof(ViewIndex), nameof(ChartGenerationsShown),
                               nameof(PersonTabIndex), nameof(ChartTabIndex),
-                              nameof(IsLifelinesView), nameof(IsRelationshipView), nameof(IsStatisticsView), nameof(HasGenerations))]
+                              nameof(IsLifelinesView), nameof(IsRelationshipView), nameof(IsStatisticsView), nameof(IsBowTieView), nameof(HasGenerations))]
     private PersonView _view = PersonView.Details;
     public bool IsDetailsView => View == PersonView.Details;
     public bool IsPedigreeView => View == PersonView.Pedigree;
@@ -146,8 +146,12 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsLifelinesView => View == PersonView.Lifelines;
     public bool IsRelationshipView => View == PersonView.Relationship;
     public bool IsStatisticsView => View == PersonView.Statistics;
+    public bool IsBowTieView => View == PersonView.BowTie;
+    /// <summary>Who the lifelines chart shows: 0 the close family, 1 father's side, 2 mother's side, 3 descendants.</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(LifelineScope))] private int _lifelineScopeIndex;
+    public Lineage.Core.Charts.LifelineScope LifelineScope => (Lineage.Core.Charts.LifelineScope)LifelineScopeIndex;
     /// <summary>Only the family-tree charts have a number of generations to choose.</summary>
-    public bool HasGenerations => View is PersonView.Pedigree or PersonView.FanChart or PersonView.Descendants or PersonView.Hourglass;
+    public bool HasGenerations => View is PersonView.Pedigree or PersonView.FanChart or PersonView.Descendants or PersonView.Hourglass or PersonView.BowTie;
     /// <summary>A chart is showing (so the generations, zoom and save-image controls apply).</summary>
     public bool IsChartView => View is not (PersonView.Details or PersonView.Map or PersonView.Timeline);
     partial void OnViewChanged(PersonView value)
@@ -217,18 +221,18 @@ public sealed partial class MainViewModel : ObservableObject
         set => View = value switch { 1 => PersonView.Map, 2 => PersonView.Timeline, _ => PersonView.Details };
     }
 
-    /// <summary>The Charts tab's charts: 0 Pedigree, 1 Fan, 2 Descendants, 3 Hourglass, 4 Lifelines, 5 Relationship, 6 Statistics.</summary>
+    /// <summary>The Charts tab's charts: 0 Pedigree, 1 Fan, 2 Descendants, 3 Hourglass, 4 Bow tie, 5 Lifelines, 6 Relationship, 7 Statistics.</summary>
     public int ChartTabIndex
     {
         get => View switch
         {
-            PersonView.FanChart => 1, PersonView.Descendants => 2, PersonView.Hourglass => 3,
-            PersonView.Lifelines => 4, PersonView.Relationship => 5, PersonView.Statistics => 6, _ => 0,
+            PersonView.FanChart => 1, PersonView.Descendants => 2, PersonView.Hourglass => 3, PersonView.BowTie => 4,
+            PersonView.Lifelines => 5, PersonView.Relationship => 6, PersonView.Statistics => 7, _ => 0,
         };
         set => View = value switch
         {
-            1 => PersonView.FanChart, 2 => PersonView.Descendants, 3 => PersonView.Hourglass,
-            4 => PersonView.Lifelines, 5 => PersonView.Relationship, 6 => PersonView.Statistics, _ => PersonView.Pedigree,
+            1 => PersonView.FanChart, 2 => PersonView.Descendants, 3 => PersonView.Hourglass, 4 => PersonView.BowTie,
+            5 => PersonView.Lifelines, 6 => PersonView.Relationship, 7 => PersonView.Statistics, _ => PersonView.Pedigree,
         };
     }
 
@@ -322,15 +326,17 @@ public sealed partial class MainViewModel : ObservableObject
                 if (choice == 0) { await OpenPathAsync(copy); return; }
                 if (choice != 1) return;
             }
-            var tree = ext switch
+            var plugin = ImporterFor(path);
+            var imported = ext is ".aq" or ".ged" || plugin != null;
+            var tree = plugin != null ? await Task.Run(() => plugin.Import(path)) : ext switch
             {
                 ".aq" => await Task.Run(() => AqImporter.Import(path)),
                 ".ged" => await Task.Run(() => GedcomImporter.ImportFile(path)),
                 _ => await LoadLineageAsync(path),
             };
             if (tree == null) return;   // the password wasn't given
-            Load(tree, ext is ".aq" or ".ged" ? null : path, ext is ".aq" or ".ged" ? "Imported" : "Opened", sw.ElapsedMilliseconds);
-            if (ext is ".aq" or ".ged") await SaveImportedCopyAsync(path);
+            Load(tree, imported ? null : path, imported ? "Imported" : "Opened", sw.ElapsedMilliseconds);
+            if (imported) await SaveImportedCopyAsync(path);
             else
             {
                 RememberLastFile(path);
@@ -363,8 +369,9 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task ImportAsync()
     {
         if (!await ConfirmDiscardAsync()) return;
-        var path = await _dialogs.OpenFileAsync("Import family data",
-            ("AQ or GEDCOM", "*.aq;*.ged"), ("AQ 16", "*.aq"), ("GEDCOM", "*.ged"));
+        var types = new List<(string, string)> { ("AQ or GEDCOM", "*.aq;*.ged"), ("AQ 16", "*.aq"), ("GEDCOM", "*.ged") };
+        types.AddRange(EnabledPluginsOf<Lineage.Core.Plugins.IImporterPlugin>().Select(i => (i.FileTypeName, string.Join(";", i.Patterns))));
+        var path = await _dialogs.OpenFileAsync("Import family data", types.ToArray());
         if (path != null) await OpenPathAsync(path);
     }
 
@@ -412,9 +419,9 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportGedcomAsync()
     {
-        var privacy = new ExportOptionsViewModel(_tree, "Export GEDCOM", "Continue");
+        var privacy = new ExportOptionsViewModel(_tree, "Export GEDCOM", "Continue", _current) { ShowGedcomVersion = true };
         if (!await _dialogs.ExportOptionsAsync(privacy)) return;
-        var path = await _dialogs.SaveFileAsync("Export GEDCOM 5.5.1", SafeName(_tree.Name) + ".ged", ("GEDCOM", "*.ged"));
+        var path = await _dialogs.SaveFileAsync(privacy.Gedcom7 ? "Export GEDCOM 7.0" : "Export GEDCOM 5.5.1", SafeName(_tree.Name) + ".ged", ("GEDCOM", "*.ged"));
         if (path == null) return;
         try
         {
@@ -423,13 +430,46 @@ public sealed partial class MainViewModel : ObservableObject
             var keepAll = privacy.KeepsEverything;
             var count = await Task.Run(() =>
             {
-                var tree = keepAll ? source : Lineage.Core.Export.Privacy.Filter(source, options);
-                GedcomExporter.ExportFile(tree, path);
+                var branch = privacy.Apply(source);
+                var tree = keepAll ? branch : Lineage.Core.Export.Privacy.Filter(branch, options);
+                if (privacy.Gedcom7) Lineage.Core.Export.Gedcom7.ExportFile(tree, path);
+                else GedcomExporter.ExportFile(tree, path);
                 return tree.People.Count;
             });
             Status = $"Exported {count:N0} people to {Path.GetFileName(path)}";
         }
         catch (Exception ex) { await _dialogs.ShowMessageAsync("Could not export", ex.Message); }
+    }
+
+    /// <summary>
+    /// Splits off one person's ancestors or descendants as a family file of its own (to give to a cousin, or to work
+    /// on a line separately). The tree that's open isn't changed.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private async Task SaveBranchAsync()
+    {
+        if (_current is not { } root) return;
+        var choice = new ExportOptionsViewModel(_tree, "Save a branch as a new family file", "Continue", root, branchOnly: true) { LivingIndex = 2, ExcludePrivateEvents = false };
+        if (!await _dialogs.ExportOptionsAsync(choice)) return;
+        var name = $"{root.PrimaryName.Surname.Trim()} branch".Trim();
+        var path = await _dialogs.SaveFileAsync("Save the branch", SafeName($"{TreeName} - {root.DisplayName}") + ".lineage", ("Lineage Roots family file", "*.lineage"));
+        if (path == null) return;
+        try
+        {
+            var source = _tree;
+            var options = choice.ToOptions();
+            var keepAll = choice.KeepsEverything;
+            var count = await Task.Run(() =>
+            {
+                var branch = Lineage.Core.Export.Branch.Extract(source, Lineage.Core.Export.Branch.People(source, root, choice.Branch), name);
+                branch.HomePersonId = root.Id;
+                var tree = keepAll ? branch : Lineage.Core.Export.Privacy.Filter(branch, options);
+                Lineage.Core.Storage.LineageStore.Save(tree, path);
+                return tree.People.Count;
+            });
+            Status = $"Saved {count:N0} people in {Path.GetFileName(path)}";
+        }
+        catch (Exception ex) { await _dialogs.ShowMessageAsync("Could not save the branch", ex.Message); }
     }
 
     private async Task<bool> ConfirmDiscardAsync() =>
@@ -719,6 +759,7 @@ public sealed partial class MainViewModel : ObservableObject
         HasFamilies = Families.Count > 0;
 
         ShowPhotos(p);
+        ShowAssociates(p);
         RebuildPlaces(p);
         RebuildPersonResearch(p);
         RebuildPersonHints(p);

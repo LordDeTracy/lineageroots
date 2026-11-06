@@ -41,8 +41,9 @@ public sealed class FakeDialogs : IDialogService
 
     public string? OpenPath { get; set; }
     public Task<string?> OpenFileAsync(string title, params (string Name, string Patterns)[] filters) => Task.FromResult(OpenPath);
+    public List<string> OpenPaths { get; } = new();
     public Task<IReadOnlyList<string>> OpenFilesAsync(string title, params (string Name, string Patterns)[] filters) =>
-        Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        Task.FromResult<IReadOnlyList<string>>(OpenPaths.ToList());
     public Task<string?> SaveFileAsync(string title, string suggestedName, params (string Name, string Patterns)[] filters) =>
         Task.FromResult(SavePath);
     public Task ShowMessageAsync(string title, string message) { Messages.Add(message); return Task.CompletedTask; }
@@ -88,15 +89,29 @@ public sealed class FakeDialogs : IDialogService
     public Func<CompareTreesViewModel, bool> CompareTrees { get; set; } = _ => false;
     public Func<BookOptionsViewModel, bool> BookOptions { get; set; } = _ => true;
     public Task<bool> BookOptionsAsync(BookOptionsViewModel options) => Task.FromResult(BookOptions(options));
+    public List<ReportPreviewViewModel> Previews { get; } = new();
+    public Task<bool> PreviewReportAsync(ReportPreviewViewModel preview) { Previews.Add(preview); return Task.FromResult(true); }
     public string? FolderPath { get; set; }
     public Func<PhotoViewerViewModel, bool> Photos { get; set; } = _ => false;
     public Task<bool> ShowPhotosAsync(PhotoViewerViewModel viewer) => Task.FromResult(Photos(viewer));
+    public List<SlideShowViewModel> SlideShows { get; } = new();
+    public List<CalculatorsViewModel> Calculators { get; } = new();
+    public Func<SideBySideViewModel, Task> SideBySide { get; set; } = _ => Task.CompletedTask;
+    public Task ShowSideBySideAsync(SideBySideViewModel sideBySide) => SideBySide(sideBySide);
+    public Func<ProjectEditorViewModel, bool> Project { get; set; } = _ => true;
+    public Task<bool> EditProjectAsync(ProjectEditorViewModel project) => Task.FromResult(Project(project));
+    public Task ShowCalculatorsAsync(CalculatorsViewModel calculators) { Calculators.Add(calculators); return Task.CompletedTask; }
+    public Task ShowSlideShowAsync(SlideShowViewModel show) { SlideShows.Add(show); return Task.CompletedTask; }
     public Task<string?> PickFolderAsync(string title) => Task.FromResult(FolderPath);
     public Task<bool> CompareTreesAsync(CompareTreesViewModel compare) => Task.FromResult(CompareTrees(compare));
     public Task<bool> ExportOptionsAsync(ExportOptionsViewModel options) => Task.FromResult(ExportOptions(options));
+    public Func<ReportBuilderViewModel, bool> ReportBuilder { get; set; } = _ => true;
+    public Task<bool> ReportBuilderAsync(ReportBuilderViewModel builder) => Task.FromResult(ReportBuilder(builder));
     public string? PromptAnswer { get; set; }
+    /// <summary>Answers for several prompts in a row; when empty, <see cref="PromptAnswer"/> answers every prompt.</summary>
+    public Queue<string?> PromptAnswers { get; } = new();
     public Task<string?> PromptAsync(string title, string message, string initial, IReadOnlyList<string> suggestions) =>
-        Task.FromResult(PromptAnswer);
+        Task.FromResult(PromptAnswers.Count > 0 ? PromptAnswers.Dequeue() : PromptAnswer);
     public ProblemsViewModel? LastProblems { get; private set; }
     public RelationshipViewModel? LastRelationship { get; private set; }
     public void ShowProblems(ProblemsViewModel problems) => LastProblems = problems;

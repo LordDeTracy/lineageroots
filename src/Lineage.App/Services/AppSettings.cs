@@ -19,8 +19,12 @@ public sealed class AppSettings
     public string Language { get; set; } = "en";
     /// <summary>Show the getting-started tour when the program starts (until "Don't show this again").</summary>
     public bool ShowTutorial { get; set; } = true;
+    /// <summary>Plugins switched on in Settings (by <see cref="Lineage.Core.Plugins.PluginInfo.Key"/>); all start off.</summary>
+    public List<string> EnabledPlugins { get; set; } = new();
     /// <summary>The researcher's name on client reports, remembered for next time.</summary>
     public string ResearcherName { get; set; } = "";
+    /// <summary>Tools for professional researchers: client projects, locality guides, citations from web links.</summary>
+    public bool AdvancedMode { get; set; }
     /// <summary>The tree last opened or saved; it opens again when the program starts.</summary>
     public string LastFile { get; set; } = "";
     /// <summary>Where the user was in it when the program closed: who, which section and which view.</summary>

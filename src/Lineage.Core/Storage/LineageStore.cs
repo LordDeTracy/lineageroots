@@ -105,6 +105,7 @@ public static class LineageStore
         yield return ("home", tree.HomePersonId?.ToString() ?? "");
         yield return ("bookmarks", JsonSerializer.Serialize(tree.Bookmarks));
         yield return ("shares", JsonSerializer.Serialize(tree.Shares));
+        yield return ("projects", tree.Projects.Count == 0 ? "" : JsonSerializer.Serialize(tree.Projects, Json));
         yield return ("shared_from", tree.SharedFrom is { } origin ? JsonSerializer.Serialize(origin) : "");
     }
 
@@ -191,6 +192,8 @@ public static class LineageStore
             tree.Bookmarks.AddRange(JsonSerializer.Deserialize<long[]>(bm) ?? Array.Empty<long>());
         if (meta("shares") is { Length: > 0 } sh)
             tree.Shares.AddRange(JsonSerializer.Deserialize<List<ShareRecord>>(sh) ?? new());
+        if (meta("projects") is { Length: > 0 } pj)
+            tree.Projects.AddRange(JsonSerializer.Deserialize<List<ClientProject>>(pj, Json) ?? new());
         if (meta("shared_from") is { Length: > 0 } sf)
             tree.SharedFrom = JsonSerializer.Deserialize<ShareOrigin>(sf);
         foreach (var j in people) tree.AddPerson(JsonSerializer.Deserialize<Person>(j, Json)!);

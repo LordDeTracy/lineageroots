@@ -22,7 +22,7 @@ public sealed class RelationshipChart : ChartBase
         _message = _title = "";
         if (Data is not { } d) return default;
         if (d.Tree.Person(d.Tree.HomePersonId) is not { } home)
-            _message = "Set a home person (yourself, usually) to see how everyone is related to them.";
+            _message = "Choose a home person (yourself, usually) with the button above to see how everyone is related to them.";
         else if (home.Id == d.RootId)
             _message = "This is the home person. Pick someone else to see how they're related.";
         else

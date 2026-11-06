@@ -87,7 +87,7 @@ public abstract class ChartBase : Control
         if (hit == _hover) return;
         _hover = hit;
         Cursor = new Cursor(hit != null ? StandardCursorType.Hand : StandardCursorType.Arrow);
-        ToolTip.SetTip(this, hit is { } id && Data?.Tree.Person(id) is { } p ? $"{p.DisplayName}\n{p.Lifespan}\nClick to centre, double-click to open" : null);
+        ToolTip.SetTip(this, hit is { } id && Data?.Tree.Person(id) is { } p ? string.Join("\n", new[] { p.DisplayName, p.Lifespan, p.Birth?.Place ?? "", p.Death?.Place ?? "", "Click to centre, double-click to open" }.Where(s => s.Length > 0)) : null);
         InvalidateVisual();
     }
 
@@ -126,14 +126,57 @@ public abstract class ChartBase : Control
     private static readonly Typeface Regular = new(FontFamily.Default);
     private static readonly Typeface Semibold = new(FontFamily.Default, FontStyle.Normal, FontWeight.SemiBold);
 
-    protected static FormattedText Text(string text, double size, IBrush brush, bool bold = false, double maxWidth = 0)
+    /// <summary>
+    /// A person's box text: given names (two lines if they're long), the surname in bold on its own line, the years,
+    /// then where they were born and died.
+    /// </summary>
+    protected static FormattedText[] PersonLines(Person p, double width, IBrush ink, IBrush muted)
+    {
+        var given = p.PrimaryName.Given.Trim();
+        var surname = $"{p.PrimaryName.Surname} {p.PrimaryName.Suffix}".Trim();
+        var lines = new List<FormattedText>();
+        if (given.Length > 0 && surname.Length > 0)
+        {
+            lines.Add(Text(given, 13, ink, maxWidth: width, maxLines: 2));
+            lines.Add(Text(surname, 13.5, ink, bold: true, maxWidth: width));
+        }
+        else lines.Add(Text(p.DisplayName, 13.5, ink, bold: true, maxWidth: width, maxLines: 2));
+        if (Years(p).Length > 0) lines.Add(Text(Years(p), 11.5, muted, maxWidth: width));
+        if (Places(p) is { Length: > 0 } places) lines.Add(Text(places, 11, muted, maxWidth: width));
+        return lines.ToArray();
+    }
+
+    /// <summary>"b. Harrow  ·  d. Worcester": the first part of the birth and death places.</summary>
+    protected static string Places(Person p)
+    {
+        static string Town(string? place) => place?.Split(',')[0].Trim() ?? "";
+        var (born, died) = (Town(p.Birth?.Place), Town(p.Death?.Place));
+        return string.Join("  ·  ", new[]
+        {
+            born.Length > 0 ? Lineage.App.Services.Translator.T("b. {0}").Replace("{0}", born) : "",
+            died.Length > 0 ? Lineage.App.Services.Translator.T("d. {0}").Replace("{0}", died) : "",
+        }.Where(s => s.Length > 0));
+    }
+
+    /// <summary>Draws lines of text one under another, centred on <paramref name="centreY"/>.</summary>
+    protected static void DrawLines(DrawingContext ctx, FormattedText[] lines, double x, double centreY)
+    {
+        var y = centreY - lines.Sum(l => l.Height) / 2;
+        foreach (var line in lines)
+        {
+            ctx.DrawText(line, new Point(x, y));
+            y += line.Height;
+        }
+    }
+
+    protected static FormattedText Text(string text, double size, IBrush brush, bool bold = false, double maxWidth = 0, int maxLines = 1)
     {
         var ft = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                                    bold ? Semibold : Regular, size, brush);
         if (maxWidth > 0)
         {
             ft.MaxTextWidth = maxWidth;
-            ft.MaxLineCount = 1;
+            ft.MaxLineCount = maxLines;
             ft.Trimming = TextTrimming.CharacterEllipsis;
         }
         return ft;

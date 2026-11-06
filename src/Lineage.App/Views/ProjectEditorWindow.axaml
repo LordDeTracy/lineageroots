@@ -1,0 +1,134 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.ProjectEditorWindow"
+        x:DataType="vm:ProjectEditorViewModel"
+        Title="{Binding Title}" Width="720" Height="820" MinHeight="460" WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="muted" Text="{Binding TotalsText}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnSave" HorizontalContentAlignment="Center">
+            <TextBlock Text="Save" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <ScrollViewer>
+      <StackPanel Margin="28,24" Spacing="16">
+        <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Client" />
+            <TextBox Name="ClientBox" Text="{Binding Client}" AutomationProperties.Name="Client" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Email, phone or address" />
+            <TextBox Text="{Binding Contact}" AutomationProperties.Name="Contact" />
+          </StackPanel>
+        </Grid>
+        <StackPanel>
+          <TextBlock Classes="label" Text="The research question" />
+          <TextBox Text="{Binding Question}" AcceptsReturn="True" TextWrapping="Wrap" Height="60" VerticalContentAlignment="Top"
+                   Watermark="e.g. Who were the parents of Thomas Whitfield, born 1842 in Harrow?" AutomationProperties.Name="Research question" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,10,*,10,Auto,10,*,10,*,10,*">
+          <StackPanel>
+            <TextBlock Classes="label" Text="Started" />
+            <TextBox Text="{Binding Started}" AutomationProperties.Name="Started" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Due" />
+            <TextBox Text="{Binding Due}" AutomationProperties.Name="Due" />
+          </StackPanel>
+          <StackPanel Grid.Column="4">
+            <TextBlock Classes="label" Text="Currency" />
+            <TextBox Text="{Binding Currency}" Width="54" AutomationProperties.Name="Currency" />
+          </StackPanel>
+          <StackPanel Grid.Column="6">
+            <TextBlock Classes="label" Text="Rate an hour" />
+            <TextBox Text="{Binding Rate}" AutomationProperties.Name="Rate an hour" />
+          </StackPanel>
+          <StackPanel Grid.Column="8">
+            <TextBlock Classes="label" Text="Hours agreed" />
+            <TextBox Text="{Binding Budget}" Watermark="No limit" AutomationProperties.Name="Hours agreed" />
+          </StackPanel>
+          <StackPanel Grid.Column="10">
+            <TextBlock Classes="label" Text="Status" />
+            <ComboBox ItemsSource="{x:Static vm:ProjectEditorViewModel.Statuses}" SelectedIndex="{Binding StatusIndex}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Status" />
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="section" Text="HOURS WORKED" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="ghost accentText" Content="Add hours" Command="{Binding AddTimeCommand}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Time}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TimeRow">
+              <Grid ColumnDefinitions="130,8,70,8,*,8,Auto,Auto" Margin="0,0,0,6">
+                <TextBox Text="{Binding Date}" AutomationProperties.Name="Date" />
+                <TextBox Grid.Column="2" Text="{Binding Hours}" Watermark="Hours" AutomationProperties.Name="Hours" />
+                <TextBox Grid.Column="4" Text="{Binding Work}" Watermark="What was done" AutomationProperties.Name="Work" />
+                <CheckBox Grid.Column="6" IsChecked="{Binding Billed}" Content="Invoiced" />
+                <Button Grid.Column="7" Classes="ghost icon" AutomationProperties.Name="Remove"
+                        Command="{Binding $parent[Window].((vm:ProjectEditorViewModel)DataContext).RemoveTimeCommand}" CommandParameter="{Binding}">
+                  <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="section" Text="WHAT IS PROMISED" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="ghost accentText" Content="Add" Command="{Binding AddDeliverableCommand}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Deliverables}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DeliverableRow">
+              <Grid ColumnDefinitions="*,8,130,8,Auto,Auto" Margin="0,0,0,6">
+                <TextBox Text="{Binding What}" Watermark="e.g. Written report with copies of the records" AutomationProperties.Name="Deliverable" />
+                <TextBox Grid.Column="2" Text="{Binding Due}" Watermark="Due" AutomationProperties.Name="Due" />
+                <CheckBox Grid.Column="4" IsChecked="{Binding Done}" Content="Done" />
+                <Button Grid.Column="5" Classes="ghost icon" AutomationProperties.Name="Remove"
+                        Command="{Binding $parent[Window].((vm:ProjectEditorViewModel)DataContext).RemoveDeliverableCommand}" CommandParameter="{Binding}">
+                  <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="section" Text="INVOICES" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="outline" Content="Invoice the hours not yet invoiced" Command="{Binding InvoiceUnbilledCommand}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Invoices}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:InvoiceRow">
+              <Grid ColumnDefinitions="140,*,120,Auto" Margin="0,2">
+                <TextBlock Text="{Binding Number}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Date}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding Amount}" VerticalAlignment="Center" />
+                <CheckBox Grid.Column="3" IsChecked="{Binding Paid}" Content="Paid" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel>
+          <TextBlock Classes="label" Text="Notes" />
+          <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalContentAlignment="Top"
+                   AutomationProperties.Name="Notes" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

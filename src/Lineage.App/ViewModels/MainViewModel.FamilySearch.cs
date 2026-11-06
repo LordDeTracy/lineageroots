@@ -120,4 +120,36 @@ public sealed partial class MainViewModel
         }
         catch (Exception ex) { Status = ""; await _dialogs.ShowMessageAsync("FamilySearch", ex.Message); }
     }
+
+    [RelayCommand(CanExecute = nameof(HasCurrentPerson))]
+    private async Task FamilySearchDownloadDescendantsAsync()
+    {
+        if (_current is not { } p) return;
+        if (p.FamilySearchId.Length == 0)
+        {
+            await _dialogs.ShowMessageAsync("FamilySearch", "Link this person to FamilySearch first (Find on FamilySearch), then download their descendants.");
+            return;
+        }
+        if (!await _dialogs.ConfirmAsync("Download descendants",
+                $"Download {p.DisplayName}'s spouses, children and grandchildren from FamilySearch? People already in your tree are linked, not duplicated. Ctrl+Z undoes it.")) return;
+        if (await EnsureFamilySearchAsync() is not { } api) return;
+        try
+        {
+            Status = "Downloading descendants from FamilySearch…";
+            var descendancy = await api.DescendancyAsync(p.FamilySearchId, 2);
+            var ids = descendancy.Select(d => d.Id).ToHashSet();
+            var below = new List<Person> { p };
+            for (var i = 0; i < below.Count && below.Count < 2000; i++)
+                foreach (var f in below[i].SpouseFamilyIds.Select(id => _tree.Family(id)).OfType<Family>())
+                    below.AddRange(f.Children.Select(c => _tree.Person(c.ChildId)).OfType<Person>().Where(c => !below.Contains(c)));
+            var touched = below.SelectMany(_tree.Around)
+                .Concat(_tree.People.Values.Where(x => ids.Contains(x.FamilySearchId)).SelectMany(_tree.Around)).Distinct().ToList();
+            var added = 0;
+            Change("download descendants", touched, () => added = FsSync.AddDescendants(_tree, p, descendancy));
+            Status = added == 0 ? "Your tree already has these descendants; links to FamilySearch were updated."
+                                : $"Added {added} relative{(added == 1 ? "" : "s")} from FamilySearch. Ctrl+Z undoes it.";
+            if (added > 0) View = PersonView.Descendants;
+        }
+        catch (Exception ex) { Status = ""; await _dialogs.ShowMessageAsync("FamilySearch", ex.Message); }
+    }
 }

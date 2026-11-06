@@ -24,6 +24,10 @@ public static class DocumentPdf
 
     public static byte[] Generate(ReportDocument doc) => Create(doc).GeneratePdf();
 
+    /// <summary>Each page as a PNG picture, for the preview before saving.</summary>
+    public static IReadOnlyList<byte[]> PagePictures(ReportDocument doc, int dpi = 110) =>
+        Create(doc).GenerateImages(new QuestPDF.Infrastructure.ImageGenerationSettings { RasterDpi = dpi, ImageFormat = QuestPDF.Infrastructure.ImageFormat.Png }).ToList();
+
     private const string NotesAnchor = "notes", IndexAnchor = "index";
 
     private static Document Create(ReportDocument doc)

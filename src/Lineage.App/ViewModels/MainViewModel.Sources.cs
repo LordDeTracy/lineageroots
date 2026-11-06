@@ -115,7 +115,7 @@ public sealed partial class MainViewModel
     private async Task AddSourceAsync()
     {
         var s = new Source();
-        var editor = new SourceEditorViewModel(_tree, s, isNew: true);
+        var editor = new SourceEditorViewModel(_tree, s, isNew: true) { ShowLinkTools = _settings.AdvancedMode, PickScan = PickScanAsync };
         if (await _dialogs.EditSourceAsync(editor) != EditorResult.Saved) return;
         Change("add source", Array.Empty<Entity>(), () => { editor.Apply(s); _tree.AddSource(s); });
         Section = AppSection.Sources;
@@ -126,7 +126,7 @@ public sealed partial class MainViewModel
     private async Task EditSourceAsync()
     {
         if (SelectedSource is not { } row || !_tree.Sources.TryGetValue(row.Id, out var s)) return;
-        var editor = new SourceEditorViewModel(_tree, s, isNew: false);
+        var editor = new SourceEditorViewModel(_tree, s, isNew: false) { ShowLinkTools = _settings.AdvancedMode, PickScan = PickScanAsync };
         var result = await _dialogs.EditSourceAsync(editor);
         var repo = s.RepositoryId is { } rid ? _tree.Repositories.GetValueOrDefault(rid) : null;
         if (result == EditorResult.Saved)
@@ -145,4 +145,6 @@ public sealed partial class MainViewModel
         if (!await _dialogs.ConfirmAsync("Delete source", message)) return;
         Change("delete source", citers.Append(s), () => _tree.RemoveSource(s));
     }
+
+    private Task<string?> PickScanAsync() => _dialogs.OpenFileAsync("Read the text from a scan", ("Pictures", PhotoTile.FileTypes + ";*.tif;*.tiff"));
 }

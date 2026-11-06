@@ -129,4 +129,78 @@ public static class FsSync
         }
         return added;
     }
+
+    /// <summary>
+    /// Adds a FamilySearch descendancy (numbered "1", "1-S", "1.1", "1.1-S"…) below <paramref name="root"/>.
+    /// Spouses and children already in the tree (in the family, or anywhere with the same FamilySearch ID) are
+    /// linked rather than duplicated. Where someone has several spouses, children go with the first one,
+    /// since the numbers don't say which. Returns how many people were added.
+    /// </summary>
+    public static int AddDescendants(FamilyTree tree, Person root, IReadOnlyList<FsPerson> descendancy)
+    {
+        var byFsId = tree.People.Values.Where(p => p.FamilySearchId.Length > 0)
+                         .GroupBy(p => p.FamilySearchId).ToDictionary(g => g.Key, g => g.First());
+        var local = new Dictionary<string, Person> { ["1"] = root };
+        var familyOf = new Dictionary<string, Family>();
+        var me = descendancy.FirstOrDefault(d => d.DescendancyNumber == "1");
+        if (root.FamilySearchId.Length == 0 && me != null) root.FamilySearchId = me.Id;
+        var added = 0;
+
+        Person Find(FsPerson fs, IEnumerable<Person> nearby)
+        {
+            var match = nearby.FirstOrDefault(p => p.FamilySearchId == fs.Id)
+                        ?? nearby.FirstOrDefault(p => p.FamilySearchId.Length == 0 && p.DisplayName == fs.FullName);
+            if (match != null) { if (match.FamilySearchId.Length == 0) match.FamilySearchId = fs.Id; return match; }
+            if (byFsId.TryGetValue(fs.Id, out var known)) return known;
+            var person = tree.AddPerson(ToPerson(fs));
+            byFsId[fs.Id] = person;
+            added++;
+            return person;
+        }
+
+        // Generation by generation: a generation's people, then their spouses (whose children come in the next one).
+        foreach (var fs in descendancy.Where(d => d.DescendancyNumber is { } n && n != "1")
+                                      .OrderBy(d => d.DescendancyNumber!.Count(c => c == '.'))
+                                      .ThenBy(d => d.DescendancyNumber!.Contains("-S") ? 1 : 0))
+        {
+            var number = fs.DescendancyNumber!;
+            var spouseMark = number.IndexOf("-S", StringComparison.Ordinal);
+            if (spouseMark > 0)
+            {
+                var key = number[..spouseMark];
+                if (!local.TryGetValue(key, out var partner)) continue;
+                var families = partner.SpouseFamilyIds.Select(id => tree.Family(id)).OfType<Family>().ToList();
+                var spouses = families.Select(f => tree.Person(f.Partner1Id == partner.Id ? f.Partner2Id : f.Partner1Id)).OfType<Person>();
+                var spouse = Find(fs, spouses);
+                var family = families.FirstOrDefault(f => f.Partner1Id == spouse.Id || f.Partner2Id == spouse.Id);
+                if (family == null)
+                {
+                    family = families.FirstOrDefault(f => f.Partner1Id == null || f.Partner2Id == null) ?? tree.AddFamily(new Family());
+                    if (family.Partner1Id != partner.Id && family.Partner2Id != partner.Id) tree.SetPartner(family, partner, second: partner.Sex == Sex.Female);
+                    tree.SetPartner(family, spouse, second: family.Partner2Id == null);
+                }
+                local[number] = spouse;
+                familyOf.TryAdd(key, family);
+            }
+            else
+            {
+                var dot = number.LastIndexOf('.');
+                if (dot < 0) continue;
+                var key = number[..dot];
+                if (!local.TryGetValue(key, out var parent)) continue;
+                if (!familyOf.TryGetValue(key, out var family))
+                {
+                    family = parent.SpouseFamilyIds.Select(id => tree.Family(id)).OfType<Family>().FirstOrDefault() ?? tree.AddFamily(new Family());
+                    if (family.Partner1Id != parent.Id && family.Partner2Id != parent.Id) tree.SetPartner(family, parent, second: parent.Sex == Sex.Female);
+                    familyOf[key] = family;
+                }
+                var children = parent.SpouseFamilyIds.Select(id => tree.Family(id)).OfType<Family>()
+                                     .SelectMany(f => f.Children).Select(c => tree.Person(c.ChildId)).OfType<Person>().ToList();
+                var child = Find(fs, children);
+                if (!children.Contains(child) && !family.Children.Any(c => c.ChildId == child.Id)) tree.AddChild(family, child);
+                local[number] = child;
+            }
+        }
+        return added;
+    }
 }

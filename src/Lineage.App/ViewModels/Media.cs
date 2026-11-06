@@ -2,16 +2,22 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lineage.Core.Media;
 using Lineage.Core.Model;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 
 namespace Lineage.App.ViewModels;
 
-/// <summary>A photo attached to a person, with a thumbnail that loads in the background.</summary>
+/// <summary>
+/// A photo (or sound recording, video or document) attached to a person. Photos get a thumbnail that loads in the
+/// background; the others show what they are and open in the computer's own player or viewer.
+/// </summary>
 public sealed partial class PhotoTile : ObservableObject
 {
     public const string FileTypes = "*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp";
+    /// <summary>Everything that can be added: photos, sound, video and documents.</summary>
+    public const string AllTypes = FileTypes + ";" + MediaKinds.SoundTypes + ";" + MediaKinds.VideoTypes + ";" + MediaKinds.DocumentTypes;
     private static readonly ConcurrentDictionary<(string, int), Bitmap?> Cache = new();
 
     public PhotoTile(MediaLink media) : this(media, media.File) { }
@@ -23,9 +29,29 @@ public sealed partial class PhotoTile : ObservableObject
         FullPath = fullPath;
         Title = media.Title.Length > 0 ? media.Title : Path.GetFileNameWithoutExtension(media.File);
         var taken = media.Taken.Length > 0 ? Display.Date(GenDate.Parse(media.Taken)) : "";
-        Caption = taken.Length > 0 ? taken : media.Location != null ? "Location saved" : "";
+        Kind = MediaKinds.Of(media);
+        Caption = taken.Length > 0 ? taken : media.Location != null ? "Location saved" : Kind switch
+        {
+            MediaKind.Sound => "Sound recording",
+            MediaKind.Video => "Video",
+            MediaKind.Document => "Document",
+            MediaKind.Other => Path.GetExtension(media.File).TrimStart('.').ToUpperInvariant(),
+            _ => "",
+        };
         IsMissing = !File.Exists(fullPath);
     }
+
+    public MediaKind Kind { get; }
+    public bool IsPicture => Kind == MediaKind.Photo;
+    public bool IsSound => Kind == MediaKind.Sound;
+    public bool IsVideo => Kind == MediaKind.Video;
+    /// <summary>Sound or video: played in the computer's own player.</summary>
+    public bool IsPlayable => Kind is MediaKind.Sound or MediaKind.Video;
+    /// <summary>Anything but a photo: opened in another app.</summary>
+    public bool IsFile => Kind != MediaKind.Photo;
+    public bool IsDocument => Kind is MediaKind.Document or MediaKind.Other;
+    public bool CanBeProfile => IsPicture && !IsProfile;
+    public bool IsPrivate => Media.Private;
 
     public MediaLink Media { get; }
     /// <summary>The file on disk; open this rather than <see cref="MediaLink.File"/>, which may be relative.</summary>
@@ -45,7 +71,7 @@ public sealed partial class PhotoTile : ObservableObject
 
     public async Task LoadAsync(int width)
     {
-        if (IsMissing) return;
+        if (IsMissing || !IsPicture) return;
         var path = FullPath;
         Thumbnail = await Task.Run(() => Cache.GetOrAdd((path, width), key =>
         {
@@ -61,16 +87,18 @@ public sealed partial class PhotoTile : ObservableObject
     /// <summary>Builds the link for a newly added photo, reading where and when it was taken from its EXIF data.</summary>
     public static MediaLink FromFile(string path)
     {
+        var kind = MediaKinds.Of(path);
         var link = new MediaLink
         {
             File = path,
             Title = Path.GetFileNameWithoutExtension(path),
             Format = Path.GetExtension(path).TrimStart('.').ToUpperInvariant(),
-            MediaType = "PHOTO",
+            MediaType = MediaKinds.GedcomType(kind == MediaKind.Other ? MediaKind.Photo : kind),
         };
         try { link.Size = new FileInfo(path).Length; }
         catch (IOException) { /* size only helps relinking later */ }
         catch (UnauthorizedAccessException) { }
+        if (kind is not (MediaKind.Photo or MediaKind.Other)) return link;   // camera details are only read from pictures
         try
         {
             var dirs = ImageMetadataReader.ReadMetadata(path);
@@ -84,10 +112,7 @@ public sealed partial class PhotoTile : ObservableObject
         return link;
     }
 
-    private static readonly HashSet<string> Extensions =
-        new(FileTypes.Split(';').Select(p => p.TrimStart('*')), StringComparer.OrdinalIgnoreCase);
-
-    public static bool IsPhoto(MediaLink m) => m.MediaType == "PHOTO" || Extensions.Contains(Path.GetExtension(m.File));
+    public static bool IsPhoto(MediaLink m) => MediaKinds.Of(m) == MediaKind.Photo;
 }
 
 /// <summary>

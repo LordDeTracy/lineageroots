@@ -114,6 +114,19 @@ public static class Privacy
 
         if (options.ExcludePrivateEvents)
         {
+            // Everything marked private: events, photos, other names and notes kept to oneself.
+            foreach (var p in copy.People.Values)
+            {
+                p.Media.RemoveAll(m => m.Private);
+                if (p.Names.Count > 1) p.Names.RemoveAll(n => n.Private && n != p.Names[0]);
+                if (p.NotePrivate) p.Note = "";
+                foreach (var e in p.Events) e.Media.RemoveAll(m => m.Private);
+            }
+            foreach (var f in copy.Families.Values)
+            {
+                f.Media.RemoveAll(m => m.Private);
+                foreach (var e in f.Events) e.Media.RemoveAll(m => m.Private);
+            }
             foreach (var p in copy.People.Values) p.Events.RemoveAll(e => e.Private);
             foreach (var f in copy.Families.Values)
             {

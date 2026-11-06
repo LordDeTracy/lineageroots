@@ -49,7 +49,8 @@ public sealed class GedcomImporter
                 case "SOUR": _sources[r.Xref] = Assign(r.Xref, _sources, ref _nextS); break;
                 case "REPO": _repos[r.Xref] = Assign(r.Xref, _repos, ref _nextR); break;
                 case "_TODO": _research[r.Xref] = Assign(r.Xref, _research, ref _nextT); break;
-                case "NOTE": _notes[r.Xref] = r.Value; break;
+                case "NOTE" or "SNOTE": _notes[r.Xref] = r.Value; break;   // SNOTE: GEDCOM 7's shared notes
+                case "OBJE": _objects[r.Xref] = r; break;                  // GEDCOM 7 multimedia records
             }
         }
         if (records.FirstOrDefault(r => r.Tag == "HEAD")?.First("_SHARE") is { } share && Guid.TryParse(share.Value.Trim(), out var shareId))
@@ -90,7 +91,13 @@ public sealed class GedcomImporter
     private string NoteValue(GedcomNode n) =>
         n.Value.StartsWith('@') && _notes.TryGetValue(n.Value.Trim(), out var shared) ? shared : n.Value;
 
-    private string Notes(GedcomNode owner) => string.Join("\n\n", owner.All("NOTE").Select(NoteValue).Where(s => s.Length > 0));
+    private string Notes(GedcomNode owner) =>
+        string.Join("\n\n", owner.Children.Where(c => c.Tag is "NOTE" or "SNOTE").Select(NoteValue).Where(s => s.Length > 0));
+
+    private readonly Dictionary<string, GedcomNode> _objects = new();
+
+    /// <summary>A GEDCOM 7 word with an optional PHRASE: the phrase when there is one (it says it in words), else the word.</summary>
+    private static string Worded(GedcomNode? n) => n == null ? "" : n.Text("PHRASE").Trim() is { Length: > 0 } phrase ? phrase : n.Value.Trim();
 
     /// <summary>A record's _UID (32 hex digits, sometimes followed by a 4-digit checksum), if it has one.</summary>
     private static Guid? Uid(GedcomNode n)
@@ -139,6 +146,9 @@ public sealed class GedcomImporter
         if (Uid(n) is { } eu) e.Id = eu;
         foreach (var s in n.All("SOUR")) e.Citations.Add(ReadCitation(s));
         foreach (var o in n.All("OBJE")) e.Media.Add(ReadMedia(o));
+        foreach (var a in n.All("ASSO"))
+            if (_people.TryGetValue(a.Value.Trim(), out var who))
+                e.Roles.Add(new EventRole { PersonId = who, Role = RoleName(a.Text("RELA").Length > 0 ? a.Text("RELA") : Worded(a.First("ROLE"))) });
         e.Conclusion = n.Text("_PROOF").Trim().ToUpperInvariant() switch
         {
             "PROVEN" => FactConclusion.Proven, "DISPROVED" => FactConclusion.Disproved, _ => FactConclusion.NotDecided,
@@ -161,6 +171,17 @@ public sealed class GedcomImporter
 
     private MediaLink ReadMedia(GedcomNode n)
     {
+        // GEDCOM 7: a pointer to a multimedia record, whose FILE (with FORM and TITL beneath) says what it is.
+        if (n.Value.StartsWith('@') && _objects.TryGetValue(n.Value.Trim(), out var record) && record.First("FILE") is { } recordFile)
+        {
+            var merged = new GedcomNode { Tag = "OBJE" };
+            merged.Children.Add(new GedcomNode { Tag = "FILE", Value = recordFile.Value });
+            var title = recordFile.Text("TITL").Length > 0 ? recordFile.Text("TITL") : record.Text("TITL");
+            if (title.Length > 0) merged.Children.Add(new GedcomNode { Tag = "TITL", Value = title });
+            merged.Children.AddRange(record.Children.Where(c => c.Tag is "NOTE" or "SNOTE"));
+            merged.Children.AddRange(n.Children);
+            n = merged;
+        }
         var m = new MediaLink
         {
             File = n.Text("FILE"),
@@ -171,6 +192,7 @@ public sealed class GedcomImporter
             Primary = n.Text("_PRIM") == "Y",
             Location = Map(n.First("_MAP")),
             Taken = n.Text("_DATE"),
+            Private = n.First("_CONF") != null,
         };
         // People tagged in the photo (Lineage custom tags, written by GedcomExporter.WriteMedia):
         //   n+1 _REGION / n+2 _PERSON @I12@ / n+2 _RECT x y width height (0..1 of the picture).
@@ -206,7 +228,9 @@ public sealed class GedcomImporter
             name.Prefix = nm.Text("NPFX");
             name.Suffix = nm.Text("NSFX");
             name.Nickname = nm.Text("NICK");
-            name.Type = nm.Text("TYPE");
+            // 5.5.1 types are free text; GEDCOM 7's are capitals (AKA, MARRIED…), or OTHER with a phrase.
+            name.Type = nm.First("TYPE") is { } nameType ? Worded(nameType).ToLowerInvariant() : "";
+            name.Private = nm.First("_CONF") != null;
             p.Names.Add(name);
             foreach (var (tag, type) in new[] { ("_AKA", "aka"), ("_MARNM", "married"), ("FONE", "phonetic"), ("ROMN", "romanized") })
                 foreach (var alt in nm.All(tag)) p.Names.Add(new Name { Given = alt.Value, Type = type });
@@ -216,9 +240,11 @@ public sealed class GedcomImporter
         p.Title = r.Text("TITL");
         p.Description = r.Text("DSCR");
         p.UserId = r.Text("REFN");
-        p.FamilySearchId = r.Text("_FSFTID");
+        p.FamilySearchId = r.Text("_FSFTID").Length > 0 ? r.Text("_FSFTID")
+            : r.All("EXID").FirstOrDefault(x => x.Text("TYPE") == Lineage.Core.Export.Gedcom7.FamilySearchExid)?.Value.Trim() ?? "";
         p.Colour = r.Text("_COLOR");
         p.Note = Notes(r);
+        p.NotePrivate = r.First("_NOTECONF") != null;
         if (Guid.TryParse(r.Text("_UID").Length >= 32 ? r.Text("_UID")[..32] : "", out var uid)) p.Uid = uid;
         var addr = r.First("ADDR");
         if (addr != null)
@@ -241,8 +267,19 @@ public sealed class GedcomImporter
             if (_research.TryGetValue(t.Value.Trim(), out var rid)) p.ResearchIds.Add(rid);
         foreach (var d in r.All("_DNA")) p.DnaTests.Add(ReadDna(d));
         foreach (var m in r.All("_MATCH")) p.DnaMatches.Add(ReadMatch(m));
+        foreach (var a in r.All("ASSO"))
+            if (_people.TryGetValue(a.Value.Trim(), out var who))
+                p.Associations.Add(new Association { PersonId = who, Relation = RoleName(a.Text("RELA").Length > 0 ? a.Text("RELA") : Worded(a.First("ROLE"))), Note = Notes(a) });
         _tree.AddPerson(p);
     }
+
+    /// <summary>GEDCOM 7 role words ("WITN", "GODP") as plain words; anything else as written.</summary>
+    private static string RoleName(string role) => role.Trim().ToUpperInvariant() switch
+    {
+        "WITN" => "Witness", "GODP" => "Godparent", "CLERGY" => "Minister", "OFFICIATOR" => "Officiant",
+        "FRIEND" => "Friend", "NGHBR" => "Neighbour", "INFORMANT" => "Informant", "OTHER" => "",
+        _ => role.Trim(),
+    };
 
     private DnaMatch ReadMatch(GedcomNode n)
     {
@@ -343,7 +380,8 @@ public sealed class GedcomImporter
             if (!p.ParentFamilyIds.Contains(fid)) p.ParentFamilyIds.Add(fid);
             var link = f.Children.FirstOrDefault(c => c.ChildId == p.Id);
             if (link == null) { link = new ChildLink { ChildId = p.Id }; f.Children.Add(link); }
-            var pedi = famc.Text("PEDI").ToLowerInvariant();
+            var pedi = (famc.Text("STAT").Length > 0 ? famc.Text("STAT") : Worded(famc.First("PEDI"))).ToLowerInvariant();
+            if (pedi == "disproven") pedi = "disproved";   // GEDCOM 7's word
             if (pedi is "challenged" or "disproved")
                 link.Status = pedi == "challenged" ? RelationStatus.Challenged : RelationStatus.Disproved;
             else if (pedi.Length > 0)
@@ -413,6 +451,12 @@ public sealed class GedcomImporter
         if (_sources.TryGetValue(r.Text("SOUR").Trim(), out var sid)) t.SourceId = sid;
         t.Result = Enum.TryParse<SearchResult>(r.Text("_RESULT").Trim(), ignoreCase: true, out var result) ? result : SearchResult.None;
         t.HintKey = r.Text("_HINT").Trim();
+        if (r.First("_LETTER") is { } letter)
+            t.Letter = new Correspondence
+            {
+                With = letter.Value, Address = letter.Text("ADDR"), Method = letter.Text("_METHOD"),
+                Incoming = letter.Text("_IN") == "Y", Replied = GenDate.Parse(letter.Text("_REPLIED")),
+            };
         _tree.AddResearch(t);
     }
 }

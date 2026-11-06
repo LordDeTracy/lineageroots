@@ -30,7 +30,8 @@ public sealed partial class MainViewModel
         try
         {
             HtmlSite.Export(Privacy.Filter(_tree, privacy), site,
-                new HtmlSiteOptions { Title = TreeName, HomePersonId = _tree.HomePersonId ?? _current?.Id, IncludePhotos = false });
+                new HtmlSiteOptions { Title = TreeName, HomePersonId = _tree.HomePersonId ?? _current?.Id, IncludePhotos = false,
+                                   Language = Services.Translator.Language, Translate = Services.Translator.T });
         }
         catch (Exception) { site = null!; }
         return new LocalShareHost(TreeName,

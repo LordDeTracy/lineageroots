@@ -17,7 +17,7 @@ public sealed class PedigreeChart : ChartBase
 
     public int Generations { get => GetValue(GenerationsProperty); set => SetValue(GenerationsProperty, value); }
 
-    private const double BoxW = 236, BoxH = 58, ColGap = 44, RowGap = 12, Pad = 24;
+    private const double BoxW = 236, BoxH = 88, ColGap = 44, RowGap = 12, Pad = 24;
     private readonly Dictionary<int, Rect> _boxes = new();
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -54,8 +54,13 @@ public sealed class PedigreeChart : ChartBase
     protected override long? HitTest(Point p)
     {
         if (Data == null) return null;
+        var last = 1 << (Math.Clamp(Generations, 2, 6) - 1);
         foreach (var (n, r) in _boxes)
-            if (r.Contains(p) && Data.Ancestors.TryGetValue(n, out var person)) return person.Id;
+        {
+            // The last generation's arrow (more ancestors beyond the edge) centres the chart on them too.
+            var area = n >= last ? r.WithWidth(r.Width + 24) : r;
+            if (area.Contains(p) && Data.Ancestors.TryGetValue(n, out var person)) return person.Id;
+        }
         return null;
     }
 
@@ -107,11 +112,7 @@ public sealed class PedigreeChart : ChartBase
 
         var x = r.X + 16;
         var width = r.Width - 28;
-        var name = Text(p.DisplayName, 13.5, Brush("Ink"), bold: true, maxWidth: width);
-        var years = Text(Lines(p), 11.5, Brush("Muted"), maxWidth: width);
-        var top = r.Center.Y - (name.Height + years.Height) / 2;
-        ctx.DrawText(name, new Point(x, top));
-        ctx.DrawText(years, new Point(x, top + name.Height));
+        DrawLines(ctx, PersonLines(p, width, Brush("Ink"), Brush("Muted")), x, r.Center.Y);
 
         // More ancestors beyond the edge of the chart.
         if (isLast && p.ParentFamilyIds.Count > 0)
@@ -121,11 +122,5 @@ public sealed class PedigreeChart : ChartBase
             ctx.DrawLine(arrow, new Point(ax, r.Center.Y - 5), new Point(ax + 5, r.Center.Y));
             ctx.DrawLine(arrow, new Point(ax + 5, r.Center.Y), new Point(ax, r.Center.Y + 5));
         }
-    }
-
-    private static string Lines(Person p)
-    {
-        var place = p.Birth?.Place.Split(',')[0].Trim() ?? "";
-        return string.Join("  ·  ", new[] { Years(p), place }.Where(s => s.Length > 0));
     }
 }

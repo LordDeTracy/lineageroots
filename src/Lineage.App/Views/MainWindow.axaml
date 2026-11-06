@@ -133,6 +133,11 @@
                 <MenuItem Header="Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S" />
                 <MenuItem Header="Save as…" Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
                 <MenuItem Header="Export GEDCOM…" Command="{Binding ExportGedcomCommand}" />
+                <MenuItem Header="Save a branch as a new family file…" Command="{Binding SaveBranchCommand}" />
+                <MenuItem Header="Back up to a zip file (USB stick or cloud folder)…" Command="{Binding BackupToZipCommand}" />
+                <MenuItem Header="Side by side with someone else…" Command="{Binding SideBySideCommand}" />
+                <MenuItem Header="Slide show of every photo" Command="{Binding SlideShowAllCommand}" />
+                <MenuItem Header="Calculators (dates, ages, calendars, Soundex)…" Command="{Binding OpenCalculatorsCommand}" />
                 <MenuItem Header="Password">
                   <MenuItem Header="{Binding PasswordMenuText}" Command="{Binding SetPasswordCommand}" />
                   <MenuItem Header="Remove the password…" Command="{Binding RemovePasswordCommand}" />
@@ -164,8 +169,18 @@
                   <MenuItem Header="Find this person on FamilySearch…" Command="{Binding FamilySearchFindCommand}" />
                   <MenuItem Header="Compare with FamilySearch…" Command="{Binding FamilySearchCompareCommand}" />
                   <MenuItem Header="Download ancestors from FamilySearch…" Command="{Binding FamilySearchDownloadAncestorsCommand}" />
+                  <MenuItem Header="Download descendants from FamilySearch…" Command="{Binding FamilySearchDownloadDescendantsCommand}" />
                   <Separator />
                   <MenuItem Header="FamilySearch settings…" Command="{Binding FamilySearchSettingsCommand}" />
+                </MenuItem>
+                <MenuItem Header="Plugin tools" ItemsSource="{Binding PluginTools}" IsVisible="{Binding HasPluginTools}">
+                  <MenuItem.Styles>
+                    <Style Selector="MenuItem > MenuItem" x:DataType="vm:PluginRow">
+                      <Setter Property="Header" Value="{Binding Name}" />
+                      <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainViewModel)DataContext).RunPluginCommand}" />
+                      <Setter Property="CommandParameter" Value="{Binding}" />
+                    </Style>
+                  </MenuItem.Styles>
                 </MenuItem>
                 <Separator />
                 <MenuItem Header="Settings…" Command="{Binding OpenSettingsCommand}" />

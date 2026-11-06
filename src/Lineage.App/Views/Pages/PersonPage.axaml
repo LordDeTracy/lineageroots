@@ -90,6 +90,12 @@
             <TextBlock Text="Hourglass" />
           </StackPanel>
         </ListBoxItem>
+        <ListBoxItem ToolTip.Tip="The father's ancestors to the left, the mother's to the right">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <c:LineIcon Data="{StaticResource IconBowTie}" Width="16" Height="16" />
+            <TextBlock Text="Bow tie" />
+          </StackPanel>
+        </ListBoxItem>
         <ListBoxItem ToolTip.Tip="The family's lives on a scale of years: who was alive together">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <c:LineIcon Data="{StaticResource IconTimeline}" Width="16" Height="16" />
@@ -108,6 +114,17 @@
             <TextBlock Text="Statistics" />
           </StackPanel>
         </ListBoxItem>
+      </ListBox>
+
+      <ListBox Classes="segmented" SelectedIndex="{Binding LifelineScopeIndex}" IsVisible="{Binding IsLifelinesView}"
+               HorizontalAlignment="Left" AutomationProperties.Name="Whose lifelines">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBoxItem Content="Close family" ToolTip.Tip="Great-grandparents to grandchildren, with brothers, sisters and spouses" />
+        <ListBoxItem Content="Father's side" ToolTip.Tip="The father and his ancestors" />
+        <ListBoxItem Content="Mother's side" ToolTip.Tip="The mother and her ancestors" />
+        <ListBoxItem Content="Descendants" ToolTip.Tip="Children, grandchildren and everyone after them" />
       </ListBox>
 
       <!-- Chart toolbar -->
@@ -206,8 +223,13 @@
                           NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                           HorizontalAlignment="Center" Margin="8,4,8,8" />
       </c:ZoomHost>
+      <c:ZoomHost Name="BowTieHost" IsVisible="{Binding IsBowTieView}">
+        <c:BowTieChart Name="BowTie" Data="{Binding Chart}" Generations="{Binding PedigreeGenerations}" ShowEvidence="{Binding ChartsShowEvidence}"
+                       NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
+                       HorizontalAlignment="Center" Margin="8,4,8,8" />
+      </c:ZoomHost>
       <c:ZoomHost Name="LifelinesHost" IsVisible="{Binding IsLifelinesView}">
-        <c:LifelinesChart Name="Lifelines" Data="{Binding Chart}" ShowEvidence="{Binding ChartsShowEvidence}"
+        <c:LifelinesChart Name="Lifelines" Data="{Binding Chart}" ShowEvidence="{Binding ChartsShowEvidence}" Scope="{Binding LifelineScope}"
                           NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                           HorizontalAlignment="Left" Margin="8,4,8,8" />
       </c:ZoomHost>
@@ -216,6 +238,8 @@
                              NavigateCommand="{Binding NavigateCommand}" OpenCommand="{Binding OpenPersonCommand}"
                              HorizontalAlignment="Left" Margin="8,4,8,8" />
       </c:ZoomHost>
+      <Button Classes="outline" IsVisible="{Binding IsRelationshipView}" Command="{Binding ChooseHomePersonCommand}"
+              HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,20,0" Content="Choose the home person…" />
       <c:ZoomHost Name="StatisticsHost" IsVisible="{Binding IsStatisticsView}">
         <c:StatisticsChart Name="Statistics" Data="{Binding Chart}" HorizontalAlignment="Left" Margin="8,4,8,8" />
       </c:ZoomHost>
@@ -516,17 +540,69 @@
         </StackPanel>
       </Border>
 
+      <!-- Friends, associates and neighbours -->
+      <Border Classes="card" Padding="26,22">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="section" Text="FRIENDS, ASSOCIATES AND NEIGHBOURS" />
+              <TextBlock Classes="faint small" TextWrapping="Wrap" Margin="0,4,0,0"
+                         Text="The people around them — witnesses, godparents, neighbours — often lead to relatives when a record runs out." />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddAssociateCommand}" Margin="0,-8,-10,-8" VerticalAlignment="Top">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Add" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Classes="muted small" IsVisible="{Binding !HasAssociates}"
+                     Text="Nobody yet. Add a neighbour or friend here, or a witness or godparent on an event." />
+          <ItemsControl ItemsSource="{Binding AssociateRows}" IsVisible="{Binding HasAssociates}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AssociateRow">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                  <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="-10,0,0,0"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenAssociateCommand}" CommandParameter="{Binding}">
+                    <StackPanel>
+                      <TextBlock>
+                        <Run Text="{Binding Name}" FontWeight="SemiBold" />
+                        <Run Text="{Binding Lifespan, StringFormat='  {0}'}" Foreground="{DynamicResource Muted}" />
+                      </TextBlock>
+                      <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Line}" />
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Column="1" Classes="ghost icon" IsVisible="{Binding CanRemove}" AutomationProperties.Name="Remove"
+                          ToolTip.Tip="Remove this link" VerticalAlignment="Center"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RemoveAssociateCommand}" CommandParameter="{Binding}">
+                    <c:LineIcon Data="{StaticResource IconX}" Width="14" Height="14" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
       <!-- Photos -->
       <Border Classes="card" Padding="26,22">
         <StackPanel Spacing="14">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="section" Text="PHOTOS" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="ghost accentText" Command="{Binding AddPhotosCommand}" Margin="0,-8,-10,-8">
+            <TextBlock Classes="section" Text="PHOTOS AND RECORDINGS" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="0,-8,-10,-8">
+            <Button Classes="ghost accentText" Command="{Binding SlideShowCommand}" ToolTip.Tip="Their photos one after another, full screen">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:LineIcon Data="{StaticResource IconPlay}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="Slide show" Foreground="{DynamicResource Accent}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="ghost accentText" Command="{Binding AddPhotosCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <c:LineIcon Data="{StaticResource IconPlus}" Width="16" Height="16" Foreground="{DynamicResource Accent}" />
                 <TextBlock Text="Add photos" Foreground="{DynamicResource Accent}" />
               </StackPanel>
             </Button>
+            </StackPanel>
           </Grid>
           <WrapPanel>
             <ItemsControl ItemsSource="{Binding Photos}" ItemsPanel="{StaticResource WrapPanel}">
@@ -535,11 +611,15 @@
                   <Button Classes="photo" AutomationProperties.Name="{Binding Spoken}" ToolTip.Tip="{Binding Media.File}">
                     <Button.Flyout>
                       <MenuFlyout Placement="Bottom">
-                        <MenuItem Header="View and tag people…" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoCommand}"
+                        <MenuItem Header="View and tag people…" IsVisible="{Binding IsPicture}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoCommand}"
+                                  CommandParameter="{Binding}" />
+                        <MenuItem Header="Play" IsVisible="{Binding IsPlayable}"
+                                  Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoExternallyCommand}"
                                   CommandParameter="{Binding}" />
                         <MenuItem Header="Open in another app" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenPhotoExternallyCommand}"
                                   CommandParameter="{Binding}" />
-                        <MenuItem Header="Use as profile photo" IsVisible="{Binding !IsProfile}"
+                        <MenuItem Header="Use as profile photo" IsVisible="{Binding CanBeProfile}"
                                   Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SetProfilePhotoCommand}"
                                   CommandParameter="{Binding}" />
                         <MenuItem Header="Show where it was taken" IsVisible="{Binding HasLocation}"
@@ -554,12 +634,22 @@
                     <StackPanel Spacing="3">
                       <Border Classes="frame">
                         <Panel>
-                          <c:LineIcon Data="{StaticResource IconImage}" Width="30" Height="30"
+                          <c:LineIcon Data="{StaticResource IconImage}" Width="30" Height="30" IsVisible="{Binding IsPicture}"
                                       Foreground="{DynamicResource Faint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          <c:LineIcon Data="{StaticResource IconSound}" Width="34" Height="34" IsVisible="{Binding IsSound}"
+                                      Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          <c:LineIcon Data="{StaticResource IconVideo}" Width="34" Height="34" IsVisible="{Binding IsVideo}"
+                                      Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          <c:LineIcon Data="{StaticResource IconFile}" Width="32" Height="32" IsVisible="{Binding IsDocument}"
+                                      Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                           <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                           <Border Classes="chip" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top"
                                   Background="{DynamicResource Surface}" IsVisible="{Binding IsProfile}">
                             <TextBlock Text="Profile" FontSize="11" />
+                          </Border>
+                          <Border Classes="chip" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                  Background="{DynamicResource Surface}" IsVisible="{Binding IsPrivate}">
+                            <TextBlock Text="Private" FontSize="11" />
                           </Border>
                           <Border Classes="chip" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Bottom"
                                   Background="{DynamicResource Surface}" IsVisible="{Binding IsMissing}">
@@ -584,7 +674,7 @@
               <StackPanel Spacing="8" HorizontalAlignment="Center">
                 <c:LineIcon Data="{StaticResource IconImage}" Width="26" Height="26" Foreground="{DynamicResource Muted}"
                             HorizontalAlignment="Center" />
-                <TextBlock Text="Add photos" Classes="muted" HorizontalAlignment="Center" />
+                <TextBlock Text="Add photos, sound or video" Classes="muted" HorizontalAlignment="Center" />
               </StackPanel>
             </Button>
           </WrapPanel>

@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        x:Class="Lineage.App.Views.SlideShowWindow"
+        x:DataType="vm:SlideShowViewModel"
+        Title="Slide show" WindowState="FullScreen" Background="#0B0A08" Foreground="#F2EEE6"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="*,Auto">
+    <Image Grid.RowSpan="2" Source="{Binding Picture}" Stretch="Uniform" Margin="24,24,24,110" />
+    <Border Grid.Row="1" Padding="40,18,40,26">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+          <GradientStop Offset="0" Color="#000B0A08" />
+          <GradientStop Offset="0.45" Color="#CC0B0A08" />
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Title}" FontSize="24" FontWeight="Light" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Detail}" FontSize="15" Opacity="0.75" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Position}" Opacity="0.6" VerticalAlignment="Center" Margin="0,0,10,0" />
+          <Button Content="‹" FontSize="18" MinWidth="44" Command="{Binding PreviousCommand}"
+                  AutomationProperties.Name="Previous photo" ToolTip.Tip="Previous (Left arrow)" />
+          <Button Content="{Binding PlayText}" MinWidth="80" Command="{Binding TogglePlayCommand}"
+                  ToolTip.Tip="Play or pause (Space)" />
+          <Button Content="›" FontSize="18" MinWidth="44" Command="{Binding NextCommand}"
+                  AutomationProperties.Name="Next photo" ToolTip.Tip="Next (Right arrow)" />
+          <Button Content="Close" MinWidth="80" Click="OnClose" ToolTip.Tip="Close (Esc)" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

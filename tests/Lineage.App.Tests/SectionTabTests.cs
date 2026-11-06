@@ -27,7 +27,10 @@ public class SectionTabTests
         vm.Section = AppSection.Charts;
         Assert.Equal(PersonView.FanChart, vm.View);         // the last chart used
 
-        foreach (var (index, view) in new[] { (4, PersonView.Lifelines), (5, PersonView.Relationship), (6, PersonView.Statistics) })
+        vm.ChartTabIndex = 4;
+        Assert.Equal(PersonView.BowTie, vm.View);
+        Assert.True(vm.HasGenerations);
+        foreach (var (index, view) in new[] { (5, PersonView.Lifelines), (6, PersonView.Relationship), (7, PersonView.Statistics) })
         {
             vm.ChartTabIndex = index;
             Assert.Equal(view, vm.View);

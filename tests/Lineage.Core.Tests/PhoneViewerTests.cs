@@ -67,4 +67,56 @@ public class PhoneViewerTests
         Assert.Equal("Sök namn", data.GetProperty("words").GetProperty("Search names").GetString());
         Assert.Equal(JsonValueKind.Null, data.GetProperty("home").ValueKind);
     }
+
+    [Fact]
+    public void PhotosGoInsideThePage()
+    {
+        var t = Whitfields();
+        t.People[1].Media.Add(new MediaLink { File = "wedding.jpg", Title = "Wedding day" });
+        t.People[1].Media.Add(new MediaLink { File = "thomas.png", Primary = true });
+        t.People[1].Media.Add(new MediaLink { File = "will.pdf" });                    // not a picture
+        t.People[4].Media.Add(new MediaLink { File = "wedding.jpg", Title = "Wedding day" }); // shared with Eliza
+        t.People[5].Media.Add(new MediaLink { File = "missing.jpg" });                 // can't be read
+        var asked = new List<(string, bool)>();
+        var html = PhoneViewer.Build(t, new PhoneViewerOptions
+        {
+            Picture = (file, portrait) => { asked.Add((file, portrait)); return file == "missing.jpg" ? null : $"data:image/jpeg;base64,{file}{(portrait ? "-small" : "")}"; },
+        });
+        var data = Data(html);
+        var thomas = Person(data, 1);
+        Assert.Equal("data:image/jpeg;base64,thomas.png-small", thomas.GetProperty("ph").GetString());   // the profile photo first
+        var more = thomas.GetProperty("pp").EnumerateArray().ToList();
+        Assert.Equal("Wedding day", Assert.Single(more).GetProperty("c").GetString());   // the portrait isn't repeated
+        Assert.Equal("data:image/jpeg;base64,wedding.jpg-small", Person(data, 4).GetProperty("ph").GetString());
+        Assert.Equal(JsonValueKind.Null, Person(data, 5).GetProperty("ph").ValueKind);
+        Assert.DoesNotContain(asked, a => a.Item1 == "will.pdf");
+        Assert.Single(asked, a => a == ("wedding.jpg", false));                              // made once, used twice
+    }
+
+    [Fact]
+    public void PhotosStopAtTheBudgetButEveryoneKeepsAPortrait()
+    {
+        var t = Whitfields();
+        foreach (var p in t.People.Values)
+            for (var i = 0; i < 3; i++) p.Media.Add(new MediaLink { File = $"{p.Id}-{i}.jpg" });
+        var html = PhoneViewer.Build(t, new PhoneViewerOptions
+        {
+            Picture = (file, portrait) => "data:image/jpeg;base64," + new string('A', portrait ? 10 : 1000),
+            PhotoBudget = 2500,
+        });
+        var data = Data(html);
+        var people = data.GetProperty("people").EnumerateArray().ToList();
+        Assert.All(people, p => Assert.Equal(JsonValueKind.String, p.GetProperty("ph").ValueKind));
+        Assert.InRange(people.Sum(p => p.GetProperty("pp").GetArrayLength()), 1, 4);
+    }
+
+    [Fact]
+    public void NoPictureFunctionMeansNoPhotos()
+    {
+        var t = Whitfields();
+        t.People[1].Media.Add(new MediaLink { File = "thomas.png", Primary = true });
+        var thomas = Person(Data(PhoneViewer.Build(t, new PhoneViewerOptions())), 1);
+        Assert.Equal(JsonValueKind.Null, thomas.GetProperty("ph").ValueKind);
+        Assert.Equal(0, thomas.GetProperty("pp").GetArrayLength());
+    }
 }

@@ -32,6 +32,33 @@
       <StackPanel Margin="28,24,28,24" Spacing="18">
         <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
 
+        <StackPanel Spacing="12" IsVisible="{Binding IsLetter}">
+          <Grid ColumnDefinitions="2*,14,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="With" />
+              <AutoCompleteBox Text="{Binding With}" ItemsSource="{Binding Correspondents}" FilterMode="Contains" MinimumPrefixLength="0"
+                               Watermark="An archive, an office or a relative" AutomationProperties.Name="Written to or from" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="How" />
+              <ComboBox ItemsSource="{x:Static vm:ResearchEditorViewModel.Methods}" SelectedItem="{Binding Method}"
+                        HorizontalAlignment="Stretch" AutomationProperties.Name="How it was sent" />
+            </StackPanel>
+          </Grid>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Address, email or phone" />
+            <TextBox Text="{Binding Address}" AutomationProperties.Name="Address, email or phone" />
+          </StackPanel>
+          <Grid ColumnDefinitions="*,14,*">
+            <CheckBox IsChecked="{Binding Incoming}" Content="They wrote to me" VerticalAlignment="Bottom" />
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="Reply received" />
+              <TextBox Text="{Binding Replied}" Watermark="Date, when it comes" AutomationProperties.Name="Reply received" />
+              <TextBlock Classes="hint" Text="{Binding RepliedHint}" IsVisible="{Binding HasRepliedHint}" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+
         <StackPanel>
           <TextBlock Classes="label" Text="What needs doing" />
           <TextBox Name="DescriptionBox" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="64"
@@ -52,7 +79,7 @@
           </StackPanel>
         </Grid>
 
-        <StackPanel>
+        <StackPanel IsVisible="{Binding IsTask}">
           <TextBlock Classes="label" Text="Task or search" />
           <ListBox Classes="segmented" ItemsSource="{Binding ResultOptions}" SelectedIndex="{Binding ResultIndex}"
                    HorizontalAlignment="Left" AutomationProperties.Name="Task or search result"
@@ -76,7 +103,7 @@
               </ListBox.Styles>
             </ListBox>
           </StackPanel>
-          <CheckBox Grid.Column="2" IsChecked="{Binding Done}" Content="Done" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+          <CheckBox Grid.Column="2" IsChecked="{Binding Done}" Content="{Binding DoneLabel}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
         </Grid>
 
         <StackPanel Spacing="10">

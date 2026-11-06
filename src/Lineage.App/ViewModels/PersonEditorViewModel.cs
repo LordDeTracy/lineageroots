@@ -17,6 +17,7 @@ public sealed partial class NameRow : ObservableObject
         _surname = n?.Surname ?? "";
         _suffix = n?.Suffix ?? "";
         _kindIndex = Math.Max(0, Array.IndexOf(Codes, (n?.Type ?? "aka").ToLowerInvariant()));
+        _private = n?.Private ?? false;
         Original = n;
     }
 
@@ -26,6 +27,8 @@ public sealed partial class NameRow : ObservableObject
     [ObservableProperty] private string _surname;
     [ObservableProperty] private string _suffix;
     [ObservableProperty] private int _kindIndex;
+    /// <summary>Kept to oneself: left out of exports, websites and reports.</summary>
+    [ObservableProperty] private bool _private;
 
     public bool IsEmpty => Given.Trim().Length == 0 && Surname.Trim().Length == 0;
 
@@ -36,6 +39,7 @@ public sealed partial class NameRow : ObservableObject
         n.Surname = Surname.Trim();
         n.Suffix = Suffix.Trim();
         n.Type = Codes[Math.Clamp(KindIndex, 0, Codes.Length - 1)];
+        n.Private = Private;
         return n;
     }
 }
@@ -151,6 +155,7 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         _deathDate = Display.Date(death?.Date ?? GenDate.Empty);
         _deathPlace = death?.Place ?? "";
         _note = person.Note;
+        _notePrivate = person.NotePrivate;
         _personTitle = person.Title;
         _description = person.Description;
         _email = person.Email;
@@ -218,6 +223,8 @@ public sealed partial class PersonEditorViewModel : ObservableObject
     private string BirthTag => BirthKindIndex == 1 ? "CHR" : "BIRT";
     private string DeathTag => DeathKindIndex == 1 ? "BURI" : "DEAT";
     [ObservableProperty] private string _note;
+    /// <summary>The note is for the researcher only.</summary>
+    [ObservableProperty] private bool _notePrivate;
     [ObservableProperty] private string _personTitle;
     [ObservableProperty] private string _description;
     [ObservableProperty] private string _email;
@@ -269,6 +276,7 @@ public sealed partial class PersonEditorViewModel : ObservableObject
         SetEvent(BirthTag, BirthDate, BirthPlace);
         SetEvent(DeathTag, DeathDate, DeathPlace);
         _person.Note = Note;
+        _person.NotePrivate = NotePrivate;
         _person.Title = PersonTitle.Trim();
         _person.Description = Description;
         _person.Email = Email.Trim();

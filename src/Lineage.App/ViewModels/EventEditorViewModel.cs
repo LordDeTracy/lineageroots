@@ -73,6 +73,14 @@ public sealed partial class ConflictRow : ObservableObject
 
 public enum EditorResult { Cancelled, Saved, Deleted }
 
+/// <summary>Someone else at the event, chosen by name, and in what role.</summary>
+public sealed partial class RoleRow : ObservableObject
+{
+    public RoleRow(string person, string role) { _person = person; _role = role; }
+    [ObservableProperty] private string _person;
+    [ObservableProperty] private string _role;
+}
+
 /// <summary>Edits one event of a person or a family. Works on copies; <see cref="Apply"/> writes back.</summary>
 public sealed partial class EventEditorViewModel : ObservableObject
 {
@@ -127,7 +135,26 @@ public sealed partial class EventEditorViewModel : ObservableObject
             AddConflictRow(new ConflictRow(c, c.SourceId is { } sid && _tree.Sources.TryGetValue(sid, out var cs) ? cs.Title : ""));
         Citations.CollectionChanged += (_, _) => UpdateProof();
         UpdateProof();
+        _people = tree.People.Values.GroupBy(PersonLabel).ToDictionary(g => g.Key, g => g.First());
+        PeopleNames = _people.Keys.OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase).ToList();
+        foreach (var r in e.Roles)
+            if (tree.Person(r.PersonId) is { } who) Roles.Add(new RoleRow(PersonLabel(who), r.Role));
     }
+
+    // ---- people at the event ----
+
+    private readonly Dictionary<string, Person> _people;
+    /// <summary>"Ann Bell (1840–1901)": names with years, to tell people of the same name apart.</summary>
+    public static string PersonLabel(Person p) => p.Lifespan.Length > 0 ? $"{p.DisplayName} ({p.Lifespan})" : p.DisplayName;
+    public IReadOnlyList<string> PeopleNames { get; }
+    public static string[] RoleOptions { get; } = { "Witness", "Godparent", "Sponsor", "Informant", "Minister", "Officiant", "Best man", "Bridesmaid", "Executor", "Bearer", "Neighbour" };
+    public ObservableCollection<RoleRow> Roles { get; } = new();
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void AddRole() => Roles.Add(new RoleRow("", "Witness"));
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void RemoveRole(RoleRow row) => Roles.Remove(row);
 
     // ---- evidence ----
 
@@ -374,6 +401,14 @@ public sealed partial class EventEditorViewModel : ObservableObject
             // The kind of record belongs to the source; leaving it unset leaves the source as it was.
             if (row.SourceKind != SourceKind.Unknown && _tree.Sources.TryGetValue(c.SourceId, out var src)) src.Kind = row.SourceKind;
             e.Citations.Add(c);
+        }
+        e.Roles.Clear();
+        foreach (var row in Roles)
+        {
+            var name = row.Person.Trim();
+            var who = _people.GetValueOrDefault(name) ?? _people.Values.FirstOrDefault(p => p.DisplayName == name);
+            if (who != null && e.Roles.All(r => r.PersonId != who.Id || r.Role != row.Role.Trim()))
+                e.Roles.Add(new EventRole { PersonId = who.Id, Role = row.Role.Trim() });
         }
         e.Conclusion = (FactConclusion)Math.Clamp(ConclusionIndex, 0, 2);
         e.Reasoning = Reasoning;

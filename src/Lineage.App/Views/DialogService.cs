@@ -30,12 +30,20 @@ public interface IDialogService
     Task<bool> TranscribeAsync(TranscribeViewModel form);
     Task<bool> EditSettingsAsync(SettingsViewModel settings);
     Task<bool> ExportOptionsAsync(ExportOptionsViewModel options);
+    /// <summary>The report builder; true when the user asked for the report.</summary>
+    Task<bool> ReportBuilderAsync(ReportBuilderViewModel builder);
     /// <summary>Shows a tree comparison; true when the user asked to copy the ticked people in.</summary>
     Task<bool> CompareTreesAsync(CompareTreesViewModel compare);
     Task<bool> BookOptionsAsync(BookOptionsViewModel options);
+    /// <summary>Shows a report's pages; true when the user chooses to save it.</summary>
+    Task<bool> PreviewReportAsync(ReportPreviewViewModel preview);
     Task<string?> PickFolderAsync(string title);
     /// <summary>The photo viewer; true when the user pressed Done (or clicked a tagged person).</summary>
     Task<bool> ShowPhotosAsync(PhotoViewerViewModel viewer);
+    Task ShowSlideShowAsync(SlideShowViewModel show);
+    Task ShowCalculatorsAsync(CalculatorsViewModel calculators);
+    Task ShowSideBySideAsync(SideBySideViewModel sideBySide);
+    Task<bool> EditProjectAsync(ProjectEditorViewModel project);
     /// <summary>Asks for one line of text, with suggestions; null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial, IReadOnlyList<string> suggestions);
     /// <summary>Asks for a locked file's password (showing its hint); null when cancelled.</summary>
@@ -188,11 +196,29 @@ public sealed class DialogService(Window owner) : IDialogService
     public Task<bool> ExportOptionsAsync(ExportOptionsViewModel options) =>
         new ExportOptionsWindow { DataContext = options }.ShowDialog<bool>(owner);
 
+    public Task<bool> ReportBuilderAsync(ReportBuilderViewModel builder) =>
+        new ReportBuilderWindow { DataContext = builder }.ShowDialog<bool>(owner);
+
     public Task<bool> CompareTreesAsync(CompareTreesViewModel compare) =>
         new CompareTreesWindow { DataContext = compare }.ShowDialog<bool>(owner);
 
+    public Task<bool> PreviewReportAsync(ReportPreviewViewModel preview) =>
+        new ReportPreviewWindow { DataContext = preview }.ShowDialog<bool>(owner);
+
     public Task<bool> BookOptionsAsync(BookOptionsViewModel options) =>
         new BookOptionsWindow { DataContext = options }.ShowDialog<bool>(owner);
+
+    public Task<bool> EditProjectAsync(ProjectEditorViewModel project) =>
+        new ProjectEditorWindow { DataContext = project }.ShowDialog<bool>(owner);
+
+    public Task ShowSideBySideAsync(SideBySideViewModel sideBySide) =>
+        new SideBySideWindow { DataContext = sideBySide }.ShowDialog(owner);
+
+    public Task ShowCalculatorsAsync(CalculatorsViewModel calculators) =>
+        new CalculatorsWindow { DataContext = calculators }.ShowDialog(owner);
+
+    public Task ShowSlideShowAsync(SlideShowViewModel show) =>
+        new SlideShowWindow { DataContext = show }.ShowDialog(owner);
 
     public Task<bool> ShowPhotosAsync(PhotoViewerViewModel viewer) =>
         new PhotoViewerWindow { DataContext = viewer }.ShowDialog<bool>(owner);

@@ -88,7 +88,7 @@ public sealed record TreeLayoutOptions
 {
     /// <summary>Width of one person inside a box; a couple box is two of these.</summary>
     public double SlotWidth { get; init; } = 204;
-    public double BoxHeight { get; init; } = 58;
+    public double BoxHeight { get; init; } = 88;
     /// <summary>Between brothers and sisters.</summary>
     public double SiblingGap { get; init; } = 14;
     /// <summary>Between boxes with different parents (cousins, half-siblings from another marriage).</summary>

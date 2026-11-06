@@ -23,6 +23,8 @@
     <EmbeddedResource Include="Places\gazetteer.tsv.gz" LogicalName="Lineage.Core.Places.gazetteer.tsv.gz" />
     <!-- Face detector (Ultra-Light-Fast-Generic-Face-Detector-1MB, version-RFB-320; MIT, © 2019 linzai), for photo tagging. -->
     <EmbeddedResource Include="Media\face-detector.onnx" LogicalName="Lineage.Core.Media.face-detector.onnx" />
+    <!-- Life-story wording in other languages (see StoryLanguage). -->
+    <EmbeddedResource Include="Reports\Story\*.json" LogicalName="Lineage.Core.Reports.Story.%(Filename).json" />
   </ItemGroup>
 
 </Project>

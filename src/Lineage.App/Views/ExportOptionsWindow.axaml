@@ -22,6 +22,17 @@
         <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconUsers}" /></Border>
         <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" VerticalAlignment="Center" />
       </StackPanel>
+      <StackPanel Spacing="8" IsVisible="{Binding ShowGedcomVersion}">
+        <TextBlock Classes="section" Text="VERSION" />
+        <ListBox Classes="choices" ItemsSource="{Binding GedcomVersions}" SelectedIndex="{Binding GedcomVersionIndex}"
+                 AutomationProperties.Name="GEDCOM version" />
+      </StackPanel>
+      <StackPanel Spacing="8" IsVisible="{Binding HasBranch}">
+        <TextBlock Classes="section" Text="WHICH PEOPLE" />
+        <ListBox Classes="choices" ItemsSource="{Binding BranchOptions}" SelectedIndex="{Binding BranchIndex}"
+                 AutomationProperties.Name="Which people" />
+        <TextBlock Classes="muted small" Text="{Binding BranchCountText}" />
+      </StackPanel>
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="LIVING PEOPLE" />
         <TextBlock Classes="muted" Text="{Binding LivingText}" TextWrapping="Wrap" />
@@ -30,7 +41,7 @@
       </StackPanel>
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="ALSO LEAVE OUT" />
-        <CheckBox IsChecked="{Binding ExcludePrivateEvents}" Content="Events marked private" />
+        <CheckBox IsChecked="{Binding ExcludePrivateEvents}" Content="Anything marked private (events, photos, names, notes)" />
         <CheckBox IsChecked="{Binding ExcludeNotes}" Content="Notes" />
         <CheckBox IsChecked="{Binding ExcludeMedia}" Content="Photos and other media" />
       </StackPanel>

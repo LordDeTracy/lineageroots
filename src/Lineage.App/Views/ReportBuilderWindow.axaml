@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.ReportBuilderWindow"
+        x:DataType="vm:ReportBuilderViewModel"
+        Title="Build a report" Width="600" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding CountText}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="outline" Content="Cancel" IsCancel="True" MinWidth="96" Click="OnCancel" HorizontalContentAlignment="Center" />
+          <Button Classes="primary" IsDefault="True" MinWidth="96" Click="OnMake" HorizontalContentAlignment="Center">
+            <TextBlock Text="Make the report" Foreground="{DynamicResource OnAccent}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <StackPanel Margin="28,24" Spacing="18">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconList}" /></Border>
+        <TextBlock Classes="title" FontSize="20" Text="Build a report" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Classes="label" Text="Title" />
+        <TextBox Text="{Binding Title}" Watermark="Leave empty for a title made from your choices" AutomationProperties.Name="Report title" />
+      </StackPanel>
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="WHO IS IN IT" />
+        <ListBox Classes="choices" ItemsSource="{Binding PeopleOptions}" SelectedIndex="{Binding PeopleIndex}"
+                 AutomationProperties.Name="Who is in the report" />
+        <Grid ColumnDefinitions="*,14,*">
+          <StackPanel IsVisible="{Binding HasGenerations}">
+            <TextBlock Classes="label" Text="Generations" />
+            <ComboBox ItemsSource="{Binding GenerationOptions}" SelectedItem="{Binding Generations}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Generations" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="Order" />
+            <ComboBox ItemsSource="{Binding OrderOptions}" SelectedIndex="{Binding OrderIndex}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Order" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="FOR EACH PERSON" />
+        <UniformGrid Columns="2">
+          <CheckBox IsChecked="{Binding Story}" Content="Their life story" />
+          <CheckBox IsChecked="{Binding Facts}" Content="A table of facts and events" />
+          <CheckBox IsChecked="{Binding Family}" Content="Parents, spouses and children" />
+          <CheckBox IsChecked="{Binding Notes}" Content="Their notes" />
+          <CheckBox IsChecked="{Binding Photos}" Content="Their photo" />
+        </UniformGrid>
+      </StackPanel>
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="THE REPORT" />
+        <UniformGrid Columns="2">
+          <CheckBox IsChecked="{Binding Sources}" Content="Numbered source notes" />
+          <CheckBox IsChecked="{Binding Index}" Content="An index of names" />
+          <CheckBox IsChecked="{Binding PagePerPerson}" Content="One person to a page" />
+        </UniformGrid>
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</Window>

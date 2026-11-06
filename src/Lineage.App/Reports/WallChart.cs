@@ -1,3 +1,4 @@
+using Color = Avalonia.Media.Color;
 using System.Globalization;
 using System.Text;
 using Avalonia;
@@ -19,6 +20,9 @@ public enum WallChartMode { SinglePoster, Tiled }
 /// <summary>Paper for tiled wall charts; Auto follows the computer's region like the other reports.</summary>
 public enum WallChartPaper { Auto, Letter, A4 }
 
+/// <summary>A poster's look: the program's own colours, old-style parchment with a double frame, or clean and modern.</summary>
+public enum WallChartStyle { Classic, Heritage, Modern }
+
 /// <summary>How to print a chart as a wall chart.</summary>
 public sealed record WallChartOptions
 {
@@ -36,6 +40,7 @@ public sealed record WallChartOptions
     public string Note { get; init; } = "";
     /// <summary>A thin frame around the chart on a poster.</summary>
     public bool Frame { get; init; }
+    public WallChartStyle Style { get; init; } = WallChartStyle.Classic;
 }
 
 /// <summary>What an export will produce (or produced): page grid, finished size and resolution.</summary>
@@ -68,6 +73,42 @@ public static class WallChart
 
     static WallChart() => PdfFonts.Setup();
 
+    /// <summary>The colours a style puts on the chart (Classic keeps the program's own).</summary>
+    public static IReadOnlyDictionary<string, Color> Palette(WallChartStyle style) => style switch
+    {
+        WallChartStyle.Heritage => new Dictionary<string, Color>
+        {
+            ["Bg"] = Color.Parse("#F3EBDD"), ["Surface"] = Color.Parse("#FBF6EC"), ["SurfaceAlt"] = Color.Parse("#F0E5D1"),
+            ["Line"] = Color.Parse("#CDBB9B"), ["LineStrong"] = Color.Parse("#8C7353"), ["Ink"] = Color.Parse("#3B2A1A"),
+            ["Muted"] = Color.Parse("#6E5A43"), ["Faint"] = Color.Parse("#A08C70"), ["Accent"] = Color.Parse("#7A5230"),
+            ["AccentSoft"] = Color.Parse("#EADBC2"),
+        },
+        WallChartStyle.Modern => new Dictionary<string, Color>
+        {
+            ["Bg"] = Color.Parse("#FFFFFF"), ["Surface"] = Color.Parse("#F5F6F7"), ["SurfaceAlt"] = Color.Parse("#ECEEF0"),
+            ["Line"] = Color.Parse("#DADDE1"), ["LineStrong"] = Color.Parse("#9AA3AD"), ["Ink"] = Color.Parse("#1E2328"),
+            ["Muted"] = Color.Parse("#5F6A75"), ["Faint"] = Color.Parse("#9AA3AD"), ["Accent"] = Color.Parse("#2E6B5E"),
+            ["AccentSoft"] = Color.Parse("#DCEDE8"),
+        },
+        _ => new Dictionary<string, Color>(),
+    };
+
+    /// <summary>Every colour a style may set.</summary>
+    public static readonly string[] PaletteKeys = { "Bg", "Surface", "SurfaceAlt", "Line", "LineStrong", "Ink", "Muted", "Faint", "Accent", "AccentSoft" };
+
+    /// <summary>Puts a style's colours on the chart; returns the keys to take off again afterwards.</summary>
+    private static List<string> PinStyle(ChartBase chart, WallChartStyle style)
+    {
+        var added = new List<string>();
+        foreach (var (key, colour) in Palette(style))
+            if (!chart.Resources.ContainsKey(key))
+            {
+                chart.Resources[key] = new SolidColorBrush(colour);
+                added.Add(key);
+            }
+        return added;
+    }
+
     /// <summary>Works out the pages without printing, e.g. to tell the user "6 pages, 1.2 × 0.6 m".</summary>
     public static WallChartPlan Plan(ChartBase chart, WallChartOptions options)
     {
@@ -97,7 +138,8 @@ public static class WallChart
     public static Bitmap Preview(ChartBase chart, WallChartOptions options, double maxPixels)
     {
         var theme = options.LightTheme || chart.ActualThemeVariant == ThemeVariant.Default ? ThemeVariant.Light : chart.ActualThemeVariant;
-        var pinned = PinTheme(chart, theme);
+        var pinned = PinStyle(chart, options.Style);
+        pinned.AddRange(PinTheme(chart, theme));
         try
         {
             var size = MeasureChart(chart, attached: false);
@@ -193,7 +235,8 @@ public static class WallChart
     {
         var attached = TopLevel.GetTopLevel(chart) != null;
         var theme = o.LightTheme || chart.ActualThemeVariant == ThemeVariant.Default ? ThemeVariant.Light : chart.ActualThemeVariant;
-        var pinned = PinTheme(chart, theme);
+        var pinned = PinStyle(chart, o.Style);
+        pinned.AddRange(PinTheme(chart, theme));
         try
         {
             var size = MeasureChart(chart, attached);
@@ -283,14 +326,33 @@ public static class WallChart
             page.Margin(PosterMargin);
             page.PageColor(c.Bg);
             page.DefaultTextStyle(t => t.FontColor(c.Ink));
+            var heritage = o.Style == WallChartStyle.Heritage;
+            var modern = o.Style == WallChartStyle.Modern;
             page.Header().Height(text.Header).Column(col =>
             {
-                col.Item().Text(t => { t.ClampLines(1); t.Span(title).FontSize(text.Title).SemiBold().FontColor(c.Ink); });
+                if (modern) col.Item().PaddingBottom(text.Title * 0.2f).Height(text.Title * 0.16f).Background(c.Accent);
+                col.Item().Text(t =>
+                {
+                    t.ClampLines(1);
+                    if (heritage) t.AlignCenter();
+                    var span = t.Span(title).FontSize(text.Title).FontColor(modern ? c.Accent : c.Ink);
+                    if (heritage) span.LetterSpacing(0.04f); else span.SemiBold();
+                });
                 if (o.Subtitle.Length > 0)
-                    col.Item().Text(t => { t.ClampLines(1); t.Span(o.Subtitle).FontSize(text.Subtitle).FontColor(c.Muted); });
-                col.Item().PaddingTop(text.Title * 0.25f).LineHorizontal(Math.Max(0.75f, text.Title / 40)).LineColor(c.Line);
+                    col.Item().Text(t =>
+                    {
+                        t.ClampLines(1);
+                        if (heritage) t.AlignCenter();
+                        var span = t.Span(o.Subtitle).FontSize(text.Subtitle).FontColor(c.Muted);
+                        if (heritage) span.Italic();
+                    });
+                if (!modern) col.Item().PaddingTop(text.Title * 0.25f).LineHorizontal(Math.Max(0.75f, text.Title / 40)).LineColor(heritage ? c.Accent : c.Line);
             });
-            var content = o.Frame ? page.Content().Border(Math.Max(0.75f, text.Title / 30)).BorderColor(c.Accent).Padding(text.Title * 0.4f) : page.Content();
+            var rule = Math.Max(0.75f, text.Title / 30);
+            // Heritage: a heavy outer rule and a fine inner one, like an old printed chart.
+            var content = !o.Frame ? page.Content()
+                : heritage ? page.Content().Border(rule * 2).BorderColor(c.Accent).Padding(rule * 3).Border(rule * 0.6f).BorderColor(c.Accent).Padding(text.Title * 0.3f)
+                : page.Content().Border(rule).BorderColor(c.Accent).Padding(text.Title * 0.4f);
             content.Column(col =>
             {
                 foreach (var (png, h) in strips)

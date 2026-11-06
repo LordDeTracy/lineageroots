@@ -7,7 +7,8 @@ public sealed record FsFact(string Tag, string Date, string Place);
 
 /// <summary>A person from the FamilySearch Family Tree, reduced to what Lineage Roots uses.</summary>
 public sealed record FsPerson(string Id, string Given, string Surname, string FullName, Sex Sex, bool Living,
-                              IReadOnlyList<FsFact> Facts, string Lifespan, int? AscendancyNumber, double? Score = null)
+                              IReadOnlyList<FsFact> Facts, string Lifespan, int? AscendancyNumber, double? Score = null,
+                              string? DescendancyNumber = null)
 {
     public FsFact? Fact(string tag) => Facts.FirstOrDefault(f => f.Tag == tag);
     public string Url => FamilySearchApi.PersonPageUrl(Id);
@@ -97,7 +98,8 @@ public static class GedcomX
         int? asc = display.ValueKind == JsonValueKind.Object && int.TryParse(Str(display, "ascendancyNumber"), out var n) ? n : null;
         var living = p.TryGetProperty("living", out var lv) && lv.ValueKind == JsonValueKind.True;
         var lifespan = display.ValueKind == JsonValueKind.Object ? Str(display, "lifespan") : "";
-        return new FsPerson(id, given, surname, full, sex, living, facts, lifespan, asc);
+        var desc = display.ValueKind == JsonValueKind.Object && Str(display, "descendancyNumber") is { Length: > 0 } dn ? dn : null;
+        return new FsPerson(id, given, surname, full, sex, living, facts, lifespan, asc, DescendancyNumber: desc);
     }
 
     private static (string, string) SplitName(string full)

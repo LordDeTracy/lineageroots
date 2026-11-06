@@ -15,6 +15,15 @@ public sealed class PhoneViewerOptions
     /// <summary>Who the viewer opens on (the home person); null opens the list of names.</summary>
     public long? HomePersonId { get; set; }
     public bool IncludeNotes { get; set; } = true;
+    /// <summary>
+    /// Turns a photo's stored path into a small picture for the page ("data:image/jpeg;base64,…"), or null to leave it
+    /// out. <c>portrait</c> is true for the picture beside the name, which can be smaller. No function, no photos.
+    /// </summary>
+    public Func<string, bool, string?>? Picture { get; set; }
+    /// <summary>Photos per person besides the portrait.</summary>
+    public int PhotosPerPerson { get; set; } = 6;
+    /// <summary>Roughly how big the photos may make the page (portraits come first, so everyone keeps a face).</summary>
+    public long PhotoBudget { get; set; } = 40_000_000;
 }
 
 /// <summary>
@@ -29,7 +38,8 @@ public static class PhoneViewer
     public static string Build(FamilyTree tree, PhoneViewerOptions options, Func<string, string>? translate = null)
     {
         var t = translate ?? (s => s);
-        var people = tree.People.Values.Select(p => Entry(tree, p, options, t)).ToList();
+        var photos = Photos(tree, options);
+        var people = tree.People.Values.Select(p => Entry(tree, p, options, t, photos)).ToList();
         var data = new
         {
             title = options.Title.Length > 0 ? options.Title : t("Family tree"),
@@ -49,10 +59,56 @@ public static class PhoneViewer
         "Family tree", "Search names", "person", "people", "Home person", "Parents", "Brothers and sisters", "Children", "Child",
         "Family", "With", "Married", "Life events", "Notes", "Ancestors", "Also known as", "No one matches that name.",
         "All names", "Made with Lineage Roots on", "Unknown", "Show more", "Father", "Mother", "Grandfather", "Grandmother",
+        "Photos", "Close",
     };
 
-    private static object Entry(FamilyTree tree, Person p, PhoneViewerOptions options, Func<string, string> t)
+    private static readonly HashSet<string> WebImages = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic" };
+
+    private sealed record PersonPhotos(string? Portrait, List<(string Src, string Caption)> More);
+
+    /// <summary>
+    /// Each person's portrait (their chosen profile photo, or the first picture) and some more photos, shrunk by
+    /// <see cref="PhoneViewerOptions.Picture"/>. Portraits are made for everyone before any other photo, and other photos stop
+    /// once the budget is spent, so a big collection can't make the page too heavy for a phone.
+    /// </summary>
+    private static Dictionary<long, PersonPhotos> Photos(FamilyTree tree, PhoneViewerOptions options)
     {
+        var result = new Dictionary<long, PersonPhotos>();
+        if (options.Picture is not { } picture) return result;
+        var made = new Dictionary<(string, bool), string?>();
+        long spent = 0;
+        string? Make(string file, bool portrait)
+        {
+            if (made.TryGetValue((file, portrait), out var known)) return known;   // a family photo shared by several people goes in once per size
+            string? src = null;
+            try { src = picture(file, portrait); } catch (Exception) { /* unreadable picture: left out */ }
+            made[(file, portrait)] = src;
+            spent += src?.Length ?? 0;
+            return src;
+        }
+        bool IsPicture(MediaLink m) => WebImages.Contains(Path.GetExtension(m.File));
+        var faces = new Dictionary<long, string>();   // whose portrait is which file, so it isn't shown twice
+
+        foreach (var p in tree.People.Values)
+        {
+            string? portrait = null;
+            foreach (var m in p.SharedMedia.Where(m => m.Primary).Concat(p.SharedMedia).Where(IsPicture))
+                if ((portrait = Make(m.File, true)) != null) { faces[p.Id] = m.File; break; }
+            result[p.Id] = new PersonPhotos(portrait, new());
+        }
+        foreach (var p in tree.People.Values)
+            foreach (var m in p.SharedMedia.Where(m => IsPicture(m) && m.File != faces.GetValueOrDefault(p.Id)).DistinctBy(m => m.File)
+                         .Take(Math.Max(0, options.PhotosPerPerson)))
+            {
+                if (spent > options.PhotoBudget) return result;
+                if (Make(m.File, false) is { } src) result[p.Id].More.Add((src, m.Title.Trim()));
+            }
+        return result;
+    }
+
+    private static object Entry(FamilyTree tree, Person p, PhoneViewerOptions options, Func<string, string> t, Dictionary<long, PersonPhotos> photos)
+    {
+        var pictures = photos.GetValueOrDefault(p.Id);
         var events = StoryWriter.Visible(p.Events).Select(e => (Event: e, With: (Person?)null)).ToList();
         foreach (var (family, spouse, _) in tree.FamiliesOf(p))
             events.AddRange(StoryWriter.Visible(family.Events).Select(e => (Event: e, With: spouse)));
@@ -83,14 +139,16 @@ public static class PhoneViewer
             k = SortKey(p),
             y = p.Lifespan,
             x = p.Sex switch { Sex.Male => "m", Sex.Female => "f", _ => "" },
-            a = p.Names.Skip(1).Select(n => n.Full).Where(n => n.Length > 0 && n != p.DisplayName).Distinct().ToArray(),
+            a = p.SharedNames.Skip(1).Select(n => n.Full).Where(n => n.Length > 0 && n != p.DisplayName).Distinct().ToArray(),
             o = Calling(p),
             b = StoryWriter.Find(p, "BIRT")?.Place.Trim() ?? StoryWriter.Find(p, "CHR")?.Place.Trim() ?? "",
             r = tree.ParentsOf(p).Distinct().Select(x => x.Id).ToArray(),
             f = families,
             g = siblings,
             e = timeline,
-            t = options.IncludeNotes ? NoteFormat.Html(p.Note) : "",   // formatted and already escaped
+            t = options.IncludeNotes ? NoteFormat.Html(p.SharedNote) : "",   // formatted and already escaped
+            ph = pictures?.Portrait,
+            pp = pictures?.More.Select(x => new { s = x.Src, c = x.Caption }).ToArray() ?? Array.Empty<object>(),
         };
     }
 
@@ -147,6 +205,18 @@ ol.events li:last-child { border-bottom:none; }
 .tree a { display:block; padding:8px 10px; border-radius:12px; background:var(--soft); color:var(--ink); text-decoration:none; font-size:14px; }
 .tree a.none { opacity:.45; pointer-events:none; }
 .tree .gen { grid-column:1 / -1; font-size:12px; color:var(--muted); margin-top:4px; }
+.dot.pic { background-size:cover; background-position:center; color:transparent; }
+.head { display:flex; gap:14px; align-items:center; }
+.head img { width:84px; height:84px; border-radius:50%; object-fit:cover; flex:none; border:1px solid var(--line); }
+.gallery { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+.gallery figure { margin:0; }
+.gallery img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; display:block; cursor:zoom-in; }
+.gallery figcaption { font-size:12px; color:var(--muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#big { position:fixed; inset:0; z-index:5; background:rgba(0,0,0,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+#big[hidden] { display:none; }
+#big img { max-width:100%; max-height:80vh; border-radius:8px; }
+#big p { color:#ddd; font-size:14px; text-align:center; }
+#big button { color:#fff; border-color:#666; margin-top:8px; }
 a { color:var(--accent); }
 footer { text-align:center; font-size:12px; color:var(--muted); margin-top:16px; }
 </style>
@@ -155,6 +225,7 @@ footer { text-align:center; font-size:12px; color:var(--muted); margin-top:16px;
 <header><div class="row"><button id="all" hidden>☰</button><h1 id="title"></h1><button id="home" hidden>⌂</button></div>
 <input id="q" type="search" autocomplete="off"></header>
 <main id="main"></main>
+<div id="big" hidden><img alt=""><p></p><button type="button"></button></div>
 <script>
 const D = /*DATA*/;
 const W = s => D.words[s] || s;
@@ -166,7 +237,8 @@ const initials = p => (p.n.match(/\b\p{L}/gu) || ["?"]).slice(0, 2).join("").toU
 function row(p) {
   if (!p) return "";
   const sub = [p.y, p.b].filter(Boolean).join(" · ");
-  return `<li><a href="#p${p.i}"><span class="dot ${p.x}">${esc(initials(p))}</span><span class="who"><b>${esc(p.n)}</b>${sub ? `<span class="muted small">${esc(sub)}</span>` : ""}</span></a></li>`;
+  const dot = p.ph ? `<span class="dot pic" style="background-image:url('${p.ph}')"></span>` : `<span class="dot ${p.x}">${esc(initials(p))}</span>`;
+  return `<li><a href="#p${p.i}">${dot}<span class="who"><b>${esc(p.n)}</b>${sub ? `<span class="muted small">${esc(sub)}</span>` : ""}</span></a></li>`;
 }
 function list(ids) { return `<ul class="people">${ids.map(id => row(byId.get(id))).join("")}</ul>`; }
 let shown = 200;
@@ -190,12 +262,17 @@ function parentsOf(id) { const p = byId.get(id); return p ? p.r : []; }
 function father(id) { return parentsOf(id).find(x => byId.get(x)?.x === "m") ?? parentsOf(id)[0]; }
 function mother(id) { return parentsOf(id).find(x => x !== father(id)); }
 function showPerson(p) {
-  let h = `<div class="card"><p class="name">${esc(p.n)}</p>`;
+  let h = `<div class="card"><div class="head">${p.ph ? `<img src="${p.ph}" alt="">` : ""}<div><p class="name">${esc(p.n)}</p>`;
   if (p.y) h += `<p class="muted" style="margin:4px 0 0">${esc(p.y)}</p>`;
   if (p.o) h += `<p style="margin:4px 0 0">${esc(p.o)}</p>`;
   if (p.a.length) h += `<p class="muted small" style="margin:6px 0 0">${esc(W("Also known as"))} ${esc(p.a.join(", "))}</p>`;
   if (D.home === p.i) h += `<p class="small" style="margin:6px 0 0;color:var(--accent)">${esc(W("Home person"))}</p>`;
-  h += `</div>`;
+  h += `</div></div></div>`;
+  if (p.pp.length) {
+    h += `<div class="card"><h2>${esc(W("Photos"))}</h2><div class="gallery">`;
+    p.pp.forEach((x, n) => { h += `<figure><img src="${x.s}" alt="${esc(x.c)}" data-n="${n}">${x.c ? `<figcaption>${esc(x.c)}</figcaption>` : ""}</figure>`; });
+    h += `</div></div>`;
+  }
   if (p.e.length) {
     h += `<div class="card"><h2>${esc(W("Life events"))}</h2><ol class="events">`;
     for (const e of p.e) {
@@ -231,16 +308,25 @@ function showPerson(p) {
   }
   if (p.t) h += `<div class="card"><h2>${esc(W("Notes"))}</h2><div class="note">${p.t}</div></div>`;
   $("main").innerHTML = h;
+  for (const img of document.querySelectorAll(".gallery img")) img.onclick = () => {
+    const x = p.pp[Number(img.dataset.n)];
+    $("big").querySelector("img").src = x.s;
+    $("big").querySelector("p").textContent = x.c;
+    $("big").hidden = false;
+  };
   window.scrollTo(0, 0);
 }
 function route() {
   const m = location.hash.match(/^#p(-?\d+)$/);
   const p = m ? byId.get(Number(m[1])) : null;
+  $("big").hidden = true;
   $("q").hidden = !!p; $("all").hidden = !p; $("home").hidden = D.home == null || (p && p.i === D.home);
   if (p) { $("title").textContent = p.n; document.title = p.n; showPerson(p); }
   else { $("title").textContent = D.title; document.title = D.title; showList(); }
 }
 $("q").placeholder = W("Search names");
+$("big").querySelector("button").textContent = W("Close");
+$("big").onclick = () => $("big").hidden = true;
 $("q").addEventListener("input", () => { shown = 200; showList(); });
 // The phone's own back button goes back; this one always leads to the list of names.
 $("all").onclick = () => location.hash = "#all";

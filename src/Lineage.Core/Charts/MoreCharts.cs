@@ -3,6 +3,9 @@ using Lineage.Core.Model;
 
 namespace Lineage.Core.Charts;
 
+/// <summary>Who the lifelines chart shows.</summary>
+public enum LifelineScope { Family, FatherSide, MotherSide, Descendants }
+
 /// <summary>One life on the lifelines chart: who, how related, and the years (an open end is estimated).</summary>
 public sealed record LifeRow(long PersonId, string Name, string Relation, int From, int To, bool FromEstimated, bool ToEstimated, bool IsRoot);
 
@@ -25,25 +28,42 @@ public static class MoreCharts
     /// The person's family across time: great-grandparents to grandchildren, with siblings and spouses, each a bar
     /// from birth to death, earliest first. People with no dates at all are left out.
     /// </summary>
-    public static List<LifeRow> Lifelines(FamilyTree tree, long rootId, int? currentYear = null)
+    public static List<LifeRow> Lifelines(FamilyTree tree, long rootId, int? currentYear = null, LifelineScope scope = LifelineScope.Family)
     {
         if (tree.Person(rootId) is not { } root) return new();
         var now = currentYear ?? DateTime.Today.Year;
         var people = new Dictionary<long, Person> { [root.Id] = root };
         void Add(Person? p) { if (p != null) people.TryAdd(p.Id, p); }
-        foreach (var a in tree.Ancestors(root, 4).Values) Add(a);
-        foreach (var parent in tree.ParentsOf(root))
-            foreach (var (_, _, children) in tree.FamiliesOf(parent))
-                foreach (var sibling in children) Add(sibling);
-        foreach (var (_, spouse, children) in tree.FamiliesOf(root))
+        switch (scope)
         {
-            Add(spouse);
-            foreach (var child in children)
-            {
-                Add(child);
-                foreach (var (_, _, grandchildren) in tree.FamiliesOf(child))
-                    foreach (var g in grandchildren) Add(g);
-            }
+            case LifelineScope.FatherSide or LifelineScope.MotherSide:
+                var (father, mother) = tree.PrimaryParents(root);
+                if ((scope == LifelineScope.FatherSide ? father : mother) is { } side)
+                    foreach (var a in tree.Ancestors(side, 12).Values) Add(a);
+                break;
+            case LifelineScope.Descendants:
+                var line = new Queue<Person>(new[] { root });
+                while (line.Count > 0 && people.Count < 5000)
+                    foreach (var (_, _, children) in tree.FamiliesOf(line.Dequeue()))
+                        foreach (var child in children)
+                            if (people.TryAdd(child.Id, child)) line.Enqueue(child);
+                break;
+            default:
+                foreach (var a in tree.Ancestors(root, 4).Values) Add(a);
+                foreach (var parent in tree.ParentsOf(root))
+                    foreach (var (_, _, children) in tree.FamiliesOf(parent))
+                        foreach (var sibling in children) Add(sibling);
+                foreach (var (_, spouse, children) in tree.FamiliesOf(root))
+                {
+                    Add(spouse);
+                    foreach (var child in children)
+                    {
+                        Add(child);
+                        foreach (var (_, _, grandchildren) in tree.FamiliesOf(child))
+                            foreach (var g in grandchildren) Add(g);
+                    }
+                }
+                break;
         }
 
         var rows = new List<LifeRow>();
@@ -59,6 +79,13 @@ public static class MoreCharts
                                  from, to, born == 0, died == 0, p.Id == root.Id));
         }
         return rows.OrderBy(r => r.From).ThenBy(r => r.Name).ToList();
+    }
+
+    /// <summary>The average age at death of those whose birth and death years are both recorded, and how many that is.</summary>
+    public static (double Average, int People) Longevity(IEnumerable<LifeRow> rows)
+    {
+        var known = rows.Where(r => !r.FromEstimated && !r.ToEstimated).Select(r => r.To - r.From).ToList();
+        return known.Count == 0 ? (0, 0) : (known.Average(), known.Count);
     }
 
     /// <summary>

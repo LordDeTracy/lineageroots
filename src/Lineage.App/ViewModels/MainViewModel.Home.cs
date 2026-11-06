@@ -51,6 +51,25 @@ public sealed partial class MainViewModel
         FillRelations(_allRows);            // and so does the people list
     }
 
+    /// <summary>Picks the home person by name, from Home, the Relationship chart or anywhere else.</summary>
+    [RelayCommand]
+    private async Task ChooseHomePersonAsync()
+    {
+        if (!HasTree) return;
+        string Label(Lineage.Core.Model.Person p) => p.Lifespan.Length > 0 ? $"{p.DisplayName} ({p.Lifespan})" : p.DisplayName;
+        var people = _tree.People.Values.OrderBy(p => p.PrimaryName.SortKey).ToList();
+        var current = _tree.Person(_tree.HomePersonId) ?? _current;
+        var answer = await _dialogs.PromptAsync("Choose the home person",
+            "Usually you. Everyone's relationship is shown from them, and Ctrl+H comes back to them.",
+            current != null ? Label(current) : "", people.Select(Label).ToList());
+        if (string.IsNullOrWhiteSpace(answer)) return;
+        var chosen = people.FirstOrDefault(p => Label(p) == answer.Trim())
+                     ?? people.FirstOrDefault(p => p.DisplayName.Equals(answer.Trim(), StringComparison.CurrentCultureIgnoreCase));
+        if (chosen == null) { Status = "No one in the tree has that name — pick a name from the list."; return; }
+        OpenPerson(chosen.Id);
+        SetHomePerson();
+    }
+
     [RelayCommand]
     private void GoToHomePerson()
     {

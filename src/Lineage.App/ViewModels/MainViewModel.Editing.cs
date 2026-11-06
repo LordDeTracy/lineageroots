@@ -41,6 +41,10 @@ public sealed partial class MainViewModel
         RebuildRows();
         RebuildSources();
         RebuildResearch();
+        if (IsHomeSection) RebuildHome();
+        if (IsPlacesSection) RebuildPlaceList();
+        if (IsDnaSection) RebuildDna();
+        if (IsEvidenceAnalysis) RebuildEvidence();
         var id = _current?.Id ?? 0;
         if (_tree.Person(id) != null) Show(id, recordHistory: false);
         else if (_tree.People.Count > 0) Show(_tree.People.Keys.Min(), recordHistory: false);
@@ -99,6 +103,13 @@ public sealed partial class MainViewModel
         AncestorReportCommand.NotifyCanExecuteChanged();
         DescendantReportCommand.NotifyCanExecuteChanged();
         RegisterReportCommand.NotifyCanExecuteChanged();
+        NgsqReportCommand.NotifyCanExecuteChanged();
+        SlideShowCommand.NotifyCanExecuteChanged();
+        AddAssociateCommand.NotifyCanExecuteChanged();
+        SideBySideCommand.NotifyCanExecuteChanged();
+        BuildReportCommand.NotifyCanExecuteChanged();
+        AhnentafelReportCommand.NotifyCanExecuteChanged();
+        WhosMissingReportCommand.NotifyCanExecuteChanged();
         IndividualSummaryCommand.NotifyCanExecuteChanged();
         FamilyBookCommand.NotifyCanExecuteChanged();
         ClientReportCommand.NotifyCanExecuteChanged();
@@ -106,6 +117,8 @@ public sealed partial class MainViewModel
         FamilySearchFindCommand.NotifyCanExecuteChanged();
         FamilySearchCompareCommand.NotifyCanExecuteChanged();
         FamilySearchDownloadAncestorsCommand.NotifyCanExecuteChanged();
+        FamilySearchDownloadDescendantsCommand.NotifyCanExecuteChanged();
+        SaveBranchCommand.NotifyCanExecuteChanged();
     }
 
     // ---- people -------------------------------------------------------------------------------

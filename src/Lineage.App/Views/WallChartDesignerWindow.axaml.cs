@@ -56,6 +56,7 @@ public partial class WallChartDesignerWindow : Window
         {
             WallChartKind.Fan => new FanChart { Generations = g },
             WallChartKind.Descendants => new DescendantChart { Generations = g },
+            WallChartKind.BowTie => new BowTieChart { Generations = g },
             WallChartKind.Hourglass => new HourglassChart { AncestorGenerations = Math.Max(2, g / 2 + 1), DescendantGenerations = Math.Max(2, g / 2 + 1) },
             _ => new PedigreeChart { Generations = g },
         };
@@ -73,7 +74,16 @@ public partial class WallChartDesignerWindow : Window
         if (Vm is not { } vm || _chart == null) return;
         var options = vm.ToOptions();
         SheetScope.RequestedThemeVariant = options.LightTheme ? ThemeVariant.Light : ActualThemeVariant;
-        ChartFrame.BorderThickness = new Thickness(options.Frame ? 2 : 0);
+        // The sheet around the preview wears the chosen look too.
+        foreach (var key in WallChart.PaletteKeys) SheetScope.Resources.Remove(key);
+        foreach (var (key, colour) in WallChart.Palette(options.Style)) SheetScope.Resources[key] = new SolidColorBrush(colour);
+        var centred = options.Style == WallChartStyle.Heritage;
+        PreviewTitle.HorizontalAlignment = PreviewSubtitle.HorizontalAlignment = PreviewNote.HorizontalAlignment =
+            centred ? Avalonia.Layout.HorizontalAlignment.Center : Avalonia.Layout.HorizontalAlignment.Left;
+        if (options.Style == WallChartStyle.Modern && SheetScope.FindResource("Accent") is IBrush accent) PreviewTitle.Foreground = accent;
+        else PreviewTitle.ClearValue(TextBlock.ForegroundProperty);
+        PreviewBand.IsVisible = options.Style == WallChartStyle.Modern;
+        ChartFrame.BorderThickness = new Thickness(options.Frame ? (centred ? 3 : 2) : 0);
         PreviewNote.IsVisible = vm.Note.Trim().Length > 0;
         PreviewSubtitle.IsVisible = vm.Subtitle.Trim().Length > 0;
         try

@@ -1,0 +1,104 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lineage.App.ViewModels"
+        xmlns:c="using:Lineage.App.Controls"
+        x:Class="Lineage.App.Views.CalculatorsWindow"
+        x:DataType="vm:CalculatorsViewModel"
+        Title="Calculators" Width="640" Height="560" WindowStartupLocation="CenterOwner" Classes="editor"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
+            BorderThickness="0,1,0,0" Padding="24,14">
+      <Button Classes="primary" IsDefault="True" IsCancel="True" MinWidth="96" HorizontalAlignment="Right" Click="OnClose"
+              HorizontalContentAlignment="Center">
+        <TextBlock Text="Close" Foreground="{DynamicResource OnAccent}" />
+      </Button>
+    </Border>
+    <StackPanel Margin="28,22,28,0" Spacing="14">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Classes="iconTile"><c:LineIcon Data="{StaticResource IconCalendar}" /></Border>
+        <TextBlock Classes="title" FontSize="20" Text="Calculators" VerticalAlignment="Center" />
+      </StackPanel>
+      <TabControl>
+        <TabItem Header="Dates">
+          <StackPanel Spacing="10" Margin="0,12,0,0">
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="The time between two dates. Leave the second empty for today." />
+            <Grid ColumnDefinitions="*,14,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="From" />
+                <TextBox Text="{Binding FromDate}" Watermark="14 Mar 1842" AutomationProperties.Name="From" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="To" />
+                <TextBox Text="{Binding ToDate}" Watermark="Today" AutomationProperties.Name="To" />
+              </StackPanel>
+            </Grid>
+            <SelectableTextBlock Text="{Binding BetweenText}" TextWrapping="Wrap" FontSize="15" />
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Age">
+          <StackPanel Spacing="10" Margin="0,12,0,0">
+            <TextBlock Classes="muted small" TextWrapping="Wrap"
+                       Text="When was someone born, from their age in a record? (The 1841 census in England usually rounded adults' ages down to 5 years.)" />
+            <Grid ColumnDefinitions="2*,14,*,10,*,10,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Date of the record" />
+                <TextBox Text="{Binding AgeOnDate}" Watermark="6 Jun 1841" AutomationProperties.Name="Date of the record" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Years" />
+                <TextBox Text="{Binding AgeYears}" AutomationProperties.Name="Years" />
+              </StackPanel>
+              <StackPanel Grid.Column="4">
+                <TextBlock Classes="label" Text="Months" />
+                <TextBox Text="{Binding AgeMonths}" AutomationProperties.Name="Months" />
+              </StackPanel>
+              <StackPanel Grid.Column="6">
+                <TextBlock Classes="label" Text="Days" />
+                <TextBox Text="{Binding AgeDays}" AutomationProperties.Name="Days" />
+              </StackPanel>
+            </Grid>
+            <SelectableTextBlock Text="{Binding BornText}" TextWrapping="Wrap" FontSize="15" />
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Calendars">
+          <StackPanel Spacing="10" Margin="0,12,0,0">
+            <StackPanel>
+              <TextBlock Classes="label" Text="The date is written in" />
+              <ComboBox ItemsSource="{Binding CalendarOptions}" SelectedIndex="{Binding CalendarIndex}" MinWidth="260"
+                        AutomationProperties.Name="Calendar" />
+            </StackPanel>
+            <TextBlock Classes="muted small" Text="{Binding CalendarHint}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,10,*,10,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="Day" />
+                <TextBox Text="{Binding CalDay}" AutomationProperties.Name="Day" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="Month" />
+                <TextBox Text="{Binding CalMonth}" Watermark="Number" AutomationProperties.Name="Month" />
+              </StackPanel>
+              <StackPanel Grid.Column="4">
+                <TextBlock Classes="label" Text="Year" />
+                <TextBox Text="{Binding CalYear}" AutomationProperties.Name="Year" />
+              </StackPanel>
+            </Grid>
+            <SelectableTextBlock Text="{Binding CalendarResult}" TextWrapping="Wrap" FontSize="15" LineHeight="24" />
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="Soundex">
+          <StackPanel Spacing="10" Margin="0,12,0,0">
+            <TextBlock Classes="muted small" TextWrapping="Wrap"
+                       Text="Soundex codes group surnames that sound alike; censuses and many indexes are filed by them." />
+            <StackPanel>
+              <TextBlock Classes="label" Text="Surname" />
+              <TextBox Text="{Binding SoundexName}" Watermark="Whitfield" AutomationProperties.Name="Surname" />
+            </StackPanel>
+            <TextBlock Text="{Binding SoundexCode}" FontSize="28" FontWeight="Light" />
+            <SelectableTextBlock Text="{Binding SoundexMatches}" TextWrapping="Wrap" />
+          </StackPanel>
+        </TabItem>
+      </TabControl>
+    </StackPanel>
+  </DockPanel>
+</Window>

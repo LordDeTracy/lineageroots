@@ -36,6 +36,7 @@ public static class Translator
         Language = "en";
         _map = new();
         _patterns = new();
+        Lineage.Core.Reports.StoryLanguage.Current = Lineage.Core.Reports.StoryLanguage.English;
         if (code is "en" or "" || Languages.All(l => l.Code != code)) return;
         try
         {
@@ -44,6 +45,10 @@ public static class Translator
             _patterns = _map.Where(p => p.Value.Length > 0 && Gap.IsMatch(p.Key)).Select(p => MakePattern(p.Key, p.Value))
                 .OrderByDescending(p => p.Head.Length + p.Tail.Length).ToList();
             Language = code;
+            // Life stories are written in the language's own sentences, not translated word by word.
+            var story = Lineage.Core.Reports.StoryLanguage.For(code);
+            story.Words = T;
+            Lineage.Core.Reports.StoryLanguage.Current = story;
         }
         catch (Exception) { /* no list for it: English */ }
     }

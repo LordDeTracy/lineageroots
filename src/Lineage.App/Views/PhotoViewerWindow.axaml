@@ -104,10 +104,16 @@
             <TextBlock Classes="small" Foreground="{DynamicResource Danger}" Margin="2,6,0,0" TextWrapping="Wrap"
                        Text="{Binding LocationError}" IsVisible="{Binding HasLocationError}" />
           </StackPanel>
+          <CheckBox IsChecked="{Binding IsPrivate}" Content="Private: keep this photo out of anything shared"
+                    ToolTip.Tip="Left out of GEDCOM exports, websites, the phone viewer and reports when private things are left out" />
           <StackPanel>
             <TextBlock Classes="label" Text="Notes" />
             <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" Height="84"
                      VerticalContentAlignment="Top" AutomationProperties.Name="Notes" />
+            <Button Classes="outline" Content="Read the text in this picture" Command="{Binding ReadTextCommand}" Margin="0,8,0,0"
+                    IsVisible="{Binding CanReadText}" ToolTip.Tip="For scanned documents with clear print; it stays on this computer" />
+            <TextBlock Classes="muted small" Text="{Binding ReadTextMessage}" TextWrapping="Wrap" Margin="2,6,0,0"
+                       IsVisible="{Binding HasReadTextMessage}" />
           </StackPanel>
 
           <StackPanel Spacing="10">

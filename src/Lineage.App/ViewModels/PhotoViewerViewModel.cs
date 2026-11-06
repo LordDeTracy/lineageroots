@@ -142,6 +142,8 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(Heading))] private string _title = "";
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(TakenHint), nameof(HasTakenHint))] private string _taken = "";
     [ObservableProperty] private string _note = "";
+    /// <summary>Kept out of anything shared.</summary>
+    [ObservableProperty] private bool _isPrivate;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(LocationError), nameof(HasLocationError))] private string _location = "";
 
     public string Heading => Title.Trim().Length > 0 ? Title.Trim() : Path.GetFileNameWithoutExtension(FileName);
@@ -153,6 +155,7 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
 
     partial void OnTitleChanged(string value) { if (!_showing) Current.Title = value.Trim(); }
     partial void OnNoteChanged(string value) { if (!_showing) Current.Note = value; }
+    partial void OnIsPrivateChanged(bool value) { if (!_showing) Current.Private = value; }
 
     partial void OnTakenChanged(string value)
     {
@@ -167,6 +170,37 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
         if (_showing) return;
         if (value.Trim().Length == 0) Current.Location = null;
         else if (GeoPoint.Parse(value) is { } at) Current.Location = at;
+    }
+
+    // ---- Reading the text in a scan ----
+
+    public bool CanReadText => Lineage.App.Services.TextRecognition.IsAvailable;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ReadTextCommand))] private bool _isReadingText;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasReadTextMessage))] private string _readTextMessage = "";
+    public bool HasReadTextMessage => ReadTextMessage.Length > 0;
+    private bool NotReadingText => !IsReadingText;
+
+    /// <summary>Reads the printed text in the picture and adds it to the photo's notes.</summary>
+    [RelayCommand(CanExecute = nameof(NotReadingText))]
+    private async Task ReadTextAsync()
+    {
+        IsReadingText = true;
+        ReadTextMessage = "Reading the text…";
+        var photo = Current;
+        var path = FullPath;
+        try
+        {
+            var found = await Task.Run(() => Lineage.App.Services.TextRecognition.Read(path));
+            if (found.Text.Length == 0) { ReadTextMessage = "No text was found in this picture."; return; }
+            var note = photo.Note.Trim().Length > 0 ? photo.Note.TrimEnd() + "\n\n" + found.Text : found.Text;
+            photo.Note = note;
+            if (ReferenceEquals(photo, Current)) Note = note;
+            ReadTextMessage = found.IsDoubtful
+                ? "Added to the notes, but the reader wasn't sure of it (it does best with clear print, not handwriting). Check it against the picture."
+                : "Added to the notes. Check it against the picture.";
+        }
+        catch (Lineage.App.Services.TextRecognitionException ex) { ReadTextMessage = ex.Message; }
+        finally { IsReadingText = false; }
     }
 
     // ---- Tagging ----
@@ -345,6 +379,8 @@ public sealed partial class PhotoViewerViewModel : ObservableObject, IDisposable
         Title = Current.Title;
         Taken = Current.Taken.Length > 0 ? Display.Date(GenDate.Parse(Current.Taken)) : "";
         Note = Current.Note;
+        IsPrivate = Current.Private;
+        ReadTextMessage = "";
         Location = Current.Location?.ToString() ?? "";
         _showing = false;
         OnPropertyChanged(nameof(Heading));

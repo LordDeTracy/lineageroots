@@ -1,3 +1,4 @@
+using QuestPDF.Fluent;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -66,5 +67,25 @@ public class WallChartDesignerTests
             Assert.True(new FileInfo(path).Length > 2000);
         }
         finally { File.Delete(path); }
+    }
+
+    [AvaloniaFact]
+    public async Task ABowTiePosterInEachStyle()
+    {
+        var (vm, _) = await Demo.OpenAsync();
+        var root = vm.Tree.People.Values.Single(p => p.DisplayName == "Thomas Edward Whitfield");
+        foreach (var style in Enum.GetValues<WallChartStyle>())
+        {
+            var designer = new WallChartDesignerViewModel(vm.Tree, root, vm.TreeName, WallChartKind.BowTie, false) { StyleIndex = (int)style };
+            Assert.StartsWith("The ancestors of", designer.Title);
+            var chart = new BowTieChart { Generations = 3, Data = new ChartData(vm.Tree, root.Id, vm.Tree.Ancestors(root, 3)) };
+            var options = designer.ToOptions();
+            Assert.Equal(style, options.Style);
+            var pages = WallChart.Prepare(chart, options, out _).GenerateImages(new QuestPDF.Infrastructure.ImageGenerationSettings { RasterDpi = 40 }).ToList();
+            Assert.Single(pages);
+            if (Environment.GetEnvironmentVariable("LINEAGE_SAMPLES") is { Length: > 0 } dir)
+                File.WriteAllBytes(Path.Combine(dir, $"bowtie-{style}.png"), pages[0]);
+            Assert.False(chart.Resources.ContainsKey("Bg"));       // the style's colours come off the chart again
+        }
     }
 }

@@ -54,6 +54,17 @@ public static class Merger
             foreach (var m in p.DnaMatches)
                 if (m.PersonId == other.Id) m.PersonId = keep.Id;
 
+        // Witnesses, godparents and associates follow the merge too.
+        keep.Associations.AddRange(other.Associations.Where(x => x.PersonId != keep.Id && keep.Associations.All(k => k.PersonId != x.PersonId)));
+        foreach (var p in tree.People.Values)
+        {
+            foreach (var x in p.Associations) if (x.PersonId == other.Id) x.PersonId = keep.Id;
+            p.Associations.RemoveAll(x => x.PersonId == p.Id);
+            foreach (var r in p.Events.SelectMany(e => e.Roles)) if (r.PersonId == other.Id) r.PersonId = keep.Id;
+        }
+        foreach (var r in tree.Families.Values.SelectMany(f => f.Events).SelectMany(e => e.Roles))
+            if (r.PersonId == other.Id) r.PersonId = keep.Id;
+
         // Move family links.
         foreach (var fid in other.ParentFamilyIds)
         {

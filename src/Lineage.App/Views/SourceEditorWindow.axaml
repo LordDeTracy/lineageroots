@@ -32,6 +32,49 @@
       <StackPanel Margin="28,24,28,24" Spacing="18">
         <TextBlock Classes="title" FontSize="20" Text="{Binding Title}" />
 
+        <StackPanel Spacing="10">
+          <StackPanel Spacing="6" IsVisible="{Binding ShowLinkTools}">
+            <TextBlock Classes="label" Text="Make the citation from a web link" />
+            <Grid ColumnDefinitions="*,8,Auto">
+              <TextBox Text="{Binding Link}" Watermark="Paste a link to a record, e.g. on FamilySearch or Find a Grave"
+                       AutomationProperties.Name="Web link" />
+              <Button Grid.Column="2" Classes="outline" Content="Fill in" Command="{Binding FillFromLinkCommand}" />
+            </Grid>
+            <TextBlock Classes="muted small" Text="{Binding LinkMessage}" TextWrapping="Wrap" IsVisible="{Binding HasLinkMessage}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="Citation template" />
+            <ComboBox ItemsSource="{x:Static vm:SourceEditorViewModel.TemplateOptions}" SelectedItem="{Binding TemplateOption}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Citation template"
+                      ToolTip.Tip="Fill in a form for this kind of source, and notes and bibliographies are written in the Evidence Explained style" />
+          </StackPanel>
+          <Border IsVisible="{Binding HasTemplate}" Classes="card" Padding="16,14" CornerRadius="12"
+                  Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="1">
+            <StackPanel Spacing="10">
+              <ItemsControl ItemsSource="{Binding Fields}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TemplateFieldRow">
+                    <StackPanel Margin="0,0,12,10">
+                      <TextBlock Classes="label" Text="{Binding Label}" />
+                      <TextBox Text="{Binding Value}" Watermark="{Binding Example}" AutomationProperties.Name="{Binding Label}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="section" Text="HOW IT WILL BE CITED" />
+              <TextBlock Classes="faint small" Text="First note (the page or entry comes from each citation)" />
+              <SelectableTextBlock Text="{Binding PreviewFull}" TextWrapping="Wrap" />
+              <TextBlock Classes="faint small" Text="Later notes" />
+              <SelectableTextBlock Text="{Binding PreviewShort}" TextWrapping="Wrap" />
+              <TextBlock Classes="faint small" Text="Bibliography" />
+              <SelectableTextBlock Text="{Binding PreviewBibliography}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
         <StackPanel>
           <TextBlock Classes="label" Text="Title" />
           <TextBox Name="TitleBox" Text="{Binding SourceTitle}" Watermark="e.g. 1880 United States Census"
@@ -89,7 +132,12 @@
         </StackPanel>
 
         <StackPanel>
-          <TextBlock Classes="section" Text="TRANSCRIPT OR EXTRACT" Margin="2,6,0,10" />
+          <Grid ColumnDefinitions="*,Auto" Margin="2,6,0,10">
+            <TextBlock Classes="section" Text="TRANSCRIPT OR EXTRACT" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost accentText" Content="Read from a scan…" Command="{Binding ReadScanCommand}"
+                    IsVisible="{Binding CanReadScan}" ToolTip.Tip="Reads clear print from a picture of the record; it stays on this computer" />
+          </Grid>
+          <TextBlock Classes="muted small" Text="{Binding ScanMessage}" TextWrapping="Wrap" Margin="2,0,0,8" IsVisible="{Binding HasScanMessage}" />
           <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" Height="110"
                    VerticalContentAlignment="Top" Watermark="Copy the exact wording of the record here"
                    AutomationProperties.Name="Transcript" />
